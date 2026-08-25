@@ -31,7 +31,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 )
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dhanrakshak-five.vercel.app'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
+
+/**
+ * ALLOWED_ORIGIN may carry several comma-separated hosts, so a domain move can
+ * serve the old and the new origin at once instead of cutting over in one
+ * breaking step. Same parsing as api/gemini-proxy.ts.
+ */
+const ALLOWED_ORIGINS = ALLOWED_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
 
 // Capped so a typo cannot recreate the hundred-year "lifetime" subscription
 // this whole line of work started with.
@@ -39,8 +46,8 @@ const MAX_GRANT_DAYS = 365
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || ''
-  if (origin === ALLOWED_ORIGIN) {
-    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')

@@ -927,7 +927,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
       {profile?.subscription_status === 'trial' && (
         <div className="bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] text-xs font-semibold py-2.5 px-4 text-center flex flex-col sm:flex-row items-center justify-center gap-1.5 shadow-inner border-b border-[var(--status-warning-border)]">
           <span className="flex items-center gap-1.5 justify-center">
-            <Clock className="h-3.5 w-3.5 shrink-0" /> Dhanrakshak Trial: You have {daysLeft} days remaining of full Pro access.
+            <Clock className="h-3.5 w-3.5 shrink-0" /> Intrack Trial: You have {daysLeft} days remaining of full Pro access.
           </span>
           <Link to="/pricing" className="underline hover:opacity-85 transition-opacity font-bold text-[var(--status-warning-text)] flex items-center gap-1">
             Upgrade Account to Keep Auto-Sync Active <Crown className="h-3 w-3 shrink-0" />
@@ -970,7 +970,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
                 </div>
                 <h3 className="text-lg font-bold text-text-primary">Feedback submitted!</h3>
                 <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
-                  Thank you! Your feedback helps us make Dhanrakshak better.
+                  Thank you! Your feedback helps us make Intrack better.
                 </p>
                 <div className="w-10 h-1 bg-brand-500 rounded-full mt-2" />
               </div>
@@ -1098,7 +1098,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
                 <span className="text-base font-bold text-static-white">{currencySymbol}</span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white leading-tight">Install Dhanrakshak PWA</h4>
+                <h4 className="text-xs font-bold text-white leading-tight">Install Intrack PWA</h4>
                 <p className="text-xs text-zinc-400 mt-0.5 font-medium">Add to your home screen for quick secure access.</p>
               </div>
             </div>

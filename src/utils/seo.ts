@@ -26,7 +26,7 @@
  *
  * Also update the platform URL named in PrivacyPage §1.
  */
-export const SITE_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+export const SITE_ORIGIN = 'https://www.intrack.co.in'
 
 export interface PageMeta {
   /** Full <title>, already including the brand. */

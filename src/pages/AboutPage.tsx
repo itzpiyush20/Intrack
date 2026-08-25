@@ -17,7 +17,7 @@ export default function AboutPage() {
   return (
     <MarketingLayout
       title="About"
-      description="Why Dhanrakshak exists: automatic expense tracking built on read-only Gmail bank alerts, for people who abandon manual expense trackers within two weeks."
+      description="Why Intrack exists: automatic expense tracking built on read-only Gmail bank alerts, for people who abandon manual expense trackers within two weeks."
     >
       {/* Hero */}
       <div className="text-center mb-16">
@@ -43,7 +43,7 @@ export default function AboutPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.25 }}
         >
-          Dhanrakshak was born from a simple frustration — most personal finance apps either cost too much, share your data, or require manual effort that nobody actually does.
+          Intrack was born from a simple frustration — most personal finance apps either cost too much, share your data, or require manual effort that nobody actually does.
         </motion.p>
       </div>
 
@@ -72,12 +72,12 @@ export default function AboutPage() {
 
       {/* The Problem */}
       <section className="mb-12 space-y-6">
-        <h2 data-reveal className="text-xl font-bold text-sb-ink">Why Dhanrakshak Exists</h2>
+        <h2 data-reveal className="text-xl font-bold text-sb-ink">Why Intrack Exists</h2>
         <div className="space-y-4">
           {[
-            { q: 'Existing apps require too much manual input', a: 'Most people abandon expense trackers within 2 weeks because manually entering every transaction is tedious. Dhanrakshak automates this via Gmail bank alerts — the most reliable financial data source you already have.' },
-            { q: 'Bank apps show data, not insight', a: 'Your HDFC or ICICI app tells you what happened. Dhanrakshak tells you what it means — whether you are on track, overspending, or wasting money on subscriptions you forgot about.' },
-            { q: 'Privacy should not be negotiable', a: 'We built Dhanrakshak on a read-only Gmail connection, with Row Level Security on every database table, and zero advertising business model. Your data is yours.' },
+            { q: 'Existing apps require too much manual input', a: 'Most people abandon expense trackers within 2 weeks because manually entering every transaction is tedious. Intrack automates this via Gmail bank alerts — the most reliable financial data source you already have.' },
+            { q: 'Bank apps show data, not insight', a: 'Your HDFC or ICICI app tells you what happened. Intrack tells you what it means — whether you are on track, overspending, or wasting money on subscriptions you forgot about.' },
+            { q: 'Privacy should not be negotiable', a: 'We built Intrack on a read-only Gmail connection, with Row Level Security on every database table, and zero advertising business model. Your data is yours.' },
           ].map((item, i) => (
             <div key={item.q} data-reveal data-delay={String(i * 100)} className="sb-card-light p-6">
               <p className="text-sm font-semibold flex items-start gap-2 text-sb-ink">
@@ -143,7 +143,7 @@ export default function AboutPage() {
       {/* CTA */}
       <div className="text-center sb-card-light p-10 space-y-6">
         <h2 className="text-xl font-bold text-sb-ink">Start Taking Control of Your Finances</h2>
-        <p className="text-sm leading-relaxed text-sb-ink-secondary" style={{ maxWidth: 480, margin: '0 auto' }}>Connect your Gmail and let Dhanrakshak handle the tracking while you focus on the decisions.</p>
+        <p className="text-sm leading-relaxed text-sb-ink-secondary" style={{ maxWidth: 480, margin: '0 auto' }}>Connect your Gmail and let Intrack handle the tracking while you focus on the decisions.</p>
         {/* This used to link to /dashboard unconditionally, so the only call to
             action on the page bounced a signed-out visitor straight back to the
             landing page via ProtectedRoute. */}

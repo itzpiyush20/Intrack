@@ -33,7 +33,7 @@ type TabId = (typeof TABS)[number]['id']
 export default function AdminPage() {
   const [tab, setTab] = useState<TabId>('overview')
 
-  useEffect(() => { document.title = 'Admin | Dhanrakshak' }, [])
+  useEffect(() => { document.title = 'Admin | Intrack' }, [])
 
   return (
     <AppLayout>

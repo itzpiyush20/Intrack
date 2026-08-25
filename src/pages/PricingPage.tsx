@@ -89,8 +89,8 @@ export default function PricingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Pricing & Plans | Dhanrakshak',
-      description: 'Dhanrakshak costs ₹31 for 30 days or ₹365 for a year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
+      title: 'Pricing & Plans | Intrack',
+      description: 'Intrack costs ₹31 for 30 days or ₹365 for a year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
       canonicalPath: '/pricing',
     })
   }, [])
@@ -159,7 +159,7 @@ export default function PricingPage() {
       const options = {
         key: clientKey,
         amount: orderData.amount, currency: orderData.currency,
-        name: 'Dhanrakshak', description: `Upgrade to ${planName} Plan`,
+        name: 'Intrack', description: `Upgrade to ${planName} Plan`,
         order_id: orderData.id,
         prefill: { name: profile?.full_name || '', email: user.email || '' },
         theme: { color: '#0e7a5d' },
@@ -769,10 +769,10 @@ export default function PricingPage() {
         <div className="border-t border-border-subtle py-16 animate-fade-in">
           <div className="mx-auto max-w-7xl">
             <div className="text-center max-w-xl mx-auto mb-12 space-y-4">
-              <span className="inline-flex items-center bg-surface-1 border border-border-subtle px-3 py-1 rounded-full text-xs font-semibold text-zinc-400 uppercase tracking-widest">The Dhanrakshak Standard</span>
+              <span className="inline-flex items-center bg-surface-1 border border-border-subtle px-3 py-1 rounded-full text-xs font-semibold text-zinc-400 uppercase tracking-widest">The Intrack Standard</span>
               <h2 className="text-3xl font-extrabold text-sb-ink tracking-tight">Built on Privacy & Local Isolation</h2>
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                We believe your banking transcripts are private. Dhanrakshak is designed from the ground up to prevent data brokerage.
+                We believe your banking transcripts are private. Intrack is designed from the ground up to prevent data brokerage.
               </p>
             </div>
             

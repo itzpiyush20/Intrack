@@ -53,7 +53,7 @@ function makeReq(planType: string): VercelRequest {
   return {
     method: 'POST',
     headers: {
-      origin: 'https://dhanrakshak-five.vercel.app',
+      origin: 'https://www.intrack.co.in',
       authorization: 'Bearer mock-valid-jwt',
       // Distinct per test so the module-level IP rate limiter (5/min) cannot
       // leak between cases and turn a real assertion into a 429.
@@ -152,7 +152,7 @@ function daysFromNow(iso: string): number {
 describe('api/verify-payment — plan binding', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://www.intrack.co.in'
     process.env.RAZORPAY_KEY_SECRET = KEY_SECRET
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     // The order as Razorpay holds it: a PAID MONTHLY order for user-1.
@@ -261,7 +261,7 @@ describe('api/verify-payment — plan binding', () => {
 describe('api/verify-payment — renewal extends, and only once per order', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://www.intrack.co.in'
     process.env.RAZORPAY_KEY_SECRET = KEY_SECRET
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockFetch.mockResolvedValue({
@@ -322,7 +322,7 @@ describe('api/verify-payment — renewal extends, and only once per order', () =
 describe('api/verify-payment — outcomes other than immediate activation', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://www.intrack.co.in'
     process.env.RAZORPAY_KEY_SECRET = KEY_SECRET
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockFetch.mockResolvedValue({

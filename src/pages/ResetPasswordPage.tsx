@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    document.title = 'Reset Password | Dhanrakshak'
+    document.title = 'Reset Password | Intrack'
   }, [])
 
   const handleSubmit = async (e: FormEvent) => {

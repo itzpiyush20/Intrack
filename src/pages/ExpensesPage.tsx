@@ -63,7 +63,7 @@ export default function ExpensesPage() {
   }, [dateFilter])
 
   useEffect(() => {
-    document.title = 'Expenses | Dhanrakshak'
+    document.title = 'Expenses | Intrack'
     fetchTransactions()
   }, [fetchTransactions])
 

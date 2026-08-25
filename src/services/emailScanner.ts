@@ -1,5 +1,5 @@
 // ============================================
-// Email Scanner Service V2 — Dhanrakshak
+// Email Scanner Service V2 — Intrack
 // 5-Layer Financial Intelligence Engine
 // Priority: Accuracy > Speed > Coverage
 // ============================================

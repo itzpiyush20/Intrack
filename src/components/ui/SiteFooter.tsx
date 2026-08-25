@@ -4,8 +4,8 @@
 // There were three, and a visitor crossing between public pages saw all of
 // them:
 //
-//   LandingPage       "© 2026 Dhanrakshak. Built with privacy by design."
-//   MarketingLayout   "© 2026 Dhanrakshak. Your Personal CFO."
+//   LandingPage       "© 2026 Intrack. Built with privacy by design."
+//   MarketingLayout   "© 2026 Intrack. Your Personal CFO."
 //   AppLayout         "© 2026 · Version 1.0.0 (Production Build) ·
 //                      Proprietary Closed-Source License"
 //
@@ -71,7 +71,7 @@ export default function SiteFooter({
           )}
           {/* One tagline, everywhere. */}
           <p className={cn('text-xs', muted)}>
-            © {year} Dhanrakshak · Built with privacy by design.
+            © {year} Intrack · Built with privacy by design.
           </p>
         </div>
 

@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <MarketingLayout
       title="Terms of Service"
-      description="The terms governing your use of Dhanrakshak, covering Gmail scanning, the 7-day trial, one-time subscription payments, and limitations of liability."
+      description="The terms governing your use of Intrack, covering Gmail scanning, the 7-day trial, one-time subscription payments, and limitations of liability."
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Terms of Service</h1>
@@ -19,13 +19,13 @@ export default function TermsPage() {
 
         <section>
           <div className="sb-card-light p-5 mb-8 leading-relaxed text-sb-ink-secondary">
-            Please read these Terms of Service ("Terms") carefully before using Dhanrakshak (the "Service" or "App").
-            By signing up for or using Dhanrakshak, you agree to be bound by these Terms and our Privacy Policy.
+            Please read these Terms of Service ("Terms") carefully before using Intrack (the "Service" or "App").
+            By signing up for or using Intrack, you agree to be bound by these Terms and our Privacy Policy.
           </div>
         </section>
 
         {section("1. The Service", `
-          Dhanrakshak is a personal financial intelligence platform designed to parse bank transactions, help users monitor expenses, maintain budgets, and receive financial forecasts.
+          Intrack is a personal financial intelligence platform designed to parse bank transactions, help users monitor expenses, maintain budgets, and receive financial forecasts.
           
           The Service is provided "as is" and "as available". We do not guarantee that the Service will always be uninterrupted, timely, secure, or free from error.
         `)}
@@ -39,7 +39,7 @@ export default function TermsPage() {
 
         {section("3. Email Tracking & Google API Data", `
           If you connect your Google Account (Gmail) to allow the email scanner engine to scan and extract transactions:
-          - You explicitly grant Dhanrakshak permission to search your inbox for financial transaction alerts and to read and parse the messages that search returns.
+          - You explicitly grant Intrack permission to search your inbox for financial transaction alerts and to read and parse the messages that search returns.
           - Deciding whether a message is a genuine transaction requires reading it. The scanner therefore reads the subject and the first part of the body of every message its search matches — which necessarily includes some that turn out to be newsletters, promotions or other non-financial mail. Those are discarded rather than saved. We do not claim to read only transactional email; we claim to KEEP only transactional email.
           - Parsing uses a combination of client-side pattern matching and Google's own Gemini AI, reached through a server-side proxy we operate so that the API credentials never reach your browser. That text passes through the proxy in real time, is not logged or retained by us, and is never used to train any model.
           - One narrow exception, described in full in the Privacy Policy: when the scanner REJECTS a message, we retain the sender's domain, the subject line and an extract of up to 200 characters, deleted automatically after 30 days, so a transaction you report as missing can be traced to the reason it was skipped.
@@ -47,11 +47,11 @@ export default function TermsPage() {
         `)}
 
         {section("4. Subscriptions, Trials & Billing", `
-          Dhanrakshak offers subscription plans to access advanced automated tracking features:
+          Intrack offers subscription plans to access advanced automated tracking features:
           - 7-Day Free Trial: New users receive 7 days of free trial access starting from registration. During the trial period, the service gives full Pro access, including automated Gmail scanning and manual entries. Access will be limited or locked after the trial period ends unless upgraded to a subscription plan.
           - Paid Plans: Users can choose the Monthly plan (₹31 for 30 days) or the Yearly plan (₹365 for 365 days) to unlock full background and manual Gmail inbox synchronization.
           - Billing: All payments are processed securely via Razorpay, a licensed payment gateway. Every plan is a ONE-TIME payment for a fixed period. Nothing renews automatically, no mandate is placed on your card, and you are never charged again without making a new purchase.
-          - Cancellation: Because nothing recurs, there is no cancellation step and no cancellation fee. Access runs to the end of the period you paid for and then stops. Dhanrakshak does not offer refunds for unused portions of a period; see the Refund Policy for the limited cases in which a refund is available.
+          - Cancellation: Because nothing recurs, there is no cancellation step and no cancellation fee. Access runs to the end of the period you paid for and then stops. Intrack does not offer refunds for unused portions of a period; see the Refund Policy for the limited cases in which a refund is available.
         `)}
 
         {section("5. Prohibited Uses", `
@@ -62,9 +62,9 @@ export default function TermsPage() {
         `)}
 
         {section("6. Limitations of Liability", `
-          Dhanrakshak is a financial tool, not a financial advisor. All insights, cash flow forecasts, and subscription lists are provided for informational purposes only.
+          Intrack is a financial tool, not a financial advisor. All insights, cash flow forecasts, and subscription lists are provided for informational purposes only.
           - We are not liable for any financial decisions, loss of money, or investment decisions you make based on data displayed in the app.
-          - Under no circumstances shall Dhanrakshak or its creator be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the Service.
+          - Under no circumstances shall Intrack or its creator be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the Service.
         `)}
 
         {section("7. Data Ownership & Rights", `

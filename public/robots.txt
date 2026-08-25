@@ -1,4 +1,4 @@
-# Dhanrakshak — crawl rules
+# Intrack — crawl rules
 #
 # The Sitemap URL below hardcodes the site origin. On a domain move, update it
 # together with the other three places listed in src/utils/seo.ts.
@@ -30,4 +30,4 @@ Disallow: /forgot-password
 # Auth modal deep links resolve to a page already listed in the sitemap.
 Disallow: /*?auth=
 
-Sitemap: https://dhanrakshak-five.vercel.app/sitemap.xml
+Sitemap: https://www.intrack.co.in/sitemap.xml

@@ -101,7 +101,7 @@ export default function BudgetsPage() {
   }, [ccBillCategories])
 
   useEffect(() => {
-    document.title = 'Budgets | Dhanrakshak'
+    document.title = 'Budgets | Intrack'
     fetchBudgetData(dateFilter)
   }, [dateFilter, fetchBudgetData])
 

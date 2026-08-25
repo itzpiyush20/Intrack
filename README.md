@@ -1,4 +1,4 @@
-# Dhanrakshak — Personal Finance Dashboard
+# Intrack — Personal Finance Dashboard
 
 > Automated, privacy-first personal wealth guardian. Scans bank email alerts to track daily expenses with zero manual entry and 100% data ownership.
 
@@ -6,7 +6,7 @@
 
 ## What It Does
 
-Dhanrakshak connects to a user's Gmail inbox (read-only) and automatically extracts debit/credit transactions from bank alert emails. All parsing happens client-side in the browser — no email content is stored on the server. Users can review, approve, or reject detected transactions before they hit the ledger.
+Intrack connects to a user's Gmail inbox (read-only) and automatically extracts debit/credit transactions from bank alert emails. All parsing happens client-side in the browser — no email content is stored on the server. Users can review, approve, or reject detected transactions before they hit the ledger.
 
 **Key features:**
 - Automatic bank email scanning (HDFC, ICICI, SBI, Axis, Kotak, and 30+ banks)

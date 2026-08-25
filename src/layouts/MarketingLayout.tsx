@@ -16,7 +16,7 @@ interface MarketingLayoutProps {
 
 export default function MarketingLayout({ children, title, description }: MarketingLayoutProps) {
   useEffect(() => {
-    const fullTitle = `${title} | Dhanrakshak`
+    const fullTitle = `${title} | Intrack`
     if (description) setPageMeta({ title: fullTitle, description })
     else document.title = fullTitle
     window.scrollTo(0, 0)

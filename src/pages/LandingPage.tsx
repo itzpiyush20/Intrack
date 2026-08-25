@@ -80,8 +80,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Dhanrakshak | Expenses that track themselves.',
-      description: "Connect Gmail once and Dhanrakshak turns your bank's transaction alert emails into expenses you approve. Read-only access, every Indian bank and UPI app, free 7-day trial.",
+      title: 'Intrack | Expenses that track themselves.',
+      description: "Connect Gmail once and Intrack turns your bank's transaction alert emails into expenses you approve. Read-only access, every Indian bank and UPI app, free 7-day trial.",
       canonicalPath: '/',
     })
     // Arriving at /#features from another page must land on that section, not
@@ -149,7 +149,7 @@ export default function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                   className="text-lg text-sb-ink-secondary leading-relaxed max-w-md min-h-[3.5rem]"
                 >
-                  Dhanrakshak reads your bank's transaction emails automatically and logs all your{" "}
+                  Intrack reads your bank's transaction emails automatically and logs all your{" "}
                   <span className="inline-flex relative min-w-[135px] overflow-hidden align-baseline font-semibold text-brand-400">
                     <AnimatePresence mode="wait">
                       <motion.span
@@ -240,7 +240,7 @@ export default function LandingPage() {
             {/* Naming 15 banks and payment apps with no qualifier reads as an
                 endorsement none of them have given. */}
             <p className="text-xs text-sb-ink-muted/80 mb-5 max-w-xl mx-auto leading-relaxed">
-              Dhanrakshak reads the alert emails these providers send you. It is not affiliated with,
+              Intrack reads the alert emails these providers send you. It is not affiliated with,
               endorsed by, or partnered with any of them, and all names and marks belong to their owners.
             </p>
             <div className="marquee-container select-none">
@@ -373,7 +373,7 @@ export default function LandingPage() {
                 On your phone<br />in <span className="text-sb-primary">60 seconds.</span>
               </h2>
               <p className="text-sb-ink-secondary leading-relaxed">
-                Dhanrakshak is a Progressive Web App. No App Store, no APK, no Play Store approvals. Just open the website and install it to your home screen.
+                Intrack is a Progressive Web App. No App Store, no APK, no Play Store approvals. Just open the website and install it to your home screen.
               </p>
               <div className="space-y-3">
                 {[

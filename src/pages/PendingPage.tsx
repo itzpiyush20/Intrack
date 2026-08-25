@@ -447,7 +447,7 @@ export default function PendingPage() {
   }, [fetchPendingData, fetchLastScanLog, fetchUnconfirmedCategorizations])
 
   useEffect(() => {
-    document.title = 'Pending Alerts | Dhanrakshak'
+    document.title = 'Pending Alerts | Intrack'
     fetchPendingData()
     fetchLastScanLog()
     fetchUnconfirmedCategorizations()
@@ -923,7 +923,7 @@ export default function PendingPage() {
             <div>
               <h2 className="text-lg font-bold text-white">Email Scanning is a Premium Feature</h2>
               <p className="text-sm text-zinc-400 mt-1.5 max-w-md">
-                Automatically capture transactions from your Gmail inbox. Upgrade to Premium to scan your bank alerts and let Dhanrakshak do the work.
+                Automatically capture transactions from your Gmail inbox. Upgrade to Premium to scan your bank alerts and let Intrack do the work.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
@@ -1194,7 +1194,7 @@ export default function PendingPage() {
               <div>
                 <p className="font-bold text-white">Connect Gmail to Enable Live Scanning</p>
                 <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                  Link your Gmail inbox to allow Dhanrakshak to read your bank alert emails and auto-detect transactions.{' '}
+                  Link your Gmail inbox to allow Intrack to read your bank alert emails and auto-detect transactions.{' '}
                   {profile?.subscription_status === 'trial'
                     ? '(Trial account active)'
                     : profile?.subscription_plan_type === 'monthly'

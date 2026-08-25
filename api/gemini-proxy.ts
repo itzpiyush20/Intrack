@@ -53,7 +53,7 @@ function isRateLimited(ip: string): boolean {
   return false
 }
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dhanrakshak-five.vercel.app'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
 
 /** ALLOWED_ORIGIN may carry several comma-separated hosts (preview deploys, a custom domain). */
 const ALLOWED_ORIGINS = ALLOWED_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)

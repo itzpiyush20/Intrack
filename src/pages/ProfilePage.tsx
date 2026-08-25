@@ -42,7 +42,7 @@ export default function ProfilePage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
-    document.title = 'Security Profile | Dhanrakshak'
+    document.title = 'Security Profile | Intrack'
     // Load fresh profile details
     getProfile().then(({ data }) => {
       if (data) {
@@ -158,7 +158,7 @@ export default function ProfilePage() {
         deleteErr
           ? 'Account data wiped. You are being signed out.'
           : method === 'rpc'
-            ? 'Your account and all data have been deleted. Thank you for using Dhanrakshak.'
+            ? 'Your account and all data have been deleted. Thank you for using Intrack.'
             : 'Account data deleted. You have been signed out.',
         'success'
       )
