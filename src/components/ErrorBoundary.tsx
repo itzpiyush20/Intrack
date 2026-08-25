@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
     // Log to console in dev; send to Sentry in production
-    console.error('[Dhanrakshak] Unhandled render error:', error, info.componentStack)
+    console.error('[Intrack] Unhandled render error:', error, info.componentStack)
 
     // Stale chunk after a new deploy: React.lazy()'s dynamic import() rejects because the
     // old hashed chunk filename no longer exists on the server. A plain "Try Again" re-render
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="text-5xl mb-4">⚠️</div>
             <h1 className="text-xl font-bold text-white mb-2">Something went wrong</h1>
             <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
-              Dhanrakshak encountered an unexpected error. Your data is safe — this is a display issue only.
+              Intrack encountered an unexpected error. Your data is safe — this is a display issue only.
             </p>
             {this.state.error && (
               <pre className="text-left text-xs text-[var(--status-danger-text)] bg-zinc-950 rounded-xl p-3 mb-6 overflow-auto max-h-32 border border-[var(--status-danger-border)]">

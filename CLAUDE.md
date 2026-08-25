@@ -1,4 +1,4 @@
-# Dhanrakshak
+# Intrack
 
 Personal-finance / expense tracker for the Indian market (INR, dd/mm/yyyy). React +
 TypeScript + Vite, Supabase (Postgres + auth), Vercel serverless functions under `api/`,

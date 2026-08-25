@@ -1,6 +1,6 @@
-# Dhanrakshak Mobile App Packaging Guide (Capacitor)
+# Intrack Mobile App Packaging Guide (Capacitor)
 
-Dhanrakshak is configured with **Capacitor** by Ionic, allowing you to package the React/Vite/TypeScript web application into a native Android application (APK) and an iOS application (IPA/Xcode).
+Intrack is configured with **Capacitor** by Ionic, allowing you to package the React/Vite/TypeScript web application into a native Android application (APK) and an iOS application (IPA/Xcode).
 
 ---
 
@@ -53,7 +53,7 @@ npx cap sync
 3. **Build the Unsigned APK (for testing)**:
    - In Android Studio, go to the top menu: **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
    - Once completed, a notification bubble will appear in the bottom-right corner saying "APK(s) generated successfully".
-   - Click the **locate** link in that notification to open the folder containing `app-debug.apk`. You can rename this to `dhanrakshak.apk` and transfer it to any Android device to install.
+   - Click the **locate** link in that notification to open the folder containing `app-debug.apk`. You can rename this to `intrack.apk` and transfer it to any Android device to install.
 
 4. **Build the Release/Signed APK (for distribution/Play Store)**:
    - Go to **Build > Generate Signed Bundle / APK...**
@@ -76,7 +76,7 @@ npx cap sync
    - Go to the **Signing & Capabilities** tab.
    - Check **Automatically manage signing**.
    - Select your developer **Team** (create a free Apple Developer personal account if you don't have one).
-   - Bundle Identifier is preset to `com.dhanrakshak.app`.
+   - Bundle Identifier is preset to `com.intrack.app`.
 
 3. **Run on Simulator or Physical Device**:
    - Select your target device (e.g. an iPhone Simulator or your plugged-in iPhone) from the top device selector.

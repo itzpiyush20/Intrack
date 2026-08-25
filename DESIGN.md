@@ -1,6 +1,6 @@
 # Design
 
-Visual system for Dhanrakshak — "Calm & Trustworthy". Source of truth is
+Visual system for Intrack — "Calm & Trustworthy". Source of truth is
 `src/index.css` (CSS custom properties + Tailwind v4 `@theme`). This file is the
 human summary; tokens in `index.css` win if they ever diverge.
 

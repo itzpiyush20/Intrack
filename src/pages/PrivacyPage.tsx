@@ -9,7 +9,7 @@ export default function PrivacyPage() {
   return (
     <MarketingLayout
       title="Privacy Policy"
-      description="How Dhanrakshak handles your data: read-only Gmail access, what is kept and what is discarded, where it is stored, and your rights under India's DPDPA 2023."
+      description="How Intrack handles your data: read-only Gmail access, what is kept and what is discarded, where it is stored, and your rights under India's DPDPA 2023."
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Privacy Policy</h1>
@@ -22,13 +22,13 @@ export default function PrivacyPage() {
         <section>
           <div className="rounded-[12px] bg-brand-500/10 border border-brand-500/20 p-5 mb-8">
             <p className="text-sm leading-relaxed text-sb-ink-secondary">
-              <strong className="text-sb-ink">Our commitment:</strong> Dhanrakshak is built on a foundation of trust. We never sell your financial data, never store your banking passwords, and never share your personal information with advertisers. Your financial data belongs to you — always.
+              <strong className="text-sb-ink">Our commitment:</strong> Intrack is built on a foundation of trust. We never sell your financial data, never store your banking passwords, and never share your personal information with advertisers. Your financial data belongs to you — always.
             </p>
           </div>
         </section>
 
         {section("1. Who We Are", `
-          Dhanrakshak ("we", "us", "our") is a personal financial intelligence platform operated by its founder. The platform is accessible at dhanrakshak-five.vercel.app and any associated domains.
+          Intrack ("we", "us", "our") is a personal financial intelligence platform operated by its founder. The platform is accessible at www.intrack.co.in and any associated domains.
 
           For privacy-related queries, contact us via the in-app Support page.
         `)}
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
         `)}
 
         {section("8. Children's Privacy", `
-          Dhanrakshak is not intended for children under 18. We do not knowingly collect data from minors. If you believe a minor has created an account, please contact us and we will delete it.
+          Intrack is not intended for children under 18. We do not knowingly collect data from minors. If you believe a minor has created an account, please contact us and we will delete it.
         `)}
 
         {section("9. Changes to This Policy", `
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
         `)}
 
         {section("10. Google API Services Disclosure", `
-          Dhanrakshak's use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements.
+          Intrack's use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements.
 
           Specifically:
           • We access your Gmail inbox only to read transaction alert emails from banking institutions.

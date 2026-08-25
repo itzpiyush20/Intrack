@@ -1,6 +1,6 @@
-# Dhanrakshak — Transfer & Handover Guide
+# Intrack — Transfer & Handover Guide
 
-This document covers everything a new owner needs to take full control of the Dhanrakshak codebase and all connected services.
+This document covers everything a new owner needs to take full control of the Intrack codebase and all connected services.
 
 ---
 

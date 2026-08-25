@@ -1,6 +1,6 @@
 {
-  "short_name": "Dhanrakshak",
-  "name": "Dhanrakshak — Personal Finance Tracker",
+  "short_name": "Intrack",
+  "name": "Intrack — Personal Finance Tracker",
   "description": "Turns your bank's transaction alert emails into expenses you approve. Read-only Gmail access, every Indian bank and UPI app.",
   "icons": [
     {

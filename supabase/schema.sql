@@ -1,5 +1,5 @@
 -- ============================================
--- Dhanrakshak — Database Schema
+-- Intrack — Database Schema
 -- Run this in Supabase SQL Editor
 -- ============================================
 

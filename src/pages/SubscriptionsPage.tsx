@@ -106,7 +106,7 @@ export default function SubscriptionsPage() {
   }
 
   useEffect(() => {
-    document.title = 'Subscriptions | Dhanrakshak'
+    document.title = 'Subscriptions | Intrack'
     fetchData()
   }, [])
 

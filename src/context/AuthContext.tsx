@@ -898,7 +898,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 guarantee the client cannot make. */}
             <h1 className="text-xl font-bold text-white mt-4">Too Many Signed-In Devices</h1>
             <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-              Dhanrakshak keeps your account to <strong>2 devices</strong> at a time. To use this one, pick at least one device to sign out:
+              Intrack keeps your account to <strong>2 devices</strong> at a time. To use this one, pick at least one device to sign out:
             </p>
           </div>
 

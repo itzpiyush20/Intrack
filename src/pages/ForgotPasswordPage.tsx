@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth()
 
   useEffect(() => {
-    document.title = 'Forgot Password | Dhanrakshak'
+    document.title = 'Forgot Password | Intrack'
   }, [])
 
   const [email, setEmail] = useState('')

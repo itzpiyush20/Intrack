@@ -305,7 +305,16 @@
       "Bash(git commit -q -m 'feat: coupons are for first-time users only, once per account *)",
       "Bash(sed -n '/CREATE TABLE IF NOT EXISTS public.feedback/,/\\);/p' supabase/024_feedback_table.sql)",
       "Bash(sed -n '/CREATE TABLE IF NOT EXISTS public.support_tickets/,/\\);/p' supabase/031_support_tickets.sql)",
-      "Bash(git commit -q -m 'feat: account deletion now erases the person, not just the account *)"
+      "Bash(git commit -q -m 'feat: account deletion now erases the person, not just the account *)",
+      "Bash(grep -n \"gemini-proxy\\\\|fetch\\('/api\\\\|fetch\\(\\\\`/api\" src/services/aiService.ts src/services/emailScanner.ts)",
+      "Bash(grep -rniE \"never upload|not uploaded|nothing is uploaded|stays on your device|leaves? your device|leaves your control|local processing|processed .{0,20}locally|stored locally on this device|offline desk\" src/ api/ index.html public/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" http://localhost:5173/robots.txt)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" http://localhost:5173/sitemap.xml)",
+      "Bash(curl -s http://localhost:5173/sitemap.xml)",
+      "Bash(python -c \"import sys,xml.dom.minidom as m; d=m.parseString\\(sys.stdin.read\\(\\)\\); print\\('valid XML,', len\\(d.getElementsByTagName\\('url'\\)\\), 'urls'\\)\")",
+      "Bash(node -p \"require\\('./package.json'\\).dependencies['framer-motion']\")",
+      "Bash(grep -v \"// \")",
+      "Bash(node -p \"JSON.stringify\\(require\\('./package.json'\\).scripts,null,1\\)\")"
     ]
   }
 }

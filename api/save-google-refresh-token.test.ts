@@ -31,13 +31,13 @@ function makeRes() {
 describe('api/save-google-refresh-token', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://www.intrack.co.in'
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co'
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
   })
 
   it('rejects requests with no Authorization header', async () => {
-    const req = { method: 'POST', headers: { origin: 'https://dhanrakshak-five.vercel.app' }, body: { refreshToken: 'rt' } } as unknown as VercelRequest
+    const req = { method: 'POST', headers: { origin: 'https://www.intrack.co.in' }, body: { refreshToken: 'rt' } } as unknown as VercelRequest
     const { res, getStatus } = makeRes()
     await handler(req, res)
     expect(getStatus()).toBe(401)
@@ -46,7 +46,7 @@ describe('api/save-google-refresh-token', () => {
   it('rejects requests missing refreshToken', async () => {
     const req = {
       method: 'POST',
-      headers: { origin: 'https://dhanrakshak-five.vercel.app', authorization: 'Bearer jwt' },
+      headers: { origin: 'https://www.intrack.co.in', authorization: 'Bearer jwt' },
       body: {},
     } as unknown as VercelRequest
     const { res, getStatus } = makeRes()
@@ -60,7 +60,7 @@ describe('api/save-google-refresh-token', () => {
 
     const req = {
       method: 'POST',
-      headers: { origin: 'https://dhanrakshak-five.vercel.app', authorization: 'Bearer valid-jwt' },
+      headers: { origin: 'https://www.intrack.co.in', authorization: 'Bearer valid-jwt' },
       body: { refreshToken: 'the-refresh-token' },
     } as unknown as VercelRequest
     const { res, getStatus, getJson } = makeRes()

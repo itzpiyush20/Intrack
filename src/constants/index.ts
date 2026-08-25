@@ -65,7 +65,7 @@ export const FOOTER_NAV_ITEMS = [
 
 /** App-level config */
 export const APP_CONFIG = {
-  APP_NAME: 'Dhanrakshak',
+  APP_NAME: 'Intrack',
   APP_TAGLINE: 'Effortless Tracking. Smart Saving.',
   CURRENCY: 'INR',
   LOCALE: 'en-IN',
@@ -86,7 +86,7 @@ export const APP_CONFIG = {
   // TODO(owner): DPDPA 2023 §13 expects a contactable individual, not a team
   // alias. Replace with the responsible person's name before relying on this
   // for a grievance response.
-  SUPPORT_NAME: 'Dhanrakshak Support',
+  SUPPORT_NAME: 'Intrack Support',
   SUPPORT_DESIGNATION: 'Data Protection Officer & Grievance Officer',
   SUPPORT_ADDRESS: 'Jaipur, Rajasthan, India',
 } as const
@@ -100,18 +100,18 @@ export interface FaqItem {
 /** Unified single source of truth for FAQs across Landing Page & Support Center */
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: 'How does Dhanrakshak detect what I spent?',
-    a: 'Connect your Gmail inbox once and Dhanrakshak automatically reads bank transaction alert emails with AI, extracting the merchant, amount, and category without manual typing. You can also log any expense manually in seconds.',
+    q: 'How does Intrack detect what I spent?',
+    a: 'Connect your Gmail inbox once and Intrack automatically reads bank transaction alert emails with AI, extracting the merchant, amount, and category without manual typing. You can also log any expense manually in seconds.',
     category: 'scanning',
   },
   {
     q: 'Can the app see my bank passwords, PINs, or move money?',
-    a: 'Absolutely not. Dhanrakshak is completely read-only. We never request, store, or touch net-banking credentials, PINs, card numbers, CVVs, or OTPs. We cannot initiate transfers or move your money in any way.',
+    a: 'Absolutely not. Intrack is completely read-only. We never request, store, or touch net-banking credentials, PINs, card numbers, CVVs, or OTPs. We cannot initiate transfers or move your money in any way.',
     category: 'security',
   },
   {
-    q: 'Does Dhanrakshak read my SMSes or non-financial emails?',
-    a: 'Never your SMS inbox — Dhanrakshak has no access to it at all. Detection works strictly through your authorised Gmail connection, and only on messages a financial-keyword search returns (NEFT, RTGS, UPI, card debits and the like). Judging whether one of those is a real transaction means reading its subject and the start of its body, so some newsletters and promotions caught by that search do get read — they are then discarded, never saved as transactions.',
+    q: 'Does Intrack read my SMSes or non-financial emails?',
+    a: 'Never your SMS inbox — Intrack has no access to it at all. Detection works strictly through your authorised Gmail connection, and only on messages a financial-keyword search returns (NEFT, RTGS, UPI, card debits and the like). Judging whether one of those is a real transaction means reading its subject and the start of its body, so some newsletters and promotions caught by that search do get read — they are then discarded, never saved as transactions.',
     category: 'security',
   },
   {

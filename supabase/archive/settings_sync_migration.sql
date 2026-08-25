@@ -1,5 +1,5 @@
 -- ============================================
--- Dhanrakshak — Cross-Device Settings Sync Migration
+-- Intrack — Cross-Device Settings Sync Migration
 -- Run this in Supabase SQL Editor to add settings columns
 -- ============================================
 

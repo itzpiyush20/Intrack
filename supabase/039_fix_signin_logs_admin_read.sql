@@ -15,7 +15,7 @@
 -- names, to anybody whose JWT email ends in @dhanrakshak.in.
 --
 -- The app does not run on dhanrakshak.in — it is served from
--- dhanrakshak-five.vercel.app — and the owner confirmed on 2026-08-20 that
+-- www.intrack.co.in — and the owner confirmed on 2026-08-20 that
 -- support@dhanrakshak.in was never a live mailbox. If the domain is
 -- unregistered, the attack is: register it, sign up with any address there,
 -- confirm the verification mail, sign in, then SELECT the table using the anon

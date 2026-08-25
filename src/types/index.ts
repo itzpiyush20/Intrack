@@ -1,5 +1,5 @@
 // ============================================
-// Dhanrakshak — Core Type Definitions
+// Intrack — Core Type Definitions
 // ============================================
 
 export type TransactionType = 'debit' | 'credit'

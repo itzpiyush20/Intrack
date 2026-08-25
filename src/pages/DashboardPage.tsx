@@ -375,7 +375,7 @@ export default function DashboardPage() {
   }, [user, dateFilter, fetchDashboardData])
 
   useEffect(() => {
-    document.title = 'Dashboard | Dhanrakshak'
+    document.title = 'Dashboard | Intrack'
     fetchDashboardData(dateFilter)
     // One-time migration of localStorage merchant rules to Supabase DB
     if (user && !sessionStorage.getItem('dhanrakshak_ls_migration_done')) {
@@ -729,7 +729,7 @@ export default function DashboardPage() {
               <X className="h-4 w-4" />
             </button>
             <h2 className="text-sm font-bold text-text-primary">Get set up in 3 steps</h2>
-            <p className="text-xs text-zinc-500 mt-0.5 mb-4">A quick tour of what makes Dhanrakshak useful.</p>
+            <p className="text-xs text-zinc-500 mt-0.5 mb-4">A quick tour of what makes Intrack useful.</p>
             <div className="space-y-3">
               {[
                 {
@@ -784,7 +784,7 @@ export default function DashboardPage() {
           <div role="note" className="rounded-2xl border border-border-subtle bg-surface-1 p-4 text-sm animate-fade-in">
             <p className="font-semibold text-zinc-200">Also spent in other currencies</p>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Not included in the totals above — Dhanrakshak does not convert between currencies.
+              Not included in the totals above — Intrack does not convert between currencies.
             </p>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
               {Object.entries(summary.other_currency_totals).map(([code, totals]) => (

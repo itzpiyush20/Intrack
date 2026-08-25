@@ -458,7 +458,7 @@ export default function InsightsPage() {
   }, [])
 
   useEffect(() => {
-    document.title = 'Insights | Dhanrakshak'
+    document.title = 'Insights | Intrack'
     fetchAllData()
   }, [fetchAllData])
 

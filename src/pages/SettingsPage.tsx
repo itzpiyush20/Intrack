@@ -231,11 +231,11 @@ export default function SettingsPage() {
           .join('\n')
         content = `${header}\n${body}`
         mimeType = 'text/csv;charset=utf-8;'
-        filename = `Dhanrakshak_Transactions_${rangeLabel}.csv`
+        filename = `Intrack_Transactions_${rangeLabel}.csv`
       } else {
         content = JSON.stringify(rows, null, 2)
         mimeType = 'application/json;charset=utf-8;'
-        filename = `Dhanrakshak_Transactions_${rangeLabel}.json`
+        filename = `Intrack_Transactions_${rangeLabel}.json`
       }
 
       const blob = new Blob([content], { type: mimeType })
@@ -279,7 +279,7 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    document.title = 'Settings | Dhanrakshak'
+    document.title = 'Settings | Intrack'
     if (user) {
       // Migrate and then load
       migrateLocalStorageRulesToDB(user.id).finally(() => {
@@ -441,7 +441,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.setAttribute('href', url)
-      link.setAttribute('download', `Dhanrakshak_Encrypted_Backup_${toISODateLocal(new Date())}.drbak`)
+      link.setAttribute('download', `Intrack_Encrypted_Backup_${toISODateLocal(new Date())}.drbak`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -609,7 +609,7 @@ export default function SettingsPage() {
                 <span>Smart Merchant Rules</span>
               </h2>
               <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Rules learned from your manual approvals. Dhanrakshak automatically categorizes subsequent transactions and auto-approves them when confidence is high.
+                Rules learned from your manual approvals. Intrack automatically categorizes subsequent transactions and auto-approves them when confidence is high.
               </p>
 
               {/* Inline Rule Creator Form */}
@@ -813,7 +813,7 @@ export default function SettingsPage() {
               {hasGoogleToken ? (
                 <>
                   <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                    Dhanrakshak can read bank transaction alerts from your Gmail to log expenses
+                    Intrack can read bank transaction alerts from your Gmail to log expenses
                     automatically. Disconnecting revokes our access at Google immediately and stops
                     all scheduled scans. Your already-imported transactions stay untouched.
                   </p>
@@ -829,7 +829,7 @@ export default function SettingsPage() {
                 </>
               ) : (
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Gmail is not connected. Dhanrakshak has no access to your inbox. You can connect it
+                  Gmail is not connected. Intrack has no access to your inbox. You can connect it
                   from the Pending Alerts page to import bank transaction emails automatically.
                 </p>
               )}

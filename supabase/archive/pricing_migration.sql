@@ -1,5 +1,5 @@
 -- ============================================
--- Dhanrakshak — Pricing & Trial Migration
+-- Intrack — Pricing & Trial Migration
 -- Run this in Supabase SQL Editor to add trial gating
 -- ============================================
 

@@ -35,8 +35,8 @@ export default function SupportPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Support & Privacy | Dhanrakshak',
-      description: 'Get help with Dhanrakshak: file a support ticket, browse FAQs about Gmail scanning and billing, and read our privacy, OAuth scope and DPDPA commitments.',
+      title: 'Support & Privacy | Intrack',
+      description: 'Get help with Intrack: file a support ticket, browse FAQs about Gmail scanning and billing, and read our privacy, OAuth scope and DPDPA commitments.',
       canonicalPath: '/support',
     })
   }, [])
@@ -229,7 +229,7 @@ export default function SupportPage() {
                         3. Google API Services Compliance (Limited Use)
                       </h3>
                       <p>
-                        Dhanrakshak's use and transfer of information received from Google APIs to any other app will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">Google API Services User Data Policy</a>, including the Limited Use requirements. We do not store raw emails on our servers, nor do we sell or use your Google data for advertisements or AI model training.
+                        Intrack's use and transfer of information received from Google APIs to any other app will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">Google API Services User Data Policy</a>, including the Limited Use requirements. We do not store raw emails on our servers, nor do we sell or use your Google data for advertisements or AI model training.
                       </p>
                     </section>
 

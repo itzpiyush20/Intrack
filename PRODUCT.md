@@ -7,14 +7,14 @@ product
 ## Users
 
 Privacy-conscious individuals in India who want to understand and control their
-personal spending without manual data entry. They use Dhanrakshak mostly on a
+personal spending without manual data entry. They use Intrack mostly on a
 phone, in short check-ins ("where did my money go this month?"), and care that
 their financial data never leaves their device. Mixed financial literacy — the
 interface must be reassuring, not intimidating.
 
 ## Product Purpose
 
-Dhanrakshak automatically tracks expenses by parsing bank-alert SMS/email
+Intrack automatically tracks expenses by parsing bank-alert SMS/email
 **locally on the device** (no bank login, no data sold), then organises them into
 budgets, subscriptions, and insights. Success = the user trusts it with their
 money picture and checks in regularly with zero manual entry. It ships as a web

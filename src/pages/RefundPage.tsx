@@ -10,7 +10,7 @@ export default function RefundPage() {
   return (
     <MarketingLayout
       title="Cancellation & Refund Policy"
-      description="Dhanrakshak plans are one-time payments with nothing to cancel. When a refund is available, how to claim one, and Razorpay processing timelines."
+      description="Intrack plans are one-time payments with nothing to cancel. When a refund is available, how to claim one, and Razorpay processing timelines."
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Cancellation & Refund Policy</h1>
@@ -22,14 +22,14 @@ export default function RefundPage() {
         <section>
           <div className="rounded-[12px] bg-brand-500/10 border border-brand-500/20 p-5 mb-8 shadow-sm">
             <p className="text-sm leading-relaxed text-sb-ink-secondary">
-              At <strong className="text-sb-ink">Dhanrakshak</strong>, we strive to maintain complete transparency in our billing operations. Please read this policy carefully to understand your rights and options regarding subscription cancellations and refund claims for payments processed through our payment gateway provider, Razorpay.
+              At <strong className="text-sb-ink">Intrack</strong>, we strive to maintain complete transparency in our billing operations. Please read this policy carefully to understand your rights and options regarding subscription cancellations and refund claims for payments processed through our payment gateway provider, Razorpay.
             </p>
           </div>
         </section>
 
         {/* Section 1: Subscriptions & Trials */}
         {section("1. Free Trial and Billing Cycles", `
-          Dhanrakshak offers a 7-Day Free Trial to new users upon registration, allowing access to all premium features, including automated Gmail scanning and budget insights.
+          Intrack offers a 7-Day Free Trial to new users upon registration, allowing access to all premium features, including automated Gmail scanning and budget insights.
           
           - You will not be charged during the trial period.
           - Once the trial expires, you must manually upgrade and select a paid subscription (Monthly at ₹31/month or Yearly at ₹365/year) to keep auto-synchronization active.
@@ -41,14 +41,14 @@ export default function RefundPage() {
           There is nothing to cancel, because nothing recurs.
 
           - Your plan is a one-time purchase of a fixed access period. It will not renew and your card will not be charged again, so no cancellation step is required to stop future billing.
-          - If you simply want to stop using Dhanrakshak, you can let the period lapse, or delete your account entirely from Profile → Delete Account, which erases your data.
+          - If you simply want to stop using Intrack, you can let the period lapse, or delete your account entirely from Profile → Delete Account, which erases your data.
           - Questions about a specific payment: contact us at ${APP_CONFIG.SUPPORT_EMAIL}.
           - Access you have already paid for is never withdrawn early. It runs to the end of the period you purchased.
         `)}
 
         {/* Section 3: Refund Eligibility & Claims */}
         {section("3. Refund Eligibility & Claims", `
-          Since Dhanrakshak offers a digital financial intelligence service with a 7-day free trial, all subscription fees are generally non-refundable once billed. However, we offer refunds under the following specific conditions:
+          Since Intrack offers a digital financial intelligence service with a 7-day free trial, all subscription fees are generally non-refundable once billed. However, we offer refunds under the following specific conditions:
           
           - Accidental Subscription Upgrades: If you accidentally upgraded your account and have not used the parsing service since upgrading, you may request a refund within forty-eight (48) hours of the transaction timestamp.
           - Technical Failures: If a payment was successfully processed but your account failed to upgrade due to system integration errors, and our engineering team is unable to resolve the issue within three (3) business days of your report, a full refund will be issued.
@@ -57,7 +57,7 @@ export default function RefundPage() {
 
         {/* Section 4: Refund Processing & Timelines */}
         {section("4. Processing Timelines (Razorpay)", `
-          All transactions and refund claims on Dhanrakshak are processed securely via our payment partner, Razorpay.
+          All transactions and refund claims on Intrack are processed securely via our payment partner, Razorpay.
           
           - Once your refund request is approved, the refund is initiated automatically through Razorpay.
           - Refunded amounts will be credited back to your original payment source (credit card, debit card, UPI ID, or Netbanking account).

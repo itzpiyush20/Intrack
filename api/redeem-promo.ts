@@ -43,7 +43,7 @@ function isRateLimited(ip: string): boolean {
   return false
 }
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dhanrakshak-five.vercel.app'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
 
 const REFUSAL_MESSAGE: Record<string, string> = {
   not_found: 'Invalid or expired coupon code.',

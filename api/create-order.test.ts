@@ -48,7 +48,7 @@ import handler from './create-order.js'
 describe('api/create-order', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://www.intrack.co.in'
     // Default: no profile row / nothing queued, so existing tests that don't
     // care about the pending-plan guard proceed to order creation as before.
     mockMaybeSingle.mockResolvedValue({ data: null, error: null })
@@ -72,7 +72,7 @@ describe('api/create-order', () => {
     const req = {
       method: 'POST',
       headers: {
-        origin: 'https://dhanrakshak-five.vercel.app',
+        origin: 'https://www.intrack.co.in',
         authorization: 'Bearer mock-valid-jwt'
       },
       body: {
@@ -132,7 +132,7 @@ describe('api/create-order', () => {
     const req = {
       method: 'POST',
       headers: {
-        origin: 'https://dhanrakshak-five.vercel.app',
+        origin: 'https://www.intrack.co.in',
         authorization: 'Bearer mock-valid-jwt'
       },
       body: {
@@ -185,7 +185,7 @@ describe('api/create-order', () => {
     const req = {
       method: 'POST',
       headers: {
-        origin: 'https://dhanrakshak-five.vercel.app',
+        origin: 'https://www.intrack.co.in',
         authorization: 'Bearer mock-valid-jwt'
       },
       body: {
