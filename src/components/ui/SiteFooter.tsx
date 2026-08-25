@@ -31,29 +31,27 @@ interface SiteFooterProps {
   showWordmark?: boolean
   /** Extra classes for the <footer> element. */
   className?: string
-  /** True when the surrounding app shell is forcing its light palette. */
-  isLight?: boolean
 }
 
 export default function SiteFooter({
   tone = 'marketing',
   showWordmark = false,
   className,
-  isLight = true,
 }: SiteFooterProps) {
   // Derived, not hardcoded — the previous footers all said 2026 forever.
   const year = new Date().getFullYear()
 
   const isApp = tone === 'app'
-  const muted = isApp && !isLight ? 'text-zinc-400' : 'text-sb-ink-muted'
-  const strong = isApp && !isLight ? 'text-zinc-300' : 'text-sb-ink'
+  // The app is light only, so these no longer vary by tone.
+  const muted = 'text-sb-ink-muted'
+  const strong = 'text-sb-ink'
 
   return (
     <footer
       className={cn(
         'border-t shrink-0',
         isApp
-          ? cn('pt-8 pb-20 md:pb-8 px-4 sm:px-6 lg:px-8 mt-auto', isLight ? 'border-sb-hairline bg-sb-canvas-soft' : 'border-border-subtle bg-surface-1/40')
+          ? 'pt-8 pb-20 md:pb-8 px-4 sm:px-6 lg:px-8 mt-auto border-sb-hairline bg-sb-canvas-soft'
           : 'py-14 border-sb-hairline bg-sb-canvas-soft',
         muted,
         className

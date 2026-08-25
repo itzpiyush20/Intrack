@@ -77,7 +77,6 @@ function resolveActivePlan(planType: unknown): 'monthly' | 'yearly' | 'unknown' 
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const isStaticLight = true
   const { user, signOut, profile, daysLeft, openAuthModal, currencySymbol } = useAuth()
   const { showToast } = useToast()
   const location = useLocation()
@@ -380,19 +379,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     } catch (e) {}
   }
 
-  // The app is light only. These were a theme flag and a per-page override;
-  // both are now constant, so every conditional below takes its light branch.
-  // The dark branches are unreachable and can be collapsed in a later pass —
-  // doing it here would mean ~30 hand edits in the same change that fixes the
-  // bug, which is how a shell-wide regression gets shipped.
-  //
-  // Previously READ the theme; it never set one. It used to default to light
-  // whenever nothing was stored and then PERSIST that guess on mount — so
-  // merely visiting /pricing or /support (the two public pages using this
-  // shell) wrote 'light' to localStorage and permanently overrode the OS
-  // preference of a visitor who had never chosen. Settings owns the toggle;
-  // src/utils/theme.ts owns the rule.
-  const isLight = true
 
 
 
@@ -457,15 +443,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div className={cn("min-h-screen flex flex-col", isStaticLight ? "bg-sb-canvas text-sb-ink" : "aurora-bg bg-surface-0 text-zinc-100")}>
+    <div className={cn("min-h-screen flex flex-col", "bg-sb-canvas text-sb-ink")}>
       <a href="#main-content" className="skip-to-content">
         Skip to main content
       </a>
       <header className={cn(
         "sticky top-0 z-50 w-full border-b select-none transition-all duration-300",
-        isStaticLight
-          ? "border-sb-hairline bg-sb-canvas text-sb-ink backdrop-blur-xl"
-          : "border-border-subtle bg-surface-1/95 backdrop-blur-md text-zinc-100 shadow-[var(--shadow-sm)]"
+        "border-sb-hairline bg-sb-canvas text-sb-ink backdrop-blur-xl"
       )}>
         <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-6">
           <Link to="/" className="flex items-center gap-3 shrink-0 group">
@@ -474,16 +458,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <div className="text-base tracking-tight leading-none">
                 <span className={cn(
                   "font-extrabold transition-colors duration-300",
-                  (isStaticLight || isLight) ? "text-sb-primary" : "text-brand-400"
-                )}>In</span><span className={cn((isStaticLight || isLight) ? "text-sb-ink" : "text-white")}>track</span>
+                  "text-sb-primary"
+                )}>In</span><span className={cn("text-sb-ink")}>track</span>
               </div>
               <span className={cn(
                 "text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5",
-                (isStaticLight || isLight)
-                  ? "bg-brand-50 border-brand-200/60 text-brand-700"
-                  : "bg-brand-500/10 border-brand-500/20 text-brand-400"
+                "bg-brand-50 border-brand-200/60 text-brand-700"
               )}>
-                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", (isStaticLight || isLight) ? "bg-brand-600" : "bg-brand-400")} />
+                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", "bg-brand-600")} />
                 Automated Tracker
               </span>
             </div>
@@ -507,12 +489,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         className={cn(
                           "relative py-1.5 px-2.5 rounded-lg text-xs font-semibold shrink-0 transition-all duration-200 whitespace-nowrap",
                           isActive
-                            ? isStaticLight
-                              ? "bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shadow-sm"
-                              : "text-white font-bold nav-active-indicator"
-                            : isStaticLight
-                              ? "text-sb-ink-muted hover:text-sb-ink hover:bg-sb-canvas-soft"
-                              : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+                            ? "bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shadow-sm"
+                            : "text-sb-ink-muted hover:text-sb-ink hover:bg-sb-canvas-soft"
                         )}
                       >
                         {item.label}
@@ -556,9 +534,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
                     className={cn(
                       "transition-colors h-11 w-11 flex items-center justify-center rounded-lg relative cursor-pointer",
-                      isStaticLight
-                        ? "text-sb-ink-muted hover:text-sb-ink hover:bg-sb-canvas-soft"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      "text-sb-ink-muted hover:text-sb-ink hover:bg-sb-canvas-soft"
                     )}
                     title="Notifications"
                     aria-label={notifications.length > 0 ? `View notifications (${notifications.length} unread)` : 'View notifications'}
@@ -575,15 +551,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   {notificationDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setNotificationDropdownOpen(false)} />
-                      <div className={cn("absolute right-0 mt-2 w-64 rounded-xl border p-3 shadow-2xl z-50 animate-scale-up backdrop-blur-xl max-h-[80vh] overflow-y-auto", isStaticLight ? "border-sb-hairline bg-sb-canvas text-sb-ink" : "border-border-subtle bg-surface-1 text-zinc-100")}>
+                      <div className={cn("absolute right-0 mt-2 w-64 rounded-xl border p-3 shadow-2xl z-50 animate-scale-up backdrop-blur-xl max-h-[80vh] overflow-y-auto", "border-sb-hairline bg-sb-canvas text-sb-ink")}>
                         <div className="flex items-center justify-between border-b border-border-subtle pb-2 mb-2">
-                          <span className={cn("text-xs font-bold uppercase tracking-widest flex items-center gap-1.5", isStaticLight ? "text-sb-ink-muted" : "text-zinc-400")}>
+                          <span className={cn("text-xs font-bold uppercase tracking-widest flex items-center gap-1.5", "text-sb-ink-muted")}>
                             <Bell className="h-3 w-3" /> Notifications
                           </span>
                           {notifications.length > 0 && (
                             <button
                               onClick={handleClearNotifications}
-                              className={cn("text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer", isStaticLight ? "text-sb-primary hover:text-sb-primary-deep" : "text-zinc-500 hover:text-zinc-300")}
+                              className={cn("text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer", "text-sb-primary hover:text-sb-primary-deep")}
                             >
                               Clear
                             </button>
@@ -608,7 +584,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                       ? 'bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
                                       : n.type === 'warning'
                                       ? 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
-                                      : (isStaticLight ? 'bg-sb-canvas-soft border-sb-hairline text-sb-ink' : 'bg-surface-2 border-border-subtle text-zinc-300')
+                                      : ('bg-sb-canvas-soft border-sb-hairline text-sb-ink')
                                   )}
                                 >
                                   <NotifIcon className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -681,7 +657,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className={cn(
                       "flex items-center gap-1.5 h-11 px-1 transition-colors cursor-pointer",
-                      isStaticLight ? "text-sb-ink hover:text-sb-ink" : "text-zinc-400 hover:text-white"
+                      "text-sb-ink hover:text-sb-ink"
                     )}
                     aria-label="User profile menu"
                     aria-expanded={profileDropdownOpen}
@@ -700,18 +676,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   {profileDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setProfileDropdownOpen(false)} />
-                      <div className={cn("absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-50 animate-scale-up", isStaticLight ? "border-sb-hairline bg-sb-canvas text-sb-ink" : "border-border-subtle bg-surface-1 text-zinc-100")}>
+                      <div className={cn("absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-50 animate-scale-up", "border-sb-hairline bg-sb-canvas text-sb-ink")}>
                         <Link
                           to="/profile"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-100")}
+                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
                           <User className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Profile Section
                         </Link>
                         <Link
                           to="/settings"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-100")}
+                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
                           <Settings className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Settings Section
                         </Link>
@@ -719,7 +695,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           <Link
                             to="/admin"
                             onClick={() => setProfileDropdownOpen(false)}
-                            className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-100")}
+                            className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                           >
                             <ShieldCheck className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Admin Section
                           </Link>
@@ -727,7 +703,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <Link
                           to="/pricing"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-100")}
+                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
                           <Crown className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Pricing & Plans
                         </Link>
@@ -736,7 +712,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             setProfileDropdownOpen(false)
                             setFeedbackOpen(true)
                           }}
-                          className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors cursor-pointer", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-100")}
+                          className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors cursor-pointer", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
                           <MessageSquare className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Send Feedback
                         </button>
@@ -745,7 +721,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             setProfileDropdownOpen(false)
                             signOut()
                           }}
-                          className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors border-t mt-1.5 pt-1.5 cursor-pointer", isStaticLight ? "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]" : "border-border-subtle text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
+                          className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors border-t mt-1.5 pt-1.5 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
                         >
                           <LogOut className="h-3.5 w-3.5 text-red-400 shrink-0" /> Sign Out
                         </button>
@@ -766,7 +742,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <button
                 className={cn(
                   "flex lg:hidden h-11 w-11 items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0",
-                  isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                  "text-sb-ink hover:bg-sb-canvas-soft"
                 )}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -779,7 +755,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <nav className={cn("border-b px-4 py-3 space-y-1 lg:hidden animate-fade-in", isStaticLight ? "border-sb-hairline bg-sb-canvas text-sb-ink" : "border-static-white/10 bg-black text-static-white")} aria-label="Mobile navigation">
+          <nav className={cn("border-b px-4 py-3 space-y-1 lg:hidden animate-fade-in", "border-sb-hairline bg-sb-canvas text-sb-ink")} aria-label="Mobile navigation">
             {user && isAppRoute ? (
               <>
                 {navItems
@@ -794,8 +770,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       className={cn(
                         'block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         isActive
-                          ? (isStaticLight ? 'bg-sb-canvas-soft text-sb-ink font-bold' : 'bg-static-zinc-800 text-static-white')
-                          : (isStaticLight ? 'text-sb-ink-muted hover:bg-sb-canvas-soft' : 'text-static-zinc-400 hover:bg-static-zinc-800 hover:text-static-white')
+                          ? ('bg-sb-canvas-soft text-sb-ink font-bold')
+                          : ('text-sb-ink-muted hover:bg-sb-canvas-soft')
                       )}
                     >
                       {item.label}
@@ -805,7 +781,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={cn("flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-2 pt-3", isStaticLight ? "text-sb-ink border-sb-hairline hover:bg-sb-canvas-soft" : "text-static-zinc-400 hover:text-static-white border-static-white/10")}
+                  className={cn("flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-2 pt-3", "text-sb-ink border-sb-hairline hover:bg-sb-canvas-soft")}
                 >
                   <User className="h-4 w-4 mr-2 text-zinc-500 shrink-0" /> Profile Section
                 </Link>
@@ -851,7 +827,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     setMobileMenuOpen(false)
                     signOut()
                   }}
-                  className={cn("w-full text-left flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", isStaticLight ? "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]" : "border-static-white/10 text-[#f87171] hover:bg-[#f87171]/15")}
+                  className={cn("w-full text-left flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
                 >
                   <LogOut className="h-4 w-4 mr-2 text-red-400 shrink-0" /> Sign Out
                 </button>
@@ -881,13 +857,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     key={item.label}
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-300 hover:bg-zinc-800 hover:text-white")}
+                    className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}
                   >
                     {item.label}
                   </Link>
                 ))}
-                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-300 hover:bg-zinc-800 hover:text-white")}>Pricing</Link>
-                <Link to="/support" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", isStaticLight ? "text-sb-ink hover:bg-sb-canvas-soft" : "text-zinc-300 hover:bg-zinc-800 hover:text-white")}>Support</Link>
+                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}>Pricing</Link>
+                <Link to="/support" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}>Support</Link>
 
                 {user ? (
                   <button
@@ -895,7 +871,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       setMobileMenuOpen(false)
                       signOut()
                     }}
-                    className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", isStaticLight ? "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]" : "border-static-white/10 text-[#f87171] hover:bg-[#f87171]/15")}
+                    className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
                   >
                     <LogOut className="h-4 w-4 text-red-400 shrink-0" /> Sign Out
                   </button>
@@ -906,7 +882,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         setMobileMenuOpen(false)
                         openAuthModal(undefined, 'login')
                       }}
-                      className={cn("w-full block rounded-lg px-3 py-2 text-sm font-medium text-center border mt-3 cursor-pointer", isStaticLight ? "bg-sb-canvas border-sb-hairline text-sb-ink" : "bg-zinc-900 border-zinc-700 text-white")}
+                      className={cn("w-full block rounded-lg px-3 py-2 text-sm font-medium text-center border mt-3 cursor-pointer", "bg-sb-canvas border-sb-hairline text-sb-ink")}
                     >
                       Sign In
                     </button>
@@ -958,7 +934,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           (Production Build) · Proprietary Closed-Source License" — was
           developer-facing text printed on /pricing and /support, two pages a
           prospective customer reads before signing up. */}
-      <SiteFooter tone="app" isLight={isStaticLight || isLight} />
+      <SiteFooter tone="app" />
 
       {/* Feedback Modal — opened from the profile menu / Settings, not a FAB */}
       <Modal
