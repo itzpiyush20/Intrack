@@ -79,9 +79,9 @@ export const APP_CONFIG = {
   // Keep them here and only here, so a new owner changes four lines rather
   // than hunting through six pages.
   //
-  // Was support@dhanrakshak.in — a domain the site does not run on and a
-  // mailbox that was never live, which meant the documented route for a
-  // DPDPA grievance and a billing dispute both dead-ended.
+  // Previously a support@ address on a vanity domain the site does not run on,
+  // with a mailbox that was never live — so the documented route for a DPDPA
+  // grievance and for a billing dispute both dead-ended.
   SUPPORT_EMAIL: 'contact.ansh@gmail.com',
   // TODO(owner): DPDPA 2023 §13 expects a contactable individual, not a team
   // alias. Replace with the responsible person's name before relying on this

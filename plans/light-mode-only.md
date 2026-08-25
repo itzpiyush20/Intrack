@@ -60,6 +60,6 @@ renders light with `intrack_theme` seeded to `'dark'`.
 
 ## Note
 
-`plans/dhanrakshak-storage-key-rebrand.md` migrates `dhanrakshak_theme` →
+`plans/storage-key-rebrand.md` migrates the old theme key →
 `intrack_theme`. That still runs; Phase 2 then deletes the key. Order is
 harmless — the shim copies it, the app removes it on next boot.

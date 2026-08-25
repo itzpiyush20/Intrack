@@ -284,7 +284,7 @@ Find the mount effect (currently lines 306-310):
 
 ```typescript
   useEffect(() => {
-    document.title = 'Pending Alerts | Dhanrakshak'
+    document.title = 'Pending Alerts | Intrack'
     fetchPendingData()
     fetchLastScanLog()
   }, [fetchPendingData, fetchLastScanLog])
@@ -294,7 +294,7 @@ Change to:
 
 ```typescript
   useEffect(() => {
-    document.title = 'Pending Alerts | Dhanrakshak'
+    document.title = 'Pending Alerts | Intrack'
     fetchPendingData()
     fetchLastScanLog()
     fetchUnconfirmedCategorizations()

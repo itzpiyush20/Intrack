@@ -462,7 +462,7 @@ Find the block (currently lines 796-804):
 ```typescript
     let activeYear = 2026
     try {
-      const storedYear = localStorage.getItem(`dhanrakshak_active_financial_year_${user.id}`)
+      const storedYear = localStorage.getItem(`intrack_active_financial_year_${user.id}`)
       if (storedYear) {
         activeYear = parseInt(storedYear, 10)
       }
@@ -477,7 +477,7 @@ Replace with:
     let activeYear = opts?.activeYear ?? 2026
     if (opts?.activeYear === undefined) {
       try {
-        const storedYear = localStorage.getItem(`dhanrakshak_active_financial_year_${user.id}`)
+        const storedYear = localStorage.getItem(`intrack_active_financial_year_${user.id}`)
         if (storedYear) {
           activeYear = parseInt(storedYear, 10)
         }
@@ -590,11 +590,11 @@ function makeRes() {
 describe('api/save-google-refresh-token', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    process.env.ALLOWED_ORIGIN = 'https://dhanrakshak-five.vercel.app'
+    process.env.ALLOWED_ORIGIN = 'https://intrack-five.vercel.app'
   })
 
   it('rejects requests with no Authorization header', async () => {
-    const req = { method: 'POST', headers: { origin: 'https://dhanrakshak-five.vercel.app' }, body: { refreshToken: 'rt' } } as unknown as VercelRequest
+    const req = { method: 'POST', headers: { origin: 'https://intrack-five.vercel.app' }, body: { refreshToken: 'rt' } } as unknown as VercelRequest
     const { res, getStatus } = makeRes()
     await handler(req, res)
     expect(getStatus()).toBe(401)
@@ -603,7 +603,7 @@ describe('api/save-google-refresh-token', () => {
   it('rejects requests missing refreshToken', async () => {
     const req = {
       method: 'POST',
-      headers: { origin: 'https://dhanrakshak-five.vercel.app', authorization: 'Bearer jwt' },
+      headers: { origin: 'https://intrack-five.vercel.app', authorization: 'Bearer jwt' },
       body: {},
     } as unknown as VercelRequest
     const { res, getStatus } = makeRes()
@@ -617,7 +617,7 @@ describe('api/save-google-refresh-token', () => {
 
     const req = {
       method: 'POST',
-      headers: { origin: 'https://dhanrakshak-five.vercel.app', authorization: 'Bearer valid-jwt' },
+      headers: { origin: 'https://intrack-five.vercel.app', authorization: 'Bearer valid-jwt' },
       body: { refreshToken: 'the-refresh-token' },
     } as unknown as VercelRequest
     const { res, getStatus, getJson } = makeRes()
@@ -647,7 +647,7 @@ Expected: FAIL with a module-not-found error for `./save-google-refresh-token.js
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dhanrakshak-five.vercel.app'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://intrack-five.vercel.app'
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 function isRateLimited(ip: string): boolean {
@@ -1287,5 +1287,5 @@ Expected: PASS (or only pre-existing warnings unrelated to these changes)
 After this is deployed to production:
 1. Apply `supabase/006_google_oauth_tokens.sql` in the Supabase SQL Editor (Task 1, if not already done).
 2. Confirm `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are all set in Vercel's project environment variables (all pre-existing, used by other endpoints already).
-3. In Vercel's dashboard, trigger `/api/auto-sync-gmail` manually once (Deployments → Functions, or `curl -H "Authorization: Bearer $CRON_SECRET" https://dhanrakshak-five.vercel.app/api/auto-sync-gmail`) and confirm the JSON response shows `usersProcessed` matching the number of eligible users with a connected Gmail, and `failed: 0` for accounts with valid tokens.
+3. In Vercel's dashboard, trigger `/api/auto-sync-gmail` manually once (Deployments → Functions, or `curl -H "Authorization: Bearer $CRON_SECRET" https://intrack-five.vercel.app/api/auto-sync-gmail`) and confirm the JSON response shows `usersProcessed` matching the number of eligible users with a connected Gmail, and `failed: 0` for accounts with valid tokens.
 4. Confirm new `email_scan_logs` rows appear with recent `scanned_at` timestamps for eligible users.

@@ -258,7 +258,7 @@ At `src/context/AuthContext.tsx:48-49`, delete:
 
 - [ ] **Step 2: Delete the state and its loader**
 
-Delete the `const [activeYear, setActiveYearState] = useState<number>(2026)` declaration (line 111) and the entire `useEffect` immediately following it that reads `dhanrakshak_active_financial_year_${state.user.id}` from localStorage (lines ~113-121).
+Delete the `const [activeYear, setActiveYearState] = useState<number>(2026)` declaration (line 111) and the entire `useEffect` immediately following it that reads `intrack_active_financial_year_${state.user.id}` from localStorage (lines ~113-121).
 
 - [ ] **Step 3: Delete `startNewFinancialYear`**
 

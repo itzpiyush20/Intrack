@@ -892,7 +892,7 @@ type TabId = (typeof TABS)[number]['id']
 export default function AdminPage() {
   const [tab, setTab] = useState<TabId>('overview')
 
-  useEffect(() => { document.title = 'Admin | Dhanrakshak' }, [])
+  useEffect(() => { document.title = 'Admin | Intrack' }, [])
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8">

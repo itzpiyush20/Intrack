@@ -5,10 +5,24 @@
    "Calm & Trustworthy" — clean neutrals + a single
    restrained evergreen accent. Bank-grade, quiet, legible.
    WCAG 2.1 AA across light + dark.
+
+   ⚠ THE APP IS LIGHT ONLY (owner decision, 2026-08-25). The dark values in
+   :root below are NOT dead code — DO NOT DELETE THEM.
+
+   Light is implemented as a `.light { … }` override layer on top of these
+   defaults, and `.light` only redefines a subset. Every token it does not
+   restate — and every rule that reads one — still resolves through :root. Strip
+   them and the palette collapses to unset custom properties, which fail
+   silently rather than erroring, so the damage shows up as invisible text and
+   transparent surfaces rather than a build failure.
+
+   `index.html` adds the `.light` class before first paint and nothing removes
+   it. See src/utils/theme.ts and DESIGN.md.
    ============================================ */
 
 :root {
-  /* ── Dark mode — calm near-black, faint cool cast (not pure black) ── */
+  /* ── Base layer. Retained because .light inherits from it; see the warning
+       above before touching these. ── */
   --surface-0: #0f1115;  /* App canvas */
   --surface-1: #161920;  /* Card / panel */
   --surface-2: #1d212a;  /* Elevated / hover */

@@ -2,7 +2,7 @@
 
 ## Problem
 
-Dhanrakshak already has strong daily-check-in mechanics (safe-to-spend, month-end recap,
+Intrack already has strong daily-check-in mechanics (safe-to-spend, month-end recap,
 first-run checklist) but two gaps keep it from being an everyday habit rather than an
 occasional tool:
 

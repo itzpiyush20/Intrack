@@ -1,4 +1,4 @@
-# Dhanrakshak — Glassmorphic Aurora Redesign
+# Intrack — Glassmorphic Aurora Redesign
 **Design:** C — Glassmorphic Aurora (user-selected)
 **Goal:** Multi-color aurora gradients (emerald #3ecf8e + indigo #6366f1 + cyan #38bdf8), frosted-glass cards, gradient text headings, animated aurora backgrounds across the whole site.
 **Constraint:** Visual changes only. All functionality preserved. WCAG 2.1 AA maintained. Works in dark + light mode.
@@ -420,7 +420,7 @@ Current: `sb-display-xl` text on `bg-sb-canvas`. New:
 ```bash
 # Run from bash after all phases complete
 DEPLOY="C:/Users/itzpi/AppData/Local/Temp/dhanrakhshak_deploy"
-LIVE="C:/Users/itzpi/OneDrive/Desktop/Dhanrakshak"
+LIVE="C:/Users/itzpi/OneDrive/Desktop/Intrack"
 
 cp "$DEPLOY/src/index.css" "$LIVE/src/index.css"
 cp "$DEPLOY/src/components/ui/Card.tsx" "$LIVE/src/components/ui/Card.tsx"

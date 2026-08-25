@@ -1,4 +1,4 @@
-# Dhanrakshak UI/UX Overhaul Plan
+# Intrack UI/UX Overhaul Plan
 
 > Execution plan derived from a full-app design critique (score 22/40, snapshot at
 > `.impeccable/critique/2026-07-17T15-18-08Z__src.md`). Written to be executed by
@@ -19,7 +19,7 @@
 ## Phase 1 — Kill trust-breakers (highest impact, small diff)
 
 1. **Remove the fake security splash** in `src/layouts/AppLayout.tsx` (~lines 257–299 state/effect + 394–465 JSX). Delete the simulated progress bar and its narration ("Deploying local regex transaction scanners…"). If a first-run privacy explainer is worth keeping, replace with a single static dismissible card on the Dashboard (no timer, no fake verification), reusing the four reassurance bullets in plain language.
-2. **Fix Pricing page copy** (`src/pages/PricingPage.tsx`): remove/replace "Verify Dhanrakshak Financial Security Plans" headline with "Simple, honest pricing"; remove the "🔒 Premium Subscription Required — Dashboard Access Restricted / ACCESS LOCKED" banner for signed-out visitors — replace with the trial framing used on the landing page ("14-day full trial, no card needed"). The pricing page and landing page must tell the same story.
+2. **Fix Pricing page copy** (`src/pages/PricingPage.tsx`): remove/replace "Verify Intrack Financial Security Plans" headline with "Simple, honest pricing"; remove the "🔒 Premium Subscription Required — Dashboard Access Restricted / ACCESS LOCKED" banner for signed-out visitors — replace with the trial framing used on the landing page ("14-day full trial, no card needed"). The pricing page and landing page must tell the same story.
 3. **De-jargon copy app-wide**: replace "Zero-Trust Data Integrity Architecture", "RLS policies", "Supabase Isolation", "Financial Security Protocol", "Tester Feedback Engine" with plain language ("Your data stays on your device", "Only you can see your data"). Audience is mixed financial literacy (PRODUCT.md).
 4. **Feedback FAB** (`AppLayout.tsx:948–955`): remove the always-on floating "Give Feedback" button. Move feedback to an item in the profile dropdown + Settings. Also delete the `md:pr-44` hack in the footer that existed to dodge it. This fixes the mobile z-collision with the bottom nav (`z-[40]` FAB under `z-50` nav).
 

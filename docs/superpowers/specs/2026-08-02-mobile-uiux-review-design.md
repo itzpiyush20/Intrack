@@ -2,7 +2,7 @@
 
 ## Goal
 
-Systematically audit and fix mobile UI/UX issues across the entire Dhanrakshak app (a Capacitor + React PWA), targeting the standard modern-phone viewport range of 360–430px width. Deliverable is not just a findings list — issues found are fixed directly.
+Systematically audit and fix mobile UI/UX issues across the entire Intrack app (a Capacitor + React PWA), targeting the standard modern-phone viewport range of 360–430px width. Deliverable is not just a findings list — issues found are fixed directly.
 
 ## Scope
 

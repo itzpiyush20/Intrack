@@ -926,7 +926,7 @@ import handler from './gemini-proxy'
 function makeReqRes(body: any) {
   const req = {
     method: 'POST',
-    headers: { origin: 'https://dhanrakshak-five.vercel.app', authorization: 'Bearer fake-jwt' },
+    headers: { origin: 'https://intrack-five.vercel.app', authorization: 'Bearer fake-jwt' },
     body,
   } as unknown as VercelRequest
 

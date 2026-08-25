@@ -1013,7 +1013,7 @@ const [budgets, setBudgets] = useState<(BudgetRow & { monthCount: number })[]>([
 ```typescript
 // Replace:
 useEffect(() => {
-  document.title = 'Budgets | Dhanrakshak'
+  document.title = 'Budgets | Intrack'
   fetchBudgetData(selectedMonth)
 }, [selectedMonth, fetchBudgetData])
 ```
@@ -1021,7 +1021,7 @@ useEffect(() => {
 ```typescript
 // With:
 useEffect(() => {
-  document.title = 'Budgets | Dhanrakshak'
+  document.title = 'Budgets | Intrack'
   fetchBudgetData(dateFilter)
 }, [dateFilter, fetchBudgetData])
 ```

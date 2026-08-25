@@ -700,7 +700,7 @@ Find:
 
 ```typescript
   useEffect(() => {
-    document.title = 'Insights | Dhanrakshak'
+    document.title = 'Insights | Intrack'
 
     async function fetchAllData() {
       setLoading(true)
@@ -772,7 +772,7 @@ Replace with:
   }, [])
 
   useEffect(() => {
-    document.title = 'Insights | Dhanrakshak'
+    document.title = 'Insights | Intrack'
     fetchAllData()
   }, [fetchAllData])
 ```

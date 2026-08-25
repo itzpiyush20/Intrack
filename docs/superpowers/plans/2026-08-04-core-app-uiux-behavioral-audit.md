@@ -99,7 +99,7 @@ nav and mobile dropdown — so no unused-variable issues.)
 
 - [ ] **Step 3: Browser verification**
 
-If a logged-in session is reachable in this environment: `preview_start` the `dhanrakshak-dev`
+If a logged-in session is reachable in this environment: `preview_start` the `intrack-dev`
 config, `resize_window` to 375px, navigate to `/dashboard`, and confirm via `read_page` that (a)
 no horizontal scroll strip renders below the header, (b) the fixed bottom tab bar (Home/Expenses/
 +Add/Pending/Insights) still renders, (c) tapping the hamburger icon still shows all six nav items

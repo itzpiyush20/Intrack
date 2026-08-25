@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Dhanrakshak has no admin interface. Every operational question — how many users are
+Intrack has no admin interface. Every operational question — how many users are
 there, how many are paying, is the scanner failing, what did users write in — is
 answered today by opening the Supabase SQL editor and writing a query by hand.
 

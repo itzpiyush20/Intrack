@@ -494,7 +494,7 @@ CREATE POLICY "Users can log own signin"
 -- This file only runs on a NEW database, so the correct rule below never
 -- reached production, which was created earlier and still carried the
 -- archived emergency version:
---   USING ((auth.jwt() ->> 'email') LIKE '%@dhanrakshak.in')
+--   USING ((auth.jwt() ->> 'email') LIKE '%@<vanity-domain>')
 -- — handing every user's email to anyone controlling that unregistered domain.
 -- Migration 039 ships the fix. Do not "fix" a policy here alone; a numbered
 -- migration is the only thing production ever sees.

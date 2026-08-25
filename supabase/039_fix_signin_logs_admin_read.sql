@@ -1,29 +1,30 @@
 -- 039_fix_signin_logs_admin_read.sql
 --
--- Replaces a SELECT policy that grants every user's email address to anyone
--- who controls an unregistered domain.
+-- Replaces a SELECT policy that granted every user's email address to anyone
+-- who controlled an unregistered vanity domain.
 --
--- Production's signin_logs still carries this, from
--- supabase/archive/emergency_fix_migration.sql:
+-- Production's signin_logs carried this, from an early emergency migration
+-- (since removed from supabase/archive/):
 --
 --   CREATE POLICY "Creators can view all signin logs"
 --     ON public.signin_logs FOR SELECT
---     USING ((auth.jwt() ->> 'email') LIKE '%@dhanrakshak.in');
+--     USING ((auth.jwt() ->> 'email') LIKE '%@<vanity-domain>');
 --
 -- signin_logs holds user_id, email, device_name and created_at for EVERY
--- sign-in. So that policy hands the complete user email list, plus device
--- names, to anybody whose JWT email ends in @dhanrakshak.in.
+-- sign-in. So that policy handed the complete user email list, plus device
+-- names, to anybody whose JWT email ended in that domain.
 --
--- The app does not run on dhanrakshak.in — it is served from
--- www.intrack.co.in — and the owner confirmed on 2026-08-20 that
--- support@dhanrakshak.in was never a live mailbox. If the domain is
--- unregistered, the attack is: register it, sign up with any address there,
--- confirm the verification mail, sign in, then SELECT the table using the anon
--- key that already ships in the public bundle. No other access is required and
--- nothing about it looks anomalous.
+-- The app has never run on that domain — it is served from www.intrack.co.in —
+-- and the mailbox referenced there was never live. The attack would have been:
+-- register the domain, sign up with any address on it, confirm the verification
+-- mail, sign in, then SELECT the table using the anon key that already ships in
+-- the public bundle. No other access required, nothing anomalous-looking.
 --
--- WHY IT IS STILL THERE. schema.sql line ~493 has had the correct version for
--- some time:
+-- Not exploited: the domain was confirmed still unregistered with the .in
+-- registry on 2026-08-25, and it never had an MX record, so no verification
+-- mail could have been received. Treat as closed, not as disclosed.
+--
+-- WHY IT SURVIVED. schema.sql line ~493 had the correct version for some time:
 --
 --   USING (public.is_admin())
 --
@@ -66,7 +67,7 @@ COMMIT;
 --   SELECT tablename, policyname, qual
 --     FROM pg_policies
 --    WHERE schemaname = 'public'
---      AND qual ILIKE '%dhanrakshak.in%';
+--      AND qual ILIKE '%@%';   -- any email-domain check at all
 --
 -- Historical rows are left alone, consistent with 032. If the domain was ever
 -- registered by someone else, assume the email list was readable and treat it

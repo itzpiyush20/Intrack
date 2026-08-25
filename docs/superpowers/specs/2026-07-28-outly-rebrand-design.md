@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-28
 **Status:** Awaiting approval
-**Scope:** Full rebrand of `Dhanrakshak` → `Outly` across frontend, backend, payment infra, PWA/mobile, third-party consoles, and docs.
+**Scope:** Full rebrand of `Intrack` → `Outly` across frontend, backend, payment infra, PWA/mobile, third-party consoles, and docs.
 
 ---
 
@@ -35,7 +35,7 @@ These are the only approved values. Do not invent variants.
 | Production origin | `https://outly.vercel.app` |
 | Export file prefix | `Outly_` |
 
-**Retired strings (must not survive anywhere):** `Dhanrakshak`, `DHANRAKSHAK`, `dhanrakshak`, `dhanrakshak-five`, `Effortless Tracking. Smart Saving.`, `Your personal wealth guardian`, `personal wealth guardian`, `com.dhanrakshak.app`, `dhanrakshak-cache-v4`.
+**Retired strings (must not survive anywhere):** `Intrack`, `INTRACK`, `intrack`, `intrack-five`, `Effortless Tracking. Smart Saving.`, `Your personal wealth guardian`, `personal wealth guardian`, `com.intrack.app`, `intrack-cache-v4`.
 
 ---
 
@@ -48,13 +48,13 @@ These are the only approved values. Do not invent variants.
 | Mobile app ID | Change to `com.outly.app` | Safe: never published to any store; no `android/` or `ios/` folder exists. |
 | Infra identities | Rename GitHub repo, Vercel project, Supabase project display name, Razorpay business name | Supabase project **ref** (`urmxysuwailvwwglxuxn`) is permanent and does not change. |
 | Email sender domain | Not rebranded this phase | No custom domain owned. `DIGEST_FROM_EMAIL` moves to Resend's shared sender. See §5.7. |
-| Support email address | Unchanged this phase | `support@dhanrakshak.in` is tied to a domain, not the app. Flagged as follow-up in §9. |
+| Support email address | Unchanged this phase | `support@intrack.in` is tied to a domain, not the app. Flagged as follow-up in §9. |
 
 ---
 
 ## 4. DO NOT TOUCH (critical — blind find/replace will break production)
 
-A naive `s/dhanrakshak/outly/gi` across the repo **will cause outages**. These must be preserved exactly:
+A naive `s/intrack/outly/gi` across the repo **will cause outages**. These must be preserved exactly:
 
 1. **`Intrak` / `intrak*` — a SEPARATE THIRD-PARTY PRODUCT, not a legacy brand.**
    It is an external analytics/attribution service at `https://intrakv1.vercel.app`. Appears in `api/webhook.ts` (21×), `api/verify-payment.ts` (21×), `api/create-order.ts` (17×), `api/create-order.test.ts` (19×), `src/pages/PricingPage.tsx` (8×), `vercel.json` CSP, `index.html` tracking script, and env var `VITE_INTRAK_WEBSITE_ID`. **Leave every occurrence untouched.**
@@ -85,70 +85,70 @@ Run phases in order. Each phase ends with its stated verification before moving 
 
 | File | Change |
 | --- | --- |
-| `package.json` | `"name": "dhanrakshak"` → `"name": "outly"` |
-| `capacitor.config.ts` | `appId: 'com.dhanrakshak.app'` → `'com.outly.app'`; `appName: 'Dhanrakshak'` → `'Outly'` |
+| `package.json` | `"name": "intrack"` → `"name": "outly"` |
+| `capacitor.config.ts` | `appId: 'com.intrack.app'` → `'com.outly.app'`; `appName: 'Intrack'` → `'Outly'` |
 | `public/manifest.json` | `short_name` → `Outly`; `name` → `Outly: Expense & Budget Tracker`; `description` → `Know where every unit goes. Track expenses, manage budgets, and see exactly where your money moves.` |
-| `public/sw.js` | `CACHE_NAME = 'dhanrakshak-cache-v4'` → `'outly-cache-v1'` |
+| `public/sw.js` | `CACHE_NAME = 'intrack-cache-v4'` → `'outly-cache-v1'` |
 
 The service worker's existing `activate` handler deletes any cache whose key ≠ `CACHE_NAME`, so renaming the cache self-cleans old assets. No extra purge code needed.
 
-**Verify:** `npm run build` succeeds; `grep -ri dhanrakshak package.json capacitor.config.ts public/` returns nothing.
+**Verify:** `npm run build` succeeds; `grep -ri intrack package.json capacitor.config.ts public/` returns nothing.
 
 ---
 
 ### Phase 2 — localStorage / sessionStorage key rename (highest risk)
 
-Rename **every** key below from `dhanrakshak_*` to `outly_*`. No migration shim — old values are abandoned by design.
+Rename **every** key below from `intrack_*` to `outly_*`. No migration shim — old values are abandoned by design.
 
 **Per-user-suffixed keys** (template literals ending in `${user.id}` — preserve the suffix):
 
 | Old key | New key | Files |
 | --- | --- | --- |
-| `dhanrakshak_sub_status_` | `outly_sub_status_` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_sub_expires_` | `outly_sub_expires_` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_sub_plan_` | `outly_sub_plan_` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_promo_code_` | `outly_promo_code_` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_active_financial_year_` | `outly_active_financial_year_` | `src/context/AuthContext.tsx`, `src/services/emailScanner.ts` |
-| `dhanrakshak_daily_scan_time_` | `outly_daily_scan_time_` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_checklist_dismissed_` | `outly_checklist_dismissed_` | `src/pages/DashboardPage.tsx` |
-| `dhanrakshak_last_seen_month_` | `outly_last_seen_month_` | `src/pages/DashboardPage.tsx` |
-| `dhanrakshak_visited_analytics_` | `outly_visited_analytics_` | `src/pages/DashboardPage.tsx`, `src/pages/AnalyticsPage.tsx` |
-| `dhanrakshak_ignored_subscriptions_` | `outly_ignored_subscriptions_` | `src/pages/SubscriptionsPage.tsx` |
+| `intrack_sub_status_` | `outly_sub_status_` | `src/context/AuthContext.tsx` |
+| `intrack_sub_expires_` | `outly_sub_expires_` | `src/context/AuthContext.tsx` |
+| `intrack_sub_plan_` | `outly_sub_plan_` | `src/context/AuthContext.tsx` |
+| `intrack_promo_code_` | `outly_promo_code_` | `src/context/AuthContext.tsx` |
+| `intrack_active_financial_year_` | `outly_active_financial_year_` | `src/context/AuthContext.tsx`, `src/services/emailScanner.ts` |
+| `intrack_daily_scan_time_` | `outly_daily_scan_time_` | `src/context/AuthContext.tsx` |
+| `intrack_checklist_dismissed_` | `outly_checklist_dismissed_` | `src/pages/DashboardPage.tsx` |
+| `intrack_last_seen_month_` | `outly_last_seen_month_` | `src/pages/DashboardPage.tsx` |
+| `intrack_visited_analytics_` | `outly_visited_analytics_` | `src/pages/DashboardPage.tsx`, `src/pages/AnalyticsPage.tsx` |
+| `intrack_ignored_subscriptions_` | `outly_ignored_subscriptions_` | `src/pages/SubscriptionsPage.tsx` |
 
 **Global keys:**
 
 | Old key | New key | Files |
 | --- | --- | --- |
-| `dhanrakshak_theme` | `outly_theme` | `index.html`, `src/App.tsx`, `src/layouts/AppLayout.tsx`, `src/pages/SettingsPage.tsx` |
-| `dhanrakshak_theme_changed` (CustomEvent name, not storage) | `outly_theme_changed` | `src/layouts/AppLayout.tsx`, `src/pages/SettingsPage.tsx` |
-| `dhanrakshak_device_id` | `outly_device_id` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_google_token` | `outly_google_token` | `src/services/googleAuth.ts` |
-| `dhanrakshak_google_token_expiry` | `outly_google_token_expiry` | `src/services/googleAuth.ts` |
-| `dhanrakshak_google_refresh_token` | `outly_google_refresh_token` | `src/services/googleAuth.ts` |
-| `dhanrakshak_oauth_provider_token` (legacy purge target) | `outly_oauth_provider_token` | `src/services/googleAuth.ts`, `src/main.tsx` |
-| `dhanrakshak_requesting_gmail_scope` | `outly_requesting_gmail_scope` | `src/context/AuthContext.tsx` |
-| `dhanrakshak_merchant_weights` | `outly_merchant_weights` | `src/services/emailScanner.ts` |
-| `dhanrakshak_merchant_settings` | `outly_merchant_settings` | `src/services/emailScanner.ts` |
-| `dhanrakshak_ls_migration_done` (sessionStorage) | `outly_ls_migration_done` | `src/services/learningEngine.ts`, `src/pages/DashboardPage.tsx` |
-| `dhanrakshak_dashboard_widgets` | `outly_dashboard_widgets` | `src/pages/DashboardPage.tsx` |
-| `dhanrakshak_analytics_advanced` | `outly_analytics_advanced` | `src/pages/AnalyticsPage.tsx` |
-| `dhanrakshak_notifications_cache` | `outly_notifications_cache` | `src/layouts/AppLayout.tsx` |
-| `dhanrakshak_dismissed_notifications` | `outly_dismissed_notifications` | `src/layouts/AppLayout.tsx` |
-| `dhanrakshak_security_acknowledged` | `outly_security_acknowledged` | `src/layouts/AppLayout.tsx` |
-| `dhanrakshak_pwa_dismissed` | `outly_pwa_dismissed` | `src/layouts/AppLayout.tsx` |
-| `dhanrakshak_install_prompt_dismissed` | `outly_install_prompt_dismissed` | `src/components/InstallPrompt.tsx` |
-| `dhanrakshak_cookie_consent` | `outly_cookie_consent` | `src/components/CookieConsent.tsx` |
-| `dhanrakshak_support_tickets` | `outly_support_tickets` | `src/pages/SupportPage.tsx` |
-| `dhanrakshak_tester_feedback` | `outly_tester_feedback` | `src/services/feedback.ts` |
-| `dhanrakshak_last_auto_reload` (sessionStorage) | `outly_last_auto_reload` | `index.html`, `src/components/AutoUpdateChecker.tsx` |
-| `dhanrakshak_purge_v4` | `outly_purge_v1` | `index.html` |
+| `intrack_theme` | `outly_theme` | `index.html`, `src/App.tsx`, `src/layouts/AppLayout.tsx`, `src/pages/SettingsPage.tsx` |
+| `intrack_theme_changed` (CustomEvent name, not storage) | `outly_theme_changed` | `src/layouts/AppLayout.tsx`, `src/pages/SettingsPage.tsx` |
+| `intrack_device_id` | `outly_device_id` | `src/context/AuthContext.tsx` |
+| `intrack_google_token` | `outly_google_token` | `src/services/googleAuth.ts` |
+| `intrack_google_token_expiry` | `outly_google_token_expiry` | `src/services/googleAuth.ts` |
+| `intrack_google_refresh_token` | `outly_google_refresh_token` | `src/services/googleAuth.ts` |
+| `intrack_oauth_provider_token` (legacy purge target) | `outly_oauth_provider_token` | `src/services/googleAuth.ts`, `src/main.tsx` |
+| `intrack_requesting_gmail_scope` | `outly_requesting_gmail_scope` | `src/context/AuthContext.tsx` |
+| `intrack_merchant_weights` | `outly_merchant_weights` | `src/services/emailScanner.ts` |
+| `intrack_merchant_settings` | `outly_merchant_settings` | `src/services/emailScanner.ts` |
+| `intrack_ls_migration_done` (sessionStorage) | `outly_ls_migration_done` | `src/services/learningEngine.ts`, `src/pages/DashboardPage.tsx` |
+| `intrack_dashboard_widgets` | `outly_dashboard_widgets` | `src/pages/DashboardPage.tsx` |
+| `intrack_analytics_advanced` | `outly_analytics_advanced` | `src/pages/AnalyticsPage.tsx` |
+| `intrack_notifications_cache` | `outly_notifications_cache` | `src/layouts/AppLayout.tsx` |
+| `intrack_dismissed_notifications` | `outly_dismissed_notifications` | `src/layouts/AppLayout.tsx` |
+| `intrack_security_acknowledged` | `outly_security_acknowledged` | `src/layouts/AppLayout.tsx` |
+| `intrack_pwa_dismissed` | `outly_pwa_dismissed` | `src/layouts/AppLayout.tsx` |
+| `intrack_install_prompt_dismissed` | `outly_install_prompt_dismissed` | `src/components/InstallPrompt.tsx` |
+| `intrack_cookie_consent` | `outly_cookie_consent` | `src/components/CookieConsent.tsx` |
+| `intrack_support_tickets` | `outly_support_tickets` | `src/pages/SupportPage.tsx` |
+| `intrack_tester_feedback` | `outly_tester_feedback` | `src/services/feedback.ts` |
+| `intrack_last_auto_reload` (sessionStorage) | `outly_last_auto_reload` | `index.html`, `src/components/AutoUpdateChecker.tsx` |
+| `intrack_purge_v4` | `outly_purge_v1` | `index.html` |
 
 **Known, accepted side effects:**
 
 - `migrateLocalStorageRulesToDB()` in `learningEngine.ts` reads `outly_merchant_weights`, which will be empty → returns `{ migrated: 0 }` and no-ops. Merchant-learning history is lost. Accepted.
 - The `signOut()` cleanup loop in `AuthContext.tsx` scans for keys containing `'oauth'` — `outly_oauth_provider_token` still matches. No change needed, but confirm the loop still catches the renamed keys.
 
-**Verify:** `npm run test` passes; `grep -rn "dhanrakshak_" src/ index.html` returns nothing.
+**Verify:** `npm run test` passes; `grep -rn "intrack_" src/ index.html` returns nothing.
 
 ---
 
@@ -158,7 +158,7 @@ Replace the hardcoded fallback origin in all six API handlers plus two test file
 
 | File | Change |
 | --- | --- |
-| `api/create-order.ts:33` | `'https://dhanrakshak-five.vercel.app'` → `'https://outly.vercel.app'` |
+| `api/create-order.ts:33` | `'https://intrack-five.vercel.app'` → `'https://outly.vercel.app'` |
 | `api/verify-payment.ts:34` | same |
 | `api/gemini-proxy.ts:24` | same |
 | `api/refresh-google-token.ts:4` | same |
@@ -168,7 +168,7 @@ Replace the hardcoded fallback origin in all six API handlers plus two test file
 
 `ALLOWED_ORIGIN` is set as a Vercel env var and takes precedence — the literal is only a fallback, but it must still be correct.
 
-**Verify:** `npm run test` passes; `grep -rn "dhanrakshak-five" api/` returns nothing.
+**Verify:** `npm run test` passes; `grep -rn "intrack-five" api/` returns nothing.
 
 ---
 
@@ -195,21 +195,21 @@ Leave `SUPPORT_EMAIL`, `SUPPORT_DESIGNATION`, `SUPPORT_ADDRESS`, `CURRENCY`, `LO
 - `<meta name="apple-mobile-web-app-title">` → `Outly`
 - Keep the Intrak `<script src="https://intrakv1.vercel.app/track.js">` untouched.
 
-**`src/pages/PricingPage.tsx:118`** — Razorpay checkout `name: 'Dhanrakshak'` → `'Outly'`. Do not touch the `intrak_*` note fields below it.
+**`src/pages/PricingPage.tsx:118`** — Razorpay checkout `name: 'Intrack'` → `'Outly'`. Do not touch the `intrak_*` note fields below it.
 
 **`src/pages/SettingsPage.tsx`** — export filename prefixes:
-`Dhanrakshak_Transactions_Export_` → `Outly_Transactions_Export_`; `Dhanrakshak_Encrypted_Backup_` → `Outly_Encrypted_Backup_`.
+`Intrack_Transactions_Export_` → `Outly_Transactions_Export_`; `Intrack_Encrypted_Backup_` → `Outly_Encrypted_Backup_`.
 
-**`src/pages/DashboardPage.tsx`** — `Dhanrakshak_Financial_Year_` → `Outly_Financial_Year_`.
+**`src/pages/DashboardPage.tsx`** — `Intrack_Financial_Year_` → `Outly_Financial_Year_`.
 
-**Remaining prose files** — replace every visible `Dhanrakshak` with `Outly` and rewrite any "wealth guardian" phrasing to the new voice:
+**Remaining prose files** — replace every visible `Intrack` with `Outly` and rewrite any "wealth guardian" phrasing to the new voice:
 `src/pages/LandingPage.tsx`, `AboutPage.tsx`, `TermsPage.tsx`, `PrivacyPage.tsx`, `RefundPage.tsx`, `SupportPage.tsx`, `PricingPage.tsx`, `ProfilePage.tsx`, `PendingPage.tsx`, `DashboardPage.tsx`, `AnalyticsPage.tsx`, `ExpensesPage.tsx`, `BudgetsPage.tsx`, `SubscriptionsPage.tsx`, `SettingsPage.tsx`, `ResetPasswordPage.tsx`, `ForgotPasswordPage.tsx`, `src/layouts/AppLayout.tsx`, `src/layouts/MarketingLayout.tsx`, `src/components/ErrorBoundary.tsx`, `src/components/InstallPrompt.tsx`, `src/context/AuthContext.tsx` (device-limit modal copy), `src/services/emailScanner.ts` (header comment), `src/types/index.ts`, `src/index.css`.
 
-`src/pages/PricingPage.tsx` also contains an uppercase `DHANRAKSHAK` (promo code or banner) — replace with `OUTLY`.
+`src/pages/PricingPage.tsx` also contains an uppercase `INTRACK` (promo code or banner) — replace with `OUTLY`.
 
 **Legal pages caution:** `TermsPage.tsx`, `PrivacyPage.tsx`, and `RefundPage.tsx` are Razorpay-compliance surfaces. Change only the entity name; do not alter policy clauses, refund windows, or the grievance-officer block.
 
-**Verify:** `npm run build` passes; `grep -rn -i "dhanrakshak" src/ index.html` returns nothing.
+**Verify:** `npm run build` passes; `grep -rn -i "intrack" src/ index.html` returns nothing.
 
 ---
 
@@ -217,17 +217,17 @@ Leave `SUPPORT_EMAIL`, `SUPPORT_DESIGNATION`, `SUPPORT_ADDRESS`, `CURRENCY`, `LO
 
 | File | Action |
 | --- | --- |
-| `README.md` | Rename product, update the `%@dhanrakshak.in` RLS note |
-| `PRODUCT.md`, `DESIGN.md` | Rename product + `dhanrakshak_theme` key reference |
+| `README.md` | Rename product, update the `%@intrack.in` RLS note |
+| `PRODUCT.md`, `DESIGN.md` | Rename product + `intrack_theme` key reference |
 | `MOBILE_SETUP.md` | Rename product, `com.outly.app`, `outly.apk` |
 | `TRANSFER_GUIDE.md` | Rename product and service references |
-| `GOOGLE_VERIFICATION_GUIDE.md` | Rename product and all `dhanrakshak-five.vercel.app` → `outly.vercel.app` |
+| `GOOGLE_VERIFICATION_GUIDE.md` | Rename product and all `intrack-five.vercel.app` → `outly.vercel.app` |
 | `user_login_guide.md` | Rename product |
 | `supabase/schema.sql:2` | Comment header → `Outly — Database Schema` |
 
-**Do not edit** `supabase/archive/*.sql` (historical migrations — rewriting history is misleading), `plans/*.md`, `docs/superpowers/plans/*.md`, `docs/superpowers/specs/*` (except this file), or `.impeccable/`. These are dated historical records. Add a one-line note at the top of `README.md` recording that the product was formerly named Dhanrakshak.
+**Do not edit** `supabase/archive/*.sql` (historical migrations — rewriting history is misleading), `plans/*.md`, `docs/superpowers/plans/*.md`, `docs/superpowers/specs/*` (except this file), or `.impeccable/`. These are dated historical records. Add a one-line note at the top of `README.md` recording that the product was formerly named Intrack.
 
-**Verify:** `grep -rn -i "dhanrakshak" . --exclude-dir={.git,node_modules,dist,archive,plans,.impeccable}` returns only intentional historical references.
+**Verify:** `grep -rn -i "intrack" . --exclude-dir={.git,node_modules,dist,archive,plans,.impeccable}` returns only intentional historical references.
 
 ---
 
@@ -250,7 +250,7 @@ Order matters. Doing these out of order breaks login in production.
 1. Project → Settings → General → rename project to `outly`.
 2. Domains → confirm `outly.vercel.app` is assigned.
 3. Environment Variables → set `ALLOWED_ORIGIN=https://outly.vercel.app` for Production.
-4. Set `DIGEST_FROM_EMAIL=Outly <onboarding@resend.dev>` (Resend's shared sender; the current `digest@dhanrakshak.app` fallback points at an unverified domain and already fails to send).
+4. Set `DIGEST_FROM_EMAIL=Outly <onboarding@resend.dev>` (Resend's shared sender; the current `digest@intrack.app` fallback points at an unverified domain and already fails to send).
 5. Confirm `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `VITE_INTRAK_WEBSITE_ID` all survived the rename.
 
 **6.4 — Razorpay Dashboard**
@@ -280,10 +280,10 @@ Rename the project display names to `Outly`. No code change — keys are opaque.
 3. Verify no live RLS policy still references the old email domain:
    ```sql
    SELECT policyname, tablename, qual FROM pg_policies
-   WHERE schemaname = 'public' AND qual::text ILIKE '%dhanrakshak%';
+   WHERE schemaname = 'public' AND qual::text ILIKE '%intrack%';
    ```
    If any row returns, replace that policy with the `public.is_admin()` check already defined in `schema.sql`.
-4. After production is confirmed healthy, remove the old `dhanrakshak-five.vercel.app` entries from Google Cloud origins/redirects and from Supabase Redirect URLs.
+4. After production is confirmed healthy, remove the old `intrack-five.vercel.app` entries from Google Cloud origins/redirects and from Supabase Redirect URLs.
 
 ---
 
