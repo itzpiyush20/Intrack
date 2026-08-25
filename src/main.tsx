@@ -10,7 +10,7 @@ try {
     const params = new URLSearchParams(hash.substring(1))
     const providerToken = params.get('provider_token')
     if (providerToken) {
-      localStorage.setItem('dhanrakshak_oauth_provider_token', providerToken)
+      localStorage.setItem('intrack_oauth_provider_token', providerToken)
     }
   }
 } catch (e) {
@@ -25,7 +25,7 @@ try {
 // the worker we had just installed — costing the whole first visit its cache.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const purged = (window as Window & { __dhanrakshakPurge?: Promise<unknown> }).__dhanrakshakPurge
+    const purged = (window as Window & { __intrackPurge?: Promise<unknown> }).__intrackPurge
       ?? Promise.resolve()
     purged
       .then(() => navigator.serviceWorker.register('/sw.js'))

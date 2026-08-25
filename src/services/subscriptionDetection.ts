@@ -59,7 +59,7 @@ export function merchantKey(merchant: string): string {
 
 /** localStorage key holding the merchants this user marked "not a subscription". */
 export function ignoredSubscriptionsStorageKey(userId: string): string {
-  return `dhanrakshak_ignored_subscriptions_${userId}`
+  return `intrack_ignored_subscriptions_${userId}`
 }
 
 /** Read the ignored-merchant list, tolerating absent or corrupt JSON. */

@@ -10,7 +10,7 @@ export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const consent = localStorage.getItem('dhanrakshak_cookie_consent')
+    const consent = localStorage.getItem('intrack_cookie_consent')
     if (!consent) {
       // Delay showing the banner slightly for better UX
       const timer = setTimeout(() => {
@@ -26,7 +26,7 @@ export default function CookieConsent() {
   // second time.
   const handleDismiss = () => {
     try {
-      localStorage.setItem('dhanrakshak_cookie_consent', 'acknowledged')
+      localStorage.setItem('intrack_cookie_consent', 'acknowledged')
     } catch {
       // Storage blocked. Showing the notice again next visit is the harmless
       // failure; crashing the banner is not.

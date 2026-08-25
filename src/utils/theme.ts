@@ -23,8 +23,8 @@
 // marked with a pointer back to this file.
 // ============================================
 
-export const THEME_STORAGE_KEY = 'dhanrakshak_theme'
-export const THEME_CHANGE_EVENT = 'dhanrakshak_theme_changed'
+export const THEME_STORAGE_KEY = 'intrack_theme'
+export const THEME_CHANGE_EVENT = 'intrack_theme_changed'
 
 export type ThemePreference = 'light' | 'dark'
 

@@ -391,12 +391,12 @@ export default function InsightsPage() {
   // modules at once tends to bounce off the page entirely. Default to the 3
   // core ones; remember the choice once someone opts into the rest.
   const [showAdvanced, setShowAdvanced] = useState(
-    () => localStorage.getItem('dhanrakshak_analytics_advanced') === 'true'
+    () => localStorage.getItem('intrack_analytics_advanced') === 'true'
   )
   const toggleAdvanced = () => {
     setShowAdvanced((prev) => {
       const next = !prev
-      localStorage.setItem('dhanrakshak_analytics_advanced', String(next))
+      localStorage.setItem('intrack_analytics_advanced', String(next))
       return next
     })
   }
@@ -413,7 +413,7 @@ export default function InsightsPage() {
   const [simWants, setSimWants] = useState<number>(0)
 
   useEffect(() => {
-    if (user) localStorage.setItem(`dhanrakshak_visited_analytics_${user.id}`, 'true')
+    if (user) localStorage.setItem(`intrack_visited_analytics_${user.id}`, 'true')
   }, [user])
 
   const fetchAllData = useCallback(async () => {

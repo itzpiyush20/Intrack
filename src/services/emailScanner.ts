@@ -193,7 +193,7 @@ export interface MerchantRule {
 
 export function getMerchantWeights(): Record<string, Record<string, number>> {
   try {
-    const weights = localStorage.getItem('dhanrakshak_merchant_weights')
+    const weights = localStorage.getItem('intrack_merchant_weights')
     return weights ? JSON.parse(weights) : {}
   } catch {
     return {}
@@ -202,7 +202,7 @@ export function getMerchantWeights(): Record<string, Record<string, number>> {
 
 export function getMerchantSettings(): Record<string, { autoApprove: boolean }> {
   try {
-    const settings = localStorage.getItem('dhanrakshak_merchant_settings')
+    const settings = localStorage.getItem('intrack_merchant_settings')
     return settings ? JSON.parse(settings) : {}
   } catch {
     return {}
@@ -213,7 +213,7 @@ export function saveMerchantSetting(merchant: string, settings: { autoApprove: b
   try {
     const current = getMerchantSettings()
     current[merchant.toLowerCase().trim()] = settings
-    localStorage.setItem('dhanrakshak_merchant_settings', JSON.stringify(current))
+    localStorage.setItem('intrack_merchant_settings', JSON.stringify(current))
   } catch (e) {
     console.error('Failed to save merchant setting:', e)
   }
@@ -258,7 +258,7 @@ export function saveMerchantRule(merchant: string, category: string, autoApprove
     if (currentSettings[cleanMerchant] === undefined || currentSettings[cleanMerchant].autoApprove !== autoApprove) {
       saveMerchantSetting(cleanMerchant, { autoApprove })
     }
-    localStorage.setItem('dhanrakshak_merchant_weights', JSON.stringify(weights))
+    localStorage.setItem('intrack_merchant_weights', JSON.stringify(weights))
   } catch (e) {
     console.error('Failed to save merchant weight:', e)
   }
@@ -268,10 +268,10 @@ export function deleteMerchantRule(key: string) {
   try {
     const weights = getMerchantWeights()
     delete weights[key]
-    localStorage.setItem('dhanrakshak_merchant_weights', JSON.stringify(weights))
+    localStorage.setItem('intrack_merchant_weights', JSON.stringify(weights))
     const settings = getMerchantSettings()
     delete settings[key]
-    localStorage.setItem('dhanrakshak_merchant_settings', JSON.stringify(settings))
+    localStorage.setItem('intrack_merchant_settings', JSON.stringify(settings))
   } catch (e) {
     console.error('Failed to delete merchant rule:', e)
   }

@@ -120,7 +120,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
 
   const getDismissedKeys = (): Set<string> => {
     try {
-      const raw = localStorage.getItem('dhanrakshak_dismissed_notifications')
+      const raw = localStorage.getItem('intrack_dismissed_notifications')
       return new Set(raw ? JSON.parse(raw) : [])
     } catch {
       return new Set()
@@ -132,7 +132,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
 
     // Check if we have cached notifications that are less than 5 minutes old (V2: extended from 30s to reduce Supabase load)
     try {
-      const cachedData = sessionStorage.getItem('dhanrakshak_notifications_cache')
+      const cachedData = sessionStorage.getItem('intrack_notifications_cache')
       if (cachedData) {
         const { items, timestamp } = JSON.parse(cachedData)
         if (Date.now() - timestamp < 300000) {
@@ -257,7 +257,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
 
     // Save the full (undismissed-filtered) set to cache, then filter for display
     try {
-      sessionStorage.setItem('dhanrakshak_notifications_cache', JSON.stringify({
+      sessionStorage.setItem('intrack_notifications_cache', JSON.stringify({
         items,
         timestamp: Date.now()
       }))
@@ -271,7 +271,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
     try {
       const dismissed = getDismissedKeys()
       notifications.forEach((n) => dismissed.add(n.key))
-      localStorage.setItem('dhanrakshak_dismissed_notifications', JSON.stringify([...dismissed]))
+      localStorage.setItem('intrack_dismissed_notifications', JSON.stringify([...dismissed]))
     } catch (e) {}
     setNotifications([])
   }
@@ -368,7 +368,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
   // of the way).
   const [showPrivacyNote, setShowPrivacyNote] = useState(() => {
     try {
-      return localStorage.getItem('dhanrakshak_security_acknowledged') !== 'true'
+      return localStorage.getItem('intrack_security_acknowledged') !== 'true'
     } catch (e) {
       return true
     }
@@ -377,7 +377,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
   const handleDismissPrivacyNote = () => {
     setShowPrivacyNote(false)
     try {
-      localStorage.setItem('dhanrakshak_security_acknowledged', 'true')
+      localStorage.setItem('intrack_security_acknowledged', 'true')
     } catch (e) {}
   }
 
@@ -404,7 +404,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e)
       // Check if user has previously dismissed the banner
-      const isDismissed = localStorage.getItem('dhanrakshak_pwa_dismissed') === 'true'
+      const isDismissed = localStorage.getItem('intrack_pwa_dismissed') === 'true'
       if (!isDismissed) {
         setShowInstallBanner(true)
       }
@@ -438,7 +438,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
   }
 
   const handleDismissBanner = () => {
-    localStorage.setItem('dhanrakshak_pwa_dismissed', 'true')
+    localStorage.setItem('intrack_pwa_dismissed', 'true')
     setShowInstallBanner(false)
   }
 
@@ -471,7 +471,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
                 <span className={cn(
                   "font-extrabold transition-colors duration-300",
                   (isStaticLight || isLight) ? "text-sb-primary" : "text-brand-400"
-                )}>Dhan</span><span className={cn((isStaticLight || isLight) ? "text-sb-ink" : "text-white")}>rakshak</span>
+                )}>In</span><span className={cn((isStaticLight || isLight) ? "text-sb-ink" : "text-white")}>track</span>
               </div>
               <span className={cn(
                 "text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5",

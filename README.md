@@ -157,7 +157,9 @@ npx cap open android   # opens Android Studio
 Set `VITE_OWNER_EMAILS` to a comma-separated list of admin emails. Owner accounts:
 - Bypass the premium gate
 - Bypass the 24-hour scan cooldown
-- Can view all feedback and signin logs via the `%@dhanrakshak.in` RLS backdoor (update domain as needed)
+- Can view all feedback and signin logs, gated by `public.is_admin()` (reads `profiles.is_admin`).
+  An older policy granted this to any JWT whose email matched an unregistered domain; migration
+  `039_fix_signin_logs_admin_read.sql` replaced it, and production was verified clean on 2026-08-25.
 
 ---
 

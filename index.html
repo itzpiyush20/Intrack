@@ -2,6 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Rebrand storage migration. MUST be the first script in <head>, ahead of
+         the pre-paint theme read below and ahead of anything in the bundle.
+
+         The rebrand left ~28 storage keys under the previous brand prefix on
+         every existing user's device. Renaming the read/write sites alone would
+         silently discard them: Gmail would read as unlinked and force
+         re-authorization, paid users would paint as unsubscribed, the cookie
+         banner would reappear, device IDs would reset. So the keys are copied
+         forward once, here, before the first reader runs.
+
+         Prefix-based rather than a fixed list, so the per-user-id families
+         (`_sub_status_<uid>`, `_checklist_dismissed_<uid>`, …) come along
+         without enumerating them. Full rationale in plans/. -->
+    <script>
+      (function() {
+        var DONE = 'intrack_key_migration_v1';
+        try {
+          if (localStorage.getItem(DONE)) return;
+        } catch (e) {
+          // Safari private mode throws on any storage access. Nothing to
+          // migrate and nothing to record — never let this take down the page.
+          return;
+        }
+        function migrate(store) {
+          try {
+            var oldKeys = [];
+            for (var i = 0; i < store.length; i++) {
+              var k = store.key(i);
+              if (k && k.indexOf('dhanrakshak_') === 0) oldKeys.push(k);
+            }
+            // Collected first, then mutated: writing while iterating reindexes
+            // the store and skips entries.
+            for (var j = 0; j < oldKeys.length; j++) {
+              var oldKey = oldKeys[j];
+              var newKey = 'intrack_' + oldKey.slice('dhanrakshak_'.length);
+              // A value already written under the new name is newer than the
+              // legacy one and always wins.
+              if (store.getItem(newKey) === null) {
+                store.setItem(newKey, store.getItem(oldKey));
+              }
+              store.removeItem(oldKey);
+            }
+          } catch (e) {}
+        }
+        migrate(localStorage);
+        migrate(sessionStorage);
+        try { localStorage.setItem(DONE, 'true'); } catch (e) {}
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Defaults only. Every public route overwrites title/description/canonical
@@ -48,7 +99,7 @@
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('dhanrakshak_theme');
+          var stored = localStorage.getItem('intrack_theme');
           var isLight;
           if (stored === 'light' || stored === 'dark') {
             isLight = stored === 'light';
@@ -83,12 +134,12 @@
             if (src && (src.indexOf('/assets/') !== -1 || src.indexOf('index-') !== -1)) {
               console.warn('HTML Head: Asset load failed. Checking for reload loop...', src);
               var now = Date.now();
-              var lastReload = sessionStorage.getItem('dhanrakshak_last_auto_reload');
+              var lastReload = sessionStorage.getItem('intrack_last_auto_reload');
               if (lastReload && (now - Number(lastReload) < 15000)) {
                 console.error('HTML Head: Reload loop suppressed.');
                 return;
               }
-              sessionStorage.setItem('dhanrakshak_last_auto_reload', String(now));
+              sessionStorage.setItem('intrack_last_auto_reload', String(now));
               window.location.reload();
             }
           }
@@ -98,18 +149,18 @@
 
     <!-- Bulletproof legacy service worker and cache purge (Background only)
 
-         main.tsx waits on window.__dhanrakshakPurge before registering the
+         main.tsx waits on window.__intrackPurge before registering the
          service worker. Without that handshake the unregister below — which is
          async — could resolve AFTER registration and tear down the worker that
          had just been installed, leaving the first visit with no cache at all. -->
     <script>
-      window.__dhanrakshakPurge = Promise.resolve();
+      window.__intrackPurge = Promise.resolve();
       try {
         if (typeof window !== 'undefined') {
-          var PURGE_KEY = 'dhanrakshak_purge_v4';
+          var PURGE_KEY = 'intrack_purge_v4';
           if (!localStorage.getItem(PURGE_KEY)) {
             if ('serviceWorker' in navigator) {
-              window.__dhanrakshakPurge = navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              window.__intrackPurge = navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 return Promise.all(registrations.map(function(r) { return r.unregister(); }));
               }).catch(function() {});
             }

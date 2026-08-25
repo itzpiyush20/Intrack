@@ -65,7 +65,7 @@ export default function SiteFooter({
             <div className="flex items-center gap-2">
               <span className="h-6 w-6 rounded-lg bg-brand-500 flex items-center justify-center text-xs font-black text-white" aria-hidden="true">₹</span>
               <span className="text-sm font-extrabold">
-                <span className="text-brand-400">Dhan</span><span className={strong}>rakshak</span>
+                <span className="text-brand-400">In</span><span className={strong}>track</span>
               </span>
             </div>
           )}

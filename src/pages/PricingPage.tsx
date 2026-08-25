@@ -765,7 +765,7 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* ── BRAND PROMISE SECTION (THE DHANRAKSHAK STANDARD) ───── */}
+        {/* ── BRAND PROMISE SECTION (THE INTRACK STANDARD) ───── */}
         <div className="border-t border-border-subtle py-16 animate-fade-in">
           <div className="mx-auto max-w-7xl">
             <div className="text-center max-w-xl mx-auto mb-12 space-y-4">

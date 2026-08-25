@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const LEGACY_KEY = 'dhanrakshak_google_refresh_token'
-const LINKED_KEY = 'dhanrakshak_google_linked'
-const TOKEN_KEY = 'dhanrakshak_google_token'
+const LEGACY_KEY = 'intrack_google_refresh_token'
+const LINKED_KEY = 'intrack_google_linked'
+const TOKEN_KEY = 'intrack_google_token'
 
 // The suite runs in the default node environment, which has no localStorage.
 // A minimal in-memory stand-in is enough for these tests and avoids pulling in

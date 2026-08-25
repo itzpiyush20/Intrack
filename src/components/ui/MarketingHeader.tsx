@@ -46,7 +46,7 @@ export default function MarketingHeader() {
         <Link to="/" className="flex items-center gap-3 group no-underline shrink-0">
           <span className="h-8 w-8 rounded-xl bg-brand-500 flex items-center justify-center text-sm font-black text-white shadow-[var(--shadow-sm)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" aria-hidden="true">₹</span>
           <span className="text-base font-extrabold tracking-tight">
-            <span className="text-brand-400">Dhan</span><span>rakshak</span>
+            <span className="text-brand-400">In</span><span>track</span>
           </span>
           <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />Automated Tracker

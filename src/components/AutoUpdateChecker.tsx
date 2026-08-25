@@ -56,12 +56,12 @@ export default function AutoUpdateChecker() {
           console.log('webapp: new update detected! Reloading page to apply updates...')
           try {
             const nowTime = Date.now()
-            const lastReload = sessionStorage.getItem('dhanrakshak_last_auto_reload')
+            const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
             if (lastReload && nowTime - Number(lastReload) < 10000) {
               console.warn('webapp: auto-reload loop detected & suppressed.')
               return
             }
-            sessionStorage.setItem('dhanrakshak_last_auto_reload', String(nowTime))
+            sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
           } catch (e) {}
           window.location.reload()
         }
@@ -91,12 +91,12 @@ export default function AutoUpdateChecker() {
           console.warn('webapp: asset loading failed, checking for reload loop...', src)
           try {
             const nowTime = Date.now()
-            const lastReload = sessionStorage.getItem('dhanrakshak_last_auto_reload')
+            const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
             if (lastReload && nowTime - Number(lastReload) < 15000) {
               console.warn('webapp: auto-reload loop detected via error listener & suppressed.')
               return
             }
-            sessionStorage.setItem('dhanrakshak_last_auto_reload', String(nowTime))
+            sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
           } catch (err) {}
           window.location.reload()
         }

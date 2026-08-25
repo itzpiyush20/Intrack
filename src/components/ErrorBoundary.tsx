@@ -40,9 +40,9 @@ export class ErrorBoundary extends Component<Props, State> {
     if (isStaleChunkError) {
       try {
         const now = Date.now()
-        const lastReload = sessionStorage.getItem('dhanrakshak_last_auto_reload')
+        const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
         if (!lastReload || now - Number(lastReload) > 15000) {
-          sessionStorage.setItem('dhanrakshak_last_auto_reload', String(now))
+          sessionStorage.setItem('intrack_last_auto_reload', String(now))
           window.location.reload()
         }
       } catch {

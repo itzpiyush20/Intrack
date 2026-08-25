@@ -22,20 +22,20 @@
 // account settings or disconnect Gmail in-app.
 // ============================================================
 
-const TOKEN_KEY = 'dhanrakshak_google_token'
-const EXPIRY_KEY = 'dhanrakshak_google_token_expiry'
+const TOKEN_KEY = 'intrack_google_token'
+const EXPIRY_KEY = 'intrack_google_token_expiry'
 
 // Non-credential marker recording that this account has a refresh token stored
 // server-side. Lets tryRefreshGoogleToken() keep its cheap "not connected"
 // short-circuit instead of firing a request on every load for users who have
 // never linked Gmail. Losing it is harmless — it self-heals on the next
 // successful save, and only costs one extra 410 in the meantime.
-const LINKED_KEY = 'dhanrakshak_google_linked'
+const LINKED_KEY = 'intrack_google_linked'
 
 // Pre-migration key: the long-lived refresh token used to be stored here.
 // Retained only so migrateLegacyRefreshToken() can move it server-side and
 // erase it from browsers that still hold one.
-const LEGACY_REFRESH_TOKEN_KEY = 'dhanrakshak_google_refresh_token'
+const LEGACY_REFRESH_TOKEN_KEY = 'intrack_google_refresh_token'
 
 const TOKEN_TTL_MS = 58 * 60 * 1000 // 58 minutes (Google tokens last 60 min)
 
@@ -245,5 +245,5 @@ export async function validateGoogleToken(token: string): Promise<boolean> {
 
 // Remove the very old token key from pre-v2 of the app.
 export function purgeOldTokenKey(): void {
-  localStorage.removeItem('dhanrakshak_oauth_provider_token')
+  localStorage.removeItem('intrack_oauth_provider_token')
 }

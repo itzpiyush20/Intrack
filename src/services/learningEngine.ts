@@ -99,7 +99,7 @@ export async function saveMerchantRuleToDb(
 }
 
 export async function migrateLocalStorageRulesToDB(userId: string): Promise<{ migrated: number }> {
-  const migrationDoneKey = 'dhanrakshak_ls_migration_done'
+  const migrationDoneKey = 'intrack_ls_migration_done'
   try {
     if (sessionStorage.getItem(migrationDoneKey)) return { migrated: 0 }
   } catch {

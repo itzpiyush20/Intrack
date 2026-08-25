@@ -36,7 +36,7 @@ export default function ProtectedRoute() {
   const isExempted = ['/settings', '/profile', '/support', '/pricing', '/admin'].includes(location.pathname)
 
   // isSubscriptionActive is derived from the profiles row alone, never from the
-  // dhanrakshak_sub_* localStorage cache that paints the header. Editing those
+  // intrack_sub_* localStorage cache that paints the header. Editing those
   // keys changes what the plan badge says and nothing about what this gate does.
   if (!isSubscriptionActive && !isExempted) {
     return <Navigate to="/pricing" replace />

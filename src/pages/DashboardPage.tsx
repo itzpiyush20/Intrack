@@ -171,7 +171,7 @@ export default function DashboardPage() {
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [widgets, setWidgets] = useState<Record<string, boolean>>(() => {
     const defaults = { stats: true, breakdown: true, recent: true, subscriptions: true, insights: true, ccbills: true }
-    const saved = localStorage.getItem('dhanrakshak_dashboard_widgets')
+    const saved = localStorage.getItem('intrack_dashboard_widgets')
     if (saved) {
       try {
         // Merge onto defaults (not a plain override) so a widget added after a
@@ -186,7 +186,7 @@ export default function DashboardPage() {
   const toggleWidget = (key: string) => {
     const updated = { ...widgets, [key]: !widgets[key] }
     setWidgets(updated)
-    localStorage.setItem('dhanrakshak_dashboard_widgets', JSON.stringify(updated))
+    localStorage.setItem('intrack_dashboard_widgets', JSON.stringify(updated))
   }
 
   // Credit card bill payments — tracked on their own tile because they are
@@ -378,7 +378,7 @@ export default function DashboardPage() {
     document.title = 'Dashboard | Intrack'
     fetchDashboardData(dateFilter)
     // One-time migration of localStorage merchant rules to Supabase DB
-    if (user && !sessionStorage.getItem('dhanrakshak_ls_migration_done')) {
+    if (user && !sessionStorage.getItem('intrack_ls_migration_done')) {
       migrateLocalStorageRulesToDB(user.id).catch(console.warn)
     }
   }, [dateFilter, fetchDashboardData])
@@ -409,8 +409,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return
     refreshStreak()
-    setChecklistDismissed(localStorage.getItem(`dhanrakshak_checklist_dismissed_${user.id}`) === 'true')
-    setVisitedAnalytics(localStorage.getItem(`dhanrakshak_visited_analytics_${user.id}`) === 'true')
+    setChecklistDismissed(localStorage.getItem(`intrack_checklist_dismissed_${user.id}`) === 'true')
+    setVisitedAnalytics(localStorage.getItem(`intrack_visited_analytics_${user.id}`) === 'true')
   }, [user, refreshStreak])
 
   // Insights teaser fetch — intentionally decoupled from fetchDashboardData
@@ -513,7 +513,7 @@ export default function DashboardPage() {
   // new calendar month, recapping the month that just ended.
   useEffect(() => {
     if (!user) return
-    const key = `dhanrakshak_last_seen_month_${user.id}`
+    const key = `intrack_last_seen_month_${user.id}`
     const lastSeen = localStorage.getItem(key)
     const current = getCurrentMonth()
 
@@ -548,7 +548,7 @@ export default function DashboardPage() {
   const dismissChecklist = () => {
     if (!user) return
     setChecklistDismissed(true)
-    localStorage.setItem(`dhanrakshak_checklist_dismissed_${user.id}`, 'true')
+    localStorage.setItem(`intrack_checklist_dismissed_${user.id}`, 'true')
   }
 
   const handleManualBannerSync = async () => {

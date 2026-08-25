@@ -63,8 +63,8 @@ interface DeviceSession {
  * `profile` is deliberately painted from localStorage first (see refreshProfile)
  * so a returning subscriber doesn't watch the header flicker through "Upgrade"
  * on every load. That cache used to feed isSubscriptionActive as well, and it is
- * a plain localStorage entry: setting dhanrakshak_sub_status_<uid> to "active"
- * and dhanrakshak_sub_expires_<uid> to a future date in DevTools walked straight
+ * a plain localStorage entry: setting intrack_sub_status_<uid> to "active"
+ * and intrack_sub_expires_<uid> to a future date in DevTools walked straight
  * past ProtectedRoute onto every paid screen. Worse, the two fallback paths in
  * refreshProfile (database read errored / threw) rebuilt the WHOLE profile from
  * those keys, so an attacker could also just make the profile request fail.
@@ -96,10 +96,10 @@ type Entitlement =
 
 function getOrCreateDeviceId(): string {
   try {
-    let id = localStorage.getItem('dhanrakshak_device_id')
+    let id = localStorage.getItem('intrack_device_id')
     if (!id) {
       id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)
-      localStorage.setItem('dhanrakshak_device_id', id)
+      localStorage.setItem('intrack_device_id', id)
     }
     return id
   } catch (e) {
@@ -121,7 +121,7 @@ function getOrCreateDeviceId(): string {
  */
 function readCachedIsAdmin(userId: string): boolean {
   try {
-    return localStorage.getItem(`dhanrakshak_is_admin_${userId}`) === 'true'
+    return localStorage.getItem(`intrack_is_admin_${userId}`) === 'true'
   } catch {
     return false
   }
@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.user) {
       try {
-        const stored = localStorage.getItem(`dhanrakshak_daily_scan_time_${state.user.id}`)
+        const stored = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`)
         setDailyScanTimeState(stored || '06:00')
       } catch {
         setDailyScanTimeState('06:00')
@@ -202,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!state.user) return false
     try {
       setDailyScanTimeState(time)
-      localStorage.setItem(`dhanrakshak_daily_scan_time_${state.user.id}`, time)
+      localStorage.setItem(`intrack_daily_scan_time_${state.user.id}`, time)
       return true
     } catch (e) {
       console.error('Failed to save daily scan time:', e)
@@ -273,10 +273,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     //    Display only — this block writes `profile`, never `entitlement`. See the
     //    Entitlement type for why the two were separated.
     try {
-      const cachedStatus = localStorage.getItem(`dhanrakshak_sub_status_${state.user.id}`)
-      const cachedExpires = localStorage.getItem(`dhanrakshak_sub_expires_${state.user.id}`)
-      const cachedPlan = localStorage.getItem(`dhanrakshak_sub_plan_${state.user.id}`)
-      const cachedScanTime = localStorage.getItem(`dhanrakshak_daily_scan_time_${state.user.id}`) || '06:00'
+      const cachedStatus = localStorage.getItem(`intrack_sub_status_${state.user.id}`)
+      const cachedExpires = localStorage.getItem(`intrack_sub_expires_${state.user.id}`)
+      const cachedPlan = localStorage.getItem(`intrack_sub_plan_${state.user.id}`)
+      const cachedScanTime = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00'
 
       if (cachedStatus) {
         let subStatus = cachedStatus
@@ -328,9 +328,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', state.user.id)
         .single()
       
-      const localStatus = localStorage.getItem(`dhanrakshak_sub_status_${state.user.id}`)
-      const localExpires = localStorage.getItem(`dhanrakshak_sub_expires_${state.user.id}`)
-      const localPlan = localStorage.getItem(`dhanrakshak_sub_plan_${state.user.id}`)
+      const localStatus = localStorage.getItem(`intrack_sub_status_${state.user.id}`)
+      const localExpires = localStorage.getItem(`intrack_sub_expires_${state.user.id}`)
+      const localPlan = localStorage.getItem(`intrack_sub_plan_${state.user.id}`)
 
       if (!error && data) {
         const createdAtTime = data.created_at ? new Date(data.created_at).getTime() : Date.now()
@@ -358,13 +358,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Cache subscription details back to localStorage
-        localStorage.setItem(`dhanrakshak_sub_status_${state.user.id}`, subStatus)
-        if (subExpires) localStorage.setItem(`dhanrakshak_sub_expires_${state.user.id}`, subExpires)
-        localStorage.setItem(`dhanrakshak_sub_plan_${state.user.id}`, subPlan)
+        localStorage.setItem(`intrack_sub_status_${state.user.id}`, subStatus)
+        if (subExpires) localStorage.setItem(`intrack_sub_expires_${state.user.id}`, subExpires)
+        localStorage.setItem(`intrack_sub_plan_${state.user.id}`, subPlan)
         // Cached so the fallback paths below can restore it. Without this a
         // transient profile read rebuilds the profile without is_admin, which
         // reads as "not an admin" and ejects the user from /admin.
-        localStorage.setItem(`dhanrakshak_is_admin_${state.user.id}`, String(data.is_admin === true))
+        localStorage.setItem(`intrack_is_admin_${state.user.id}`, String(data.is_admin === true))
 
         setProfile({
           ...data,
@@ -387,7 +387,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // local value back to profiles.daily_scan_time on every profile load,
         // against a column that does not exist in production, so it fired a
         // failed request and a console warning on every single page load.
-        const localScanTimePref = localStorage.getItem(`dhanrakshak_daily_scan_time_${state.user.id}`)
+        const localScanTimePref = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`)
         if (localScanTimePref) {
           setDailyScanTimeState(localScanTimePref)
         }
@@ -421,7 +421,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           subscription_status: subStatus,
           subscription_expires_at: localExpires || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           subscription_plan_type: subPlan,
-          daily_scan_time: localStorage.getItem(`dhanrakshak_daily_scan_time_${state.user.id}`) || '06:00',
+          daily_scan_time: localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00',
           is_admin: readCachedIsAdmin(state.user.id)
         })
       }
@@ -431,9 +431,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // may not authorise anything. A thrown request is not evidence of payment.
       setEntitlement({ state: 'unconfirmed' })
       // Fallback profile to prevent app from hanging
-      const localStatus = localStorage.getItem(`dhanrakshak_sub_status_${state.user.id}`)
-      const localExpires = localStorage.getItem(`dhanrakshak_sub_expires_${state.user.id}`)
-      const localPlan = localStorage.getItem(`dhanrakshak_sub_plan_${state.user.id}`)
+      const localStatus = localStorage.getItem(`intrack_sub_status_${state.user.id}`)
+      const localExpires = localStorage.getItem(`intrack_sub_expires_${state.user.id}`)
+      const localPlan = localStorage.getItem(`intrack_sub_plan_${state.user.id}`)
       let subStatus = localStatus || 'trial'
       let subPlan = 'trial'
       if (localStatus === 'active') {
@@ -456,7 +456,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscription_status: subStatus,
         subscription_expires_at: localExpires || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         subscription_plan_type: subPlan,
-        daily_scan_time: localStorage.getItem(`dhanrakshak_daily_scan_time_${state.user.id}`) || '06:00',
+        daily_scan_time: localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00',
         is_admin: readCachedIsAdmin(state.user.id)
       })
     }
@@ -489,12 +489,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         access_type: 'offline',
         prompt: forceConsent ? 'consent' : 'select_account',
       }
-      localStorage.setItem('dhanrakshak_requesting_gmail_scope', 'true')
+      localStorage.setItem('intrack_requesting_gmail_scope', 'true')
     } else {
       oAuthOptions.queryParams = {
         prompt: 'select_account',
       }
-      localStorage.removeItem('dhanrakshak_requesting_gmail_scope')
+      localStorage.removeItem('intrack_requesting_gmail_scope')
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -600,11 +600,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.provider_token) {
         const providerToken = session.provider_token
-        const isGmailFlow = localStorage.getItem('dhanrakshak_requesting_gmail_scope') === 'true'
+        const isGmailFlow = localStorage.getItem('intrack_requesting_gmail_scope') === 'true'
         if (isGmailFlow) {
           saveGoogleToken(providerToken)
           setHasGoogleToken(true)
-          localStorage.removeItem('dhanrakshak_requesting_gmail_scope')
+          localStorage.removeItem('intrack_requesting_gmail_scope')
         } else {
           // Fire-and-forget: doesn't block loading
           validateGoogleToken(providerToken).then((isValid) => {
@@ -663,11 +663,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.provider_token) {
           const providerToken = session.provider_token
           // Fresh token from OAuth callback — save ONLY if we explicitly initiated a Gmail scope flow
-          const isGmailFlow = localStorage.getItem('dhanrakshak_requesting_gmail_scope') === 'true'
+          const isGmailFlow = localStorage.getItem('intrack_requesting_gmail_scope') === 'true'
           if (isGmailFlow) {
             saveGoogleToken(providerToken)
             setHasGoogleToken(true)
-            localStorage.removeItem('dhanrakshak_requesting_gmail_scope')
+            localStorage.removeItem('intrack_requesting_gmail_scope')
           } else {
             // Fire-and-forget: doesn't block the auth state update
             validateGoogleToken(providerToken).then((isValid) => {
@@ -726,7 +726,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      * supabase.auth.updateUser() can set it from the browser with no privileged
      * key. So anyone willing to open the console can call the same API, empty
      * user_sessions, and use as many devices as they like; clearing the
-     * dhanrakshak_device_id localStorage key is enough to look like a brand-new
+     * intrack_device_id localStorage key is enough to look like a brand-new
      * device as well. The blocking screen below stops honest account sharing,
      * which is what it is for, and nothing more.
      *
@@ -1034,11 +1034,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // refreshProfile() below re-reads the profiles row (written by the
       // serverless payment verification endpoint outside dev) and that read is
       // what actually confirms the entitlement.
-      localStorage.setItem(`dhanrakshak_sub_status_${state.user.id}`, status)
-      localStorage.setItem(`dhanrakshak_sub_expires_${state.user.id}`, expiresAt)
-      localStorage.setItem(`dhanrakshak_sub_plan_${state.user.id}`, subPlanType)
+      localStorage.setItem(`intrack_sub_status_${state.user.id}`, status)
+      localStorage.setItem(`intrack_sub_expires_${state.user.id}`, expiresAt)
+      localStorage.setItem(`intrack_sub_plan_${state.user.id}`, subPlanType)
       if (promoCode) {
-        localStorage.setItem(`dhanrakshak_promo_code_${state.user.id}`, promoCode)
+        localStorage.setItem(`intrack_promo_code_${state.user.id}`, promoCode)
       }
 
       await refreshProfile()

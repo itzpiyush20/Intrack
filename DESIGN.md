@@ -8,7 +8,7 @@ human summary; tokens in `index.css` win if they ever diverge.
 
 Light-first, fully dark-aware. Default (`:root`) is dark; a `.light` class on
 `<html>` switches to light. Default follows the OS (`prefers-color-scheme`) unless
-the user picks a mode (stored in `localStorage.dhanrakshak_theme`). Toggle lives in
+the user picks a mode (stored in `localStorage.intrack_theme`). Toggle lives in
 the app shell and Settings.
 
 The neutral text ramp (`--zinc-*`) **inverts** between modes: low index = primary
