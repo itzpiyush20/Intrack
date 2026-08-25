@@ -3,6 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
 
+/**
+ * ALLOWED_ORIGIN may carry several comma-separated hosts, so a domain move can
+ * serve the old and the new origin at once instead of cutting over in one
+ * breaking step. Same parsing as api/gemini-proxy.ts.
+ */
+const ALLOWED_ORIGINS = ALLOWED_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 function isRateLimited(ip: string): boolean {
   const now = Date.now()
@@ -18,8 +25,8 @@ function isRateLimited(ip: string): boolean {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || ''
-  if (origin === ALLOWED_ORIGIN) {
-    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true')
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
