@@ -37,8 +37,8 @@
   "start_url": "/",
   "id": "/",
   "scope": "/",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait-primary"
 }

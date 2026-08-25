@@ -239,7 +239,7 @@ export default function LandingPage() {
             </p>
             {/* Naming 15 banks and payment apps with no qualifier reads as an
                 endorsement none of them have given. */}
-            <p className="text-xs text-sb-ink-muted/80 mb-5 max-w-xl mx-auto leading-relaxed">
+            <p className="text-xs text-sb-ink-muted mb-5 max-w-xl mx-auto leading-relaxed">
               Intrack reads the alert emails these providers send you. It is not affiliated with,
               endorsed by, or partnered with any of them, and all names and marks belong to their owners.
             </p>
@@ -284,7 +284,7 @@ export default function LandingPage() {
               {steps.map((s, i) => (
                 <div key={s.num} data-reveal data-delay={String(i * 150)} className="h-full flex flex-col">
                   <div className="sb-card-light p-8 relative group transition-shadow duration-300 hover:shadow-md h-full flex flex-col justify-start">
-                    <div className="text-5xl font-black text-sb-ink-muted/30 mb-6 leading-none group-hover:text-brand-500/40 transition-colors duration-300">{s.num}</div>
+                    <div className="text-5xl font-black text-sb-ink-faint mb-6 leading-none group-hover:text-brand-500/40 transition-colors duration-300">{s.num}</div>
                     {i < steps.length - 1 && (
                       <svg className="hidden md:block absolute top-[60px] -right-[15px] w-8 h-6 text-brand-500/40 z-10" viewBox="0 0 32 16" fill="none">
                         <path

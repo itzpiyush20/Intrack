@@ -41,7 +41,7 @@ export default function MarketingHeader() {
   const { user, openAuthModal } = useAuth()
 
   return (
-    <header className="sticky top-0 z-50 bg-sb-canvas/80 backdrop-blur-md border-b border-sb-hairline">
+    <header className="sticky top-0 z-50 bg-sb-canvas backdrop-blur-md border-b border-sb-hairline">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Primary">
         <Link to="/" className="flex items-center gap-3 group no-underline shrink-0">
           <span className="h-8 w-8 rounded-xl bg-brand-500 flex items-center justify-center text-sm font-black text-white shadow-[var(--shadow-sm)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" aria-hidden="true">₹</span>

@@ -76,7 +76,7 @@ export default function PrivacyPage() {
           We use only what is strictly necessary to keep you signed in. We run no advertising cookies, no tracking cookies, and no third-party analytics.
 
           Session storage: Required for you to stay logged in. Cleared when you log out.
-          localStorage: Your theme preference, a device ID for the 2-device limit, your Gmail access token, and cached merchant rules. Never transmitted to third parties.
+          localStorage: A device ID for the 2-device limit, your Gmail access token, and cached merchant rules. Never transmitted to third parties.
         `)}
 
         {section("8. Children's Privacy", `

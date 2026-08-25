@@ -15,7 +15,7 @@ import CookieConsent from '@/components/CookieConsent'
 import URLAuthTrigger from '@/components/auth/URLAuthTrigger'
 import AuthModal from '@/components/auth/AuthModal'
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar'
-import { applyTheme, resolveIsLight, subscribeToTheme } from '@/utils/theme'
+import { applyLightTheme, clearStoredTheme } from '@/utils/theme'
 import { setCanonical } from '@/utils/seo'
 
 // Marketing/legal routes only — app routes don't need a reading-progress chrome element.
@@ -215,13 +215,12 @@ function AnimatedRoutes() {
 
 function App() {
 
-  // The inline script in index.html has already painted the correct theme
-  // before first paint. This re-applies it after hydration and then keeps it in
-  // step with the OS for as long as the user has expressed no preference of
-  // their own — see src/utils/theme.ts, the single source of truth.
+  // The inline script in index.html already painted light before first paint.
+  // This re-applies it after hydration and drops any preference left over from
+  // the removed toggle — see src/utils/theme.ts.
   useEffect(() => {
-    applyTheme(resolveIsLight())
-    return subscribeToTheme(applyTheme)
+    applyLightTheme()
+    clearStoredTheme()
   }, [])
 
   return (

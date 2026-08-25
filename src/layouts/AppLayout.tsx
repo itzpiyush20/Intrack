@@ -7,7 +7,6 @@ import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ROUTES, FOOTER_NAV_ITEMS } from '@/constants'
 import { cn } from '@/utils'
-import { resolveIsLight, subscribeToTheme } from '@/utils/theme'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth, useToast } from '@/context'
 import Button from '@/components/ui/Button'
@@ -42,7 +41,6 @@ import ScrollHint from '@/components/ui/ScrollHint'
 
 interface AppLayoutProps {
   children: ReactNode
-  isStaticLight?: boolean
 }
 
 const navItems = [
@@ -78,7 +76,8 @@ function resolveActivePlan(planType: unknown): 'monthly' | 'yearly' | 'unknown' 
   return 'unknown'
 }
 
-export default function AppLayout({ children, isStaticLight = false }: AppLayoutProps) {
+export default function AppLayout({ children }: AppLayoutProps) {
+  const isStaticLight = true
   const { user, signOut, profile, daysLeft, openAuthModal, currencySymbol } = useAuth()
   const { showToast } = useToast()
   const location = useLocation()
@@ -381,15 +380,20 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
     } catch (e) {}
   }
 
-  // AppLayout READS the theme; it never sets one. It used to default to light
+  // The app is light only. These were a theme flag and a per-page override;
+  // both are now constant, so every conditional below takes its light branch.
+  // The dark branches are unreachable and can be collapsed in a later pass —
+  // doing it here would mean ~30 hand edits in the same change that fixes the
+  // bug, which is how a shell-wide regression gets shipped.
+  //
+  // Previously READ the theme; it never set one. It used to default to light
   // whenever nothing was stored and then PERSIST that guess on mount — so
   // merely visiting /pricing or /support (the two public pages using this
   // shell) wrote 'light' to localStorage and permanently overrode the OS
   // preference of a visitor who had never chosen. Settings owns the toggle;
   // src/utils/theme.ts owns the rule.
-  const [isLight, setIsLight] = useState(resolveIsLight)
+  const isLight = true
 
-  useEffect(() => subscribeToTheme(setIsLight), [])
 
 
 
@@ -460,7 +464,7 @@ export default function AppLayout({ children, isStaticLight = false }: AppLayout
       <header className={cn(
         "sticky top-0 z-50 w-full border-b select-none transition-all duration-300",
         isStaticLight
-          ? "border-sb-hairline bg-sb-canvas/90 text-sb-ink backdrop-blur-xl"
+          ? "border-sb-hairline bg-sb-canvas text-sb-ink backdrop-blur-xl"
           : "border-border-subtle bg-surface-1/95 backdrop-blur-md text-zinc-100 shadow-[var(--shadow-sm)]"
       )}>
         <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-6">

@@ -6,10 +6,14 @@ human summary; tokens in `index.css` win if they ever diverge.
 
 ## Theme
 
-Light-first, fully dark-aware. Default (`:root`) is dark; a `.light` class on
-`<html>` switches to light. Default follows the OS (`prefers-color-scheme`) unless
-the user picks a mode (stored in `localStorage.intrack_theme`). Toggle lives in
-the app shell and Settings.
+**Light only** (owner decision, 2026-08-25). Dark mode and the toggle are gone.
+
+`:root` still defines the dark values and a `.light` class on `<html>` overrides
+them — that structure is unchanged, because every `.light` rule inherits from the
+`:root` defaults, so those defaults are not dead code. Light-only is implemented
+by applying `.light` unconditionally (in the `index.html` head script, before
+first paint) and removing every path that could take it off. Do not "simplify"
+`index.css` by deleting the `:root` dark values.
 
 The neutral text ramp (`--zinc-*`) **inverts** between modes: low index = primary
 ink in both (light ink in dark mode, dark ink in light mode), so `text-zinc-50 /

@@ -18,8 +18,7 @@ import {
 } from '@/services'
 import { fetchAllTransactions } from '@/services/transactions'
 import { getInsurancePolicies, createInsurancePolicy, deleteInsurancePolicy } from '@/services/insurance'
-import { encryptText, decryptText, cn, formatCurrency, formatDate, toISODateLocal } from '@/utils'
-import { resolveIsLight, setThemePreference, subscribeToTheme } from '@/utils/theme'
+import { encryptText, decryptText, formatCurrency, formatDate, toISODateLocal } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
@@ -60,19 +59,6 @@ export default function SettingsPage() {
       return
     }
     showToast('Gmail disconnected. We no longer have access to your inbox.', 'success')
-  }
-
-  // Settings owns the toggle — the one place in the app that records an
-  // explicit theme choice. Until the user flips it, the app follows the OS.
-  // See src/utils/theme.ts.
-  const [isLight, setIsLight] = useState(resolveIsLight)
-
-  useEffect(() => subscribeToTheme(setIsLight), [])
-
-  const toggleTheme = () => {
-    // setThemePreference persists, paints, and notifies; the event comes back
-    // through subscribeToTheme above and updates local state.
-    setThemePreference(isLight ? 'dark' : 'light')
   }
 
   // Merchant Rules State
@@ -969,36 +955,13 @@ export default function SettingsPage() {
             <Card className="border-border-subtle bg-surface-1 shadow-md">
               <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
                 <Globe className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>General & Theme Preferences</span>
+                <span>General Preferences</span>
               </h2>
               <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Configure your currency formatting, locale structure, and theme color mode.
+                Configure your currency formatting and locale structure.
               </p>
               
               <div className="space-y-4 text-xs">
-                <div className="flex items-center justify-between border-b border-border-subtle/30 pb-3 pt-1">
-                  <div className="flex flex-col">
-                    <span className="text-zinc-400 font-medium">Night Mode</span>
-                    <span className="text-xs text-zinc-500">Enable dark theme for low-light environments</span>
-                  </div>
-                  <button
-                    onClick={toggleTheme}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-brand-400",
-                      isLight ? "bg-zinc-700" : "bg-brand-500"
-                    )}
-                    role="switch"
-                    aria-checked={!isLight}
-                  >
-                    <span
-                      className={cn(
-                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                        isLight ? "translate-x-0" : "translate-x-5"
-                      )}
-                    />
-                  </button>
-                </div>
-
                 <div className="flex items-center justify-between border-b border-border-subtle/30 pb-3 pt-1">
                   {/*
                     Named for what it actually controls. It used to read "Daily

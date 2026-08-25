@@ -61,7 +61,7 @@
          than claiming "zero manual logs" (manual entry is a free-tier feature)
          or "100% data ownership". -->
     <meta name="description" content="Connect Gmail once and Intrack turns your bank's transaction alert emails into expenses you approve. Read-only access, every Indian bank and UPI app, free 7-day trial." />
-    <meta name="theme-color" content="#09090b" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="canonical" href="https://www.intrack.co.in/" />
 
     <!-- Open Graph / Facebook Link Previews -->
@@ -88,29 +88,19 @@
     <meta property="twitter:image" content="https://www.intrack.co.in/icon-512.png" />
 
     <title>Intrack — Personal Finance Dashboard</title>
-    <!-- Pre-paint theme resolution. MUST stay inline and MUST stay in <head>:
-         anything deferred to the bundle paints the wrong theme first and
-         flashes. This duplicates resolveIsLight() in src/utils/theme.ts, which
-         is the source of truth — keep the two rules identical.
+    <!-- Pre-paint theme. MUST stay inline and MUST stay in <head>: anything
+         deferred to the bundle paints after first paint and flashes.
 
-         Rule: an explicit stored choice wins; otherwise follow the OS. The old
-         version here read `stored !== 'dark'`, forcing light on every visitor
-         who had never chosen, including those whose OS asked for dark. -->
+         The app is light only (owner decision, 2026-08-25), so there is nothing
+         to resolve — the class goes on unconditionally. This used to read a
+         stored preference and fall back to the OS; src/utils/theme.ts carries
+         the history and is still the source of truth. -->
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('intrack_theme');
-          var isLight;
-          if (stored === 'light' || stored === 'dark') {
-            isLight = stored === 'light';
-          } else {
-            isLight = !(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          }
-          document.documentElement.classList.toggle('light', isLight);
+          document.documentElement.classList.add('light');
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) {
-            meta.setAttribute('content', isLight ? '#ffffff' : '#09090b');
-          }
+          if (meta) { meta.setAttribute('content', '#ffffff'); }
         } catch (e) {}
       })();
     </script>
