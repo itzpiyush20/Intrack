@@ -3,6 +3,7 @@
 // Detects, aggregates, and manages recurring payments
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
@@ -106,7 +107,7 @@ export default function SubscriptionsPage() {
   }
 
   useEffect(() => {
-    document.title = 'Subscriptions | Intrack'
+    document.title = `Subscriptions | ${APP_CONFIG.APP_NAME}`
     fetchData()
   }, [])
 

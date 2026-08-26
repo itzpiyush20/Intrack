@@ -3,6 +3,7 @@
 // Displays stats, spending breakdown, recent txns
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
@@ -375,7 +376,7 @@ export default function DashboardPage() {
   }, [user, dateFilter, fetchDashboardData])
 
   useEffect(() => {
-    document.title = 'Dashboard | Intrack'
+    document.title = `Dashboard | ${APP_CONFIG.APP_NAME}`
     fetchDashboardData(dateFilter)
     // One-time migration of localStorage merchant rules to Supabase DB
     if (user && !sessionStorage.getItem('intrack_ls_migration_done')) {

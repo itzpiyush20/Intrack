@@ -3,6 +3,7 @@
 // Merged Insights and CA Advisory dashboard
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
@@ -458,7 +459,7 @@ export default function InsightsPage() {
   }, [])
 
   useEffect(() => {
-    document.title = 'Insights | Intrack'
+    document.title = `Insights | ${APP_CONFIG.APP_NAME}`
     fetchAllData()
   }, [fetchAllData])
 

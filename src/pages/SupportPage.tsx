@@ -35,7 +35,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Support & Privacy | Intrack',
+      title: `Support & Privacy | ${APP_CONFIG.APP_NAME}`,
       description: 'Get help with Intrack: file a support ticket, browse FAQs about Gmail scanning and billing, and read our privacy, OAuth scope and DPDPA commitments.',
       canonicalPath: '/support',
     })

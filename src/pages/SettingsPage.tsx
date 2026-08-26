@@ -3,6 +3,7 @@
 // Manage merchant rules, backups, and localisations
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect } from 'react'
 import { AppLayout } from '@/layouts'
 import { Card, Button, Input, Modal } from '@/components/ui'
@@ -265,7 +266,7 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    document.title = 'Settings | Intrack'
+    document.title = `Settings | ${APP_CONFIG.APP_NAME}`
     if (user) {
       // Migrate and then load
       migrateLocalStorageRulesToDB(user.id).finally(() => {

@@ -3,6 +3,7 @@
 // Add, edit, delete transactions
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AppLayout } from '@/layouts'
 import { Button, Modal, DateFilterPicker } from '@/components/ui'
@@ -63,7 +64,7 @@ export default function ExpensesPage() {
   }, [dateFilter])
 
   useEffect(() => {
-    document.title = 'Expenses | Intrack'
+    document.title = `Expenses | ${APP_CONFIG.APP_NAME}`
     fetchTransactions()
   }, [fetchTransactions])
 

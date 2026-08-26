@@ -13,6 +13,7 @@ import { Card } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { formatDate, cn } from '@/utils'
 import { setPageMeta } from '@/utils/seo'
+import { APP_CONFIG } from '@/constants'
 
 // ── Feature lists for different subscription tiers ───────────
 // Kept deliberately accurate against what the code actually does.
@@ -89,7 +90,7 @@ export default function PricingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Pricing & Plans | Intrack',
+      title: `Pricing & Plans | ${APP_CONFIG.APP_NAME}`,
       description: 'Intrack costs ₹31 for 30 days or ₹365 for a year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
       canonicalPath: '/pricing',
     })
@@ -159,7 +160,10 @@ export default function PricingPage() {
       const options = {
         key: clientKey,
         amount: orderData.amount, currency: orderData.currency,
-        name: 'Intrack', description: `Upgrade to ${planName} Plan`,
+        // The merchant name on the Razorpay sheet and on the receipt the
+        // customer keeps. Sourced from the constant so a rename can never leave
+        // the old brand printed on someone's payment record.
+        name: APP_CONFIG.APP_NAME, description: `Upgrade to ${planName} Plan`,
         order_id: orderData.id,
         prefill: { name: profile?.full_name || '', email: user.email || '' },
         theme: { color: '#0e7a5d' },

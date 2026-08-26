@@ -3,6 +3,7 @@
 // Manage profile, security reset, and account deletion
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect } from 'react'
 import { AppLayout } from '@/layouts'
 import { Card, Button, Input, Badge, ConfirmDialog } from '@/components/ui'
@@ -42,7 +43,7 @@ export default function ProfilePage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
-    document.title = 'Security Profile | Intrack'
+    document.title = `Security Profile | ${APP_CONFIG.APP_NAME}`
     // Load fresh profile details
     getProfile().then(({ data }) => {
       if (data) {

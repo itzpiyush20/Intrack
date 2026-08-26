@@ -2,6 +2,7 @@
 // ResetPasswordPage — Set a new account password
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import AuthLayout from '@/layouts/AuthLayout'
@@ -22,7 +23,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    document.title = 'Reset Password | Intrack'
+    document.title = `Reset Password | ${APP_CONFIG.APP_NAME}`
   }, [])
 
   const handleSubmit = async (e: FormEvent) => {

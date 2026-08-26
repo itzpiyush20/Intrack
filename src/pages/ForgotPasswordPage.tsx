@@ -2,6 +2,7 @@
 // ForgotPasswordPage — Password reset via email
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import AuthLayout from '@/layouts/AuthLayout'
@@ -12,7 +13,7 @@ export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth()
 
   useEffect(() => {
-    document.title = 'Forgot Password | Intrack'
+    document.title = `Forgot Password | ${APP_CONFIG.APP_NAME}`
   }, [])
 
   const [email, setEmail] = useState('')

@@ -3,6 +3,7 @@
 // Auto-scans bank alerts and reviews pending txns
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
@@ -447,7 +448,7 @@ export default function PendingPage() {
   }, [fetchPendingData, fetchLastScanLog, fetchUnconfirmedCategorizations])
 
   useEffect(() => {
-    document.title = 'Pending Alerts | Intrack'
+    document.title = `Pending Alerts | ${APP_CONFIG.APP_NAME}`
     fetchPendingData()
     fetchLastScanLog()
     fetchUnconfirmedCategorizations()

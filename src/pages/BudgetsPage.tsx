@@ -3,6 +3,7 @@
 // Set monthly limits and monitor spending limits
 // ============================================
 
+import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
@@ -101,7 +102,7 @@ export default function BudgetsPage() {
   }, [ccBillCategories])
 
   useEffect(() => {
-    document.title = 'Budgets | Intrack'
+    document.title = `Budgets | ${APP_CONFIG.APP_NAME}`
     fetchBudgetData(dateFilter)
   }, [dateFilter, fetchBudgetData])
 

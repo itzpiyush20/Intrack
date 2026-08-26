@@ -8,6 +8,7 @@
 // ============================================
 
 import { useEffect, useState } from 'react'
+import { APP_CONFIG } from '@/constants'
 import { AppLayout } from '@/layouts'
 import { ScrollHint } from '@/components/ui'
 import OverviewTab from './OverviewTab'
@@ -33,7 +34,7 @@ type TabId = (typeof TABS)[number]['id']
 export default function AdminPage() {
   const [tab, setTab] = useState<TabId>('overview')
 
-  useEffect(() => { document.title = 'Admin | Intrack' }, [])
+  useEffect(() => { document.title = `Admin | ${APP_CONFIG.APP_NAME}` }, [])
 
   return (
     <AppLayout>

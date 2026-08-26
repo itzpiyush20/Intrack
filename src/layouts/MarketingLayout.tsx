@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { setPageMeta } from '@/utils/seo'
+import { APP_CONFIG } from '@/constants'
 import { SiteFooter, MarketingHeader } from '@/components/ui'
 
 interface MarketingLayoutProps {
@@ -16,7 +17,7 @@ interface MarketingLayoutProps {
 
 export default function MarketingLayout({ children, title, description }: MarketingLayoutProps) {
   useEffect(() => {
-    const fullTitle = `${title} | Intrack`
+    const fullTitle = `${title} | ${APP_CONFIG.APP_NAME}`
     if (description) setPageMeta({ title: fullTitle, description })
     else document.title = fullTitle
     window.scrollTo(0, 0)
