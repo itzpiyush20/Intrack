@@ -1,10 +1,14 @@
 // ============================================================
 // disconnect-gmail.ts — Revoke the Google grant and forget the refresh token
 //
-// Clearing localStorage is not a disconnect: the refresh token lives in
-// google_oauth_tokens and the daily cron (auto-sync-gmail.ts) will happily keep
-// reading the inbox of a user who believes they disconnected. This endpoint is
-// the real thing — it revokes the grant at Google, then deletes the stored row.
+// Clearing localStorage is not a disconnect: the grant still stands at Google
+// and any stored refresh token in google_oauth_tokens outlives the browser, so
+// a user who believes they disconnected has not. This endpoint is the real
+// thing — it revokes the grant at Google, then deletes the stored row.
+//
+// The daily cron that used to read those tokens (auto-sync-gmail.ts) was
+// deleted on 2026-08-27 when automatic scanning was removed; see
+// plans/remove-auto-sync.md. Revoking at Google still matters regardless.
 //
 // Called from Settings ("Disconnect Gmail") and from account deletion.
 // ============================================================

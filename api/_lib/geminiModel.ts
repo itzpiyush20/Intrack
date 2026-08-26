@@ -2,7 +2,8 @@
 // geminiModel.ts — the ONE place the Gemini model id is chosen.
 //
 // Why this file exists: the model id used to be a string literal inside
-// `api/gemini-proxy.ts` AND `api/auto-sync-gmail.ts`. Google shut
+// `api/gemini-proxy.ts` AND the since-deleted `api/auto-sync-gmail.ts`
+// (removed 2026-08-27 with automatic scanning). Google shut
 // `gemini-2.0-flash` down on 1 June 2026, both literals went stale, and
 // `generativelanguage.googleapis.com` began answering every request with
 // 404 NOT_FOUND. The proxy forwarded that 404 verbatim, the client's
