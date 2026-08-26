@@ -5,6 +5,12 @@
 > requirement wins and the delta is spelled out below with file:line anchors.
 > Companion document: `plans/email-scanner-performance-plan.md` (how to make the
 > scanner fast enough to satisfy these). Read both before touching scanner code.
+>
+> **Revised 2026-08-27 — R5, R6, R7, R8 and D2.** The owner removed automatic
+> scanning entirely and added a minimum gap between premium scans. The execution
+> plan for that change is `plans/remove-auto-sync.md`. R5 previously read
+> "Automatic scan runs once every day"; R7 and R8 previously granted a daily
+> automatic scan on top of the manual allowance.
 
 ---
 
@@ -16,10 +22,10 @@
 | R2 | Scope | **Everything financial**: bank/card/UPI alerts, vendor receipts, bills, subscription renewals, insurance premiums, salary credits, SIP/investment debits, refunds |
 | R3 | Scan window | **Strict rolling 7 days**, always — first scan and every scan thereafter. Never reach further back, even after an outage |
 | R4 | Reprocessing | **Never** reconsider an email already considered in an earlier scan |
-| R5 | Cadence | Automatic scan runs **once every day** |
-| R6 | Free tier | 1 manual scan per day, **no** automatic scan |
-| R7 | Premium / trial | Daily automatic scan **plus 2 manual scans per day** |
-| R8 | Owner | Daily automatic scan **plus unlimited** manual scans |
+| R5 | Cadence | **No automatic scanning of any kind.** Every scan is started by the user |
+| R6 | Free tier | 1 manual scan per **rolling 24 hours** |
+| R7 | Premium / trial | 2 manual scans per rolling 24 hours, and consecutive scans must be **at least 4 hours apart** |
+| R8 | Owner | **Unlimited** manual scans, no minimum gap |
 | R9 | Approval | **Nothing auto-approves.** Every detected transaction waits in Pending for explicit approval |
 | R10 | Duplicates | Bank alert + merchant receipt for the same payment **smart-merge into one** transaction |
 | R11 | Currency | Non-INR transactions **captured properly** with their real currency |
@@ -48,42 +54,66 @@ longer than 7 days — cron outage, expired or revoked Gmail token, subscription
 makes the transactions in that gap **permanently unreachable**, because the Gmail query
 itself will never fetch them again and dedup cannot recover mail that was never fetched.
 
-**This risk is sharpest for free users.** R6 gives them no automatic scan, so a free user
-who opens the app every 10 days permanently loses ~3 days of transactions on every cycle,
-silently. Flag this to the owner again before shipping; the mitigation (stretch the window
-to cover a detected gap, capped at 30 days) is a ~5-line change if they reconsider.
+**This risk now applies to every tier, not just free (revised 2026-08-27).** R5 removed
+automatic scanning outright, so *nobody* gets a scan they did not start. Any user — free,
+premium or owner — who does not open the app and press Scan at least once every 7 days
+permanently loses the transactions in the gap, silently.
 
-### D2 — Tiered scan quotas (R5, R6, R7, R8)
+The change makes this modestly worse rather than newly true. The daily cron never actually
+ran (`google_oauth_tokens` held 0 rows, so it had no token to use), and the in-app
+background sync only fired when someone opened the app anyway. The real delta: opening the
+app used to be enough, and now opening it is not — the user must also press Scan.
 
-**Today** (`emailScanner.ts:812-832`): owner **and** premium bypass the cooldown entirely
-(effectively unlimited manual scans); everyone else is blocked if a successful scan
-happened in the last 24 hours. The daily cron (`api/auto-sync-gmail.ts:50-58`) runs only
-for owner / active / trial.
+Flag this to the owner again before shipping. The mitigation (stretch the window to cover
+a detected gap, capped at 30 days) remains a ~5-line change if they reconsider R3.
 
-**Required:**
+### D2 — Scan quotas (R5, R6, R7, R8) — **revised 2026-08-27**
 
-| Tier | Daily auto-scan | Manual scans |
-|---|---|---|
-| Free | No | 1 per day |
-| Premium / trial | Yes | 2 per day |
-| Owner | Yes | Unlimited |
+The tiered-quota mechanism described here was built and shipped (migration
+`014_scan_mode_quota.sql`). What changed on 2026-08-27 is that **automatic scanning is
+removed entirely** and premium gains a **minimum 4-hour gap**.
 
-Note this **tightens premium** from unlimited to 2 per day. Trial is treated as premium
-throughout (it already is, in `isEligible`).
+**Required, after the revision:**
 
-**Implementation — the schema is already ready.** `email_scan_logs.scan_mode TEXT CHECK
-(scan_mode IN ('manual','scheduled'))` exists at `schema.sql:186` but **is never
-populated** by any insert path (`emailScanner.ts:1436-1443`, `1487-1495`, `1524-1531`;
-`auto-sync-gmail.ts:155-161`, `176-182`, `191-197`). Populate it:
+| Tier | Automatic scan | Manual scans | Minimum gap |
+|---|---|---|---|
+| Free | **None** | 1 per rolling 24h | n/a — the 24h rule is always longer |
+| Premium / trial | **None** | 2 per rolling 24h | **4 hours** |
+| Owner | **None** | Unlimited | none |
 
-- Add `scanMode?: 'manual' | 'scheduled'` to `ScanGmailOptions` (`emailScanner.ts:711-723`),
-  defaulting to `'manual'`; the cron passes `'scheduled'`. Write it on every scan-log insert.
-- Replace the cooldown check with a quota check counting **only**
-  `scan_mode = 'manual' AND status = 'success'` rows in the trailing 24 hours, so the
-  daily automatic scan never consumes a user's manual allowance (R7 says "in addition to").
-- Limits: owner `Infinity`, premium/trial `2`, free `1`. Keep the existing user-facing
-  error shape so the cooldown banner and countdown on PendingPage keep working, but the
-  copy should now say how many manual scans remain today rather than implying one.
+Trial is treated as premium throughout (it already is, in `isEligible`).
+
+**The window is a rolling 24 hours, not a calendar day.** The owner chose this on
+2026-08-27 over a midnight reset, having been shown that a midnight reset combined with
+the 4-hour gap would let a premium user take four scans in eight hours (two before
+midnight, two after). Rolling also keeps the limit itself free of any timezone logic.
+
+**What stays as built:**
+
+- `email_scan_logs.scan_mode` and the quota counting path. `fetchRecentManualScanTimes`
+  already filters `status = 'success' AND scan_mode = 'manual'` over the trailing 24
+  hours, and `computeManualQuotaState` is a pure function returning
+  `{ used, limit, remaining, nextAvailableAt }`.
+- `resolveManualScanLimit`: owner `Infinity`, premium/trial `2`, free `1` — unchanged.
+- The 16 historical `scan_mode = 'scheduled'` rows. They are real history and the quota
+  maths must keep ignoring them; the value simply stops being written.
+
+**What must change:**
+
+- **The 4-hour gap** belongs in `computeManualQuotaState`, which today returns
+  `nextAvailableAt: null` whenever `remaining > 0`. It must instead return the last scan
+  plus 4 hours when that is still in the future. Owner (`limit === Infinity`) returns
+  early and is exempt by construction.
+- **When both rules bind, `nextAvailableAt` is the later of the two, never the earlier.**
+  Returning the gap time while the 24-hour allowance is exhausted would hand a premium
+  user a third scan.
+- **Two distinct blocked states.** "Daily Scan Limit Reached"
+  (`PendingPage.tsx:1171`) is wrong when the user still has an unused scan and is only
+  waiting out the gap. One message means "out of scans"; the other means "come back at
+  3:45 PM".
+- **The next-scan time is shown as a clock time**, on both PendingPage and DashboardPage,
+  in the viewer's own timezone via `toLocaleTimeString()` with no `timeZone` option, and
+  carrying the day when the target is not today.
 
 ### D3 — Widen fetch to "everything financial" (R2)
 
@@ -219,7 +249,11 @@ Dependencies matter more than size here.
 3. ~~**D1 + section 3**~~ — **DONE.** Strict rolling 7-day window on every scan;
    prior-year mail kept when the window straddles 1 January; year-scope rejections now
    logged instead of dropped silently. See **D1a** above for the remaining open risk.
-4. ~~**D2** (tier quotas via `scan_mode`)~~ — **DONE.** Migration `014_scan_mode_quota.sql`
+4. ~~**D2** (tier quotas via `scan_mode`)~~ — **DONE**, then **partly superseded on
+   2026-08-27**: the quota mechanism below still stands, but automatic scanning was
+   removed (R5) and a 4-hour gap added for premium (R7). The `'scheduled'` mode stops
+   being written; historical rows keep it. See the revised D2 above.
+   Migration `014_scan_mode_quota.sql`
    (idempotent column + index, no backfill); every scan log now records its mode; the
    24h cooldown is replaced by a counted allowance that ignores scheduled scans.
    `getManualScanQuota()` exposes the same computation to the UI, so PendingPage's
