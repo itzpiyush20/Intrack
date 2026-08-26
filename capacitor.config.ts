@@ -7,7 +7,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
-  backgroundColor: '#09090b'
+  // Native splash / webview background. Must match the light-only app shell
+  // (`theme-color` and body are #ffffff); this was #09090b, left over from the
+  // removed dark theme, so every cold start flashed black before first paint.
+  backgroundColor: '#ffffff'
 };
 
 export default config;
