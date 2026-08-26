@@ -27,8 +27,6 @@ export {
   getMerchantRules,
   saveMerchantRule,
   deleteMerchantRule,
-  getNextRefreshTime,
-  getLastScheduledRefreshTime,
   cleanMerchantName,
   getMerchantSettings,
   saveMerchantSetting,

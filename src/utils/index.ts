@@ -141,6 +141,36 @@ export function formatTime(dateStr: string): string {
   })
 }
 
+/**
+ * Phrase for when the next Gmail scan becomes available, e.g. "at 3:45 PM",
+ * "tomorrow at 9:00 AM", "on 29 Aug at 9:00 AM". Meant to follow the words
+ * "Next scan".
+ *
+ * The day matters: the 24-hour allowance routinely lands the next scan on the
+ * following calendar day, where a bare "at 9:00 AM" reads as this morning and
+ * is actively misleading.
+ *
+ * No `timeZone` option anywhere — the browser resolves the viewer's own zone,
+ * so this is correct wherever they are. `'en-IN'` sets the format (12-hour,
+ * day-then-month), not the zone.
+ */
+export function formatNextScanTime(target: Date, now: Date = new Date()): string {
+  const time = target.toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+
+  // Compare calendar days in local time, not elapsed hours: 11pm to 1am is two
+  // hours but two different days, and the user thinks in days.
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const dayDelta = Math.round((startOfDay(target) - startOfDay(now)) / 86400000)
+
+  if (dayDelta <= 0) return `at ${time}`
+  if (dayDelta === 1) return `tomorrow at ${time}`
+  return `on ${target.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at ${time}`
+}
+
 /** Get current month as YYYY-MM */
 export function getCurrentMonth(): string {
   const now = new Date()

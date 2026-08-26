@@ -7,6 +7,7 @@ import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
+import { useNextScan } from '@/hooks'
 import { Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity } from '@/components/ui'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
 import QuickAddWidget from '@/components/dashboard/QuickAddWidget'
@@ -38,12 +39,11 @@ import { getBudgets } from '@/services/budgets'
 import { detectAnomalies } from '@/services/aiService'
 import {
   supabase,
-  getLastScheduledRefreshTime,
   scanRealGmailInbox,
   formatScanProgress,
 } from '@/services'
 import { migrateLocalStorageRulesToDB } from '@/services/learningEngine'
-import { formatCurrency, formatCurrencyCompact, getCurrentMonth, formatDate, withTimeout, resolveDateFilter, formatDateFilterLabel, getMonthsInRange, resolveTransactionIdentity, creditCardBillCategoryNames, makeIsCreditCardBill, CREDIT_CARD_BILL_LEGACY_NAME, HOME_CURRENCY, type DateFilter } from '@/utils'
+import { formatCurrency, formatCurrencyCompact, getCurrentMonth, formatDate, withTimeout, resolveDateFilter, formatDateFilterLabel, getMonthsInRange, resolveTransactionIdentity, creditCardBillCategoryNames, makeIsCreditCardBill, CREDIT_CARD_BILL_LEGACY_NAME, HOME_CURRENCY, formatNextScanTime, type DateFilter } from '@/utils'
 import { toISODateLocal } from '@/utils/dateFilter'
 import { useCategories } from '@/context/CategoriesContext'
 import type { Database } from '@/types/database'
@@ -72,7 +72,7 @@ interface SyncSummary {
 }
 
 export default function DashboardPage() {
-  const { user, profile, hasGoogleToken, notifyGoogleTokenCleared, dailyScanTime } = useAuth()
+  const { user, profile, hasGoogleToken, notifyGoogleTokenCleared } = useAuth()
   const { getStyle, categories, loading: categoriesLoading } = useCategories()
   // `undefined` while the category list is still loading — an empty array would
   // mean "the user has tagged nothing", which would stop excluding credit card
@@ -161,6 +161,14 @@ export default function DashboardPage() {
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null)
   const [showInactivityBanner, setShowInactivityBanner] = useState(false)
   const [syncingBackground, setSyncingBackground] = useState(false)
+
+  // Same source of truth as PendingPage — see useNextScan. Shown here too so a
+  // user who only ever looks at the Dashboard still knows when the next scan is
+  // due, now that nothing scans on their behalf.
+  const { nextScanAt, quotaExhausted } = useNextScan({
+    enabled: !!user,
+    refreshKey: lastScanTime,
+  })
   const [syncError, setSyncError] = useState<string | null>(null)
   // Shows a "still working" hint once a manual sync runs past a few seconds,
   // so a legitimately slow scan isn't indistinguishable from a frozen one.
@@ -288,21 +296,22 @@ export default function DashboardPage() {
   }, [ccBillCategories])
 
   /**
-   * The user this mount has already run the scheduled-task check for.
+   * The user this mount has already run the inactivity check for.
    *
-   * `checkScheduledTasks` closes over `dateFilter`, so every change of the
-   * date filter rebuilt the callback and re-fired the effect below — meaning
-   * a background Gmail scan was attempted again on each filter switch, along
-   * with the several Supabase queries the check makes first. The in-flight
-   * guard in `scanRealGmailInbox` stopped those from becoming concurrent
-   * scans, but the right fix is not to ask: this is a once-per-visit task.
+   * This used to guard a background Gmail scan as well: the callback closed
+   * over `dateFilter`, so every filter change rebuilt it and re-fired the
+   * effect, attempting another scan each time. Automatic scanning was removed
+   * on 2026-08-27 (plans/remove-auto-sync.md), so all that remains is the
+   * once-per-visit lookup that decides whether to warn the user they have not
+   * scanned recently — but it is still a once-per-visit task, so the guard
+   * stays.
    */
-  const scheduledTasksRanForUser = useRef<string | null>(null)
+  const inactivityCheckRanForUser = useRef<string | null>(null)
 
-  const checkScheduledTasks = useCallback(async () => {
+  const checkScanInactivity = useCallback(async () => {
     if (!user) return
-    if (scheduledTasksRanForUser.current === user.id) return
-    scheduledTasksRanForUser.current = user.id
+    if (inactivityCheckRanForUser.current === user.id) return
+    inactivityCheckRanForUser.current = user.id
     try {
       // Check last scan log to determine inactivity and auto-refresh
       const { data: scanLogs } = await supabase
@@ -322,58 +331,10 @@ export default function DashboardPage() {
         setShowInactivityBanner(true)
       }
 
-      // 3. Auto-sync if last scan was before the last scheduled refresh
-      if (profile) {
-        const lastScheduledTime = getLastScheduledRefreshTime(dailyScanTime)
-        if (!lastScan || lastScan.getTime() < lastScheduledTime.getTime()) {
-          setSyncingBackground(true)
-          try {
-            // Use hasGoogleToken from AuthContext — the single source of truth.
-            // This is a useState<boolean> that updates reactively when the token
-            // is saved (on sign-in) or cleared (on expiry / sign-out).
-            if (hasGoogleToken) {
-              // scanMode MUST be 'scheduled'. Omitting it defaults the scan to
-              // 'manual', so this background sync — which fires on mount,
-              // unprompted — was spending the user's manual allowance (R6: one
-              // per day on free). The user then pressed "Sync Now" and was told
-              // the daily scan limit was already reached, by a scan they never
-              // asked for and never saw. PendingPage's equivalent sync already
-              // passes this.
-              const res = await withTimeout(scanRealGmailInbox({ scanMode: 'scheduled' }), 30000, 'Gmail scan')
-              if (res && !res.error) {
-                const { data: newLogs } = await supabase
-                  .from('email_scan_logs')
-                  .select('*')
-                  .eq('user_id', user.id)
-                  .eq('status', 'success')
-                  .order('scanned_at', { ascending: false })
-                  .limit(1)
-                if (newLogs && newLogs.length > 0) {
-                  setLastScanTime(new Date(newLogs[0].scanned_at))
-                  setShowInactivityBanner(false)
-                }
-                fetchDashboardData(dateFilter, true)
-              } else if (res?.error) {
-                // If token expired, notify AuthContext so UI updates everywhere
-                if (res.error.message?.includes('expired') || res.error.message?.includes('TOKEN_EXPIRED')) {
-                  notifyGoogleTokenCleared()
-                }
-                // Background syncs fail silently — error shown on manual Sync Now
-                console.warn('Background auto-sync error:', res.error.message)
-              }
-            }
-            // Non-Google users: no automatic scan
-          } catch (syncErr: any) {
-            console.warn('Background sync failed:', syncErr)
-          } finally {
-            setSyncingBackground(false)
-          }
-        }
-      }
     } catch (err) {
-      console.error('Error running scheduler check:', err)
+      console.error('Error running the scan-inactivity check:', err)
     }
-  }, [user, dateFilter, fetchDashboardData])
+  }, [user])
 
   useEffect(() => {
     document.title = `Dashboard | ${APP_CONFIG.APP_NAME}`
@@ -386,9 +347,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      checkScheduledTasks()
+      checkScanInactivity()
     }
-  }, [user, checkScheduledTasks])
+  }, [user, checkScanInactivity])
 
   // ── "Still working" hint for slow-but-live manual syncs ──
   useEffect(() => {
@@ -655,10 +616,6 @@ export default function DashboardPage() {
               <p className="text-sm text-zinc-400">
                 Here is your wealth overview{dateFilter.mode === 'month' ? ' for this month' : ''}.
               </p>
-              <span className="text-zinc-700 hidden sm:inline">•</span>
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-2 border border-border-subtle/50 text-xs font-semibold text-brand-300 font-mono">
-                Catches up when you open the app after {dailyScanTime}
-              </span>
               {streakInfo.streak > 1 && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-2 border border-border-subtle/50 text-xs font-semibold text-zinc-400">
                   <Flame className="h-3 w-3 shrink-0" /> {streakInfo.streak} day streak
@@ -831,6 +788,14 @@ export default function DashboardPage() {
                 >
                   <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" /> Sync Now
                 </Button>
+                {nextScanAt && (
+                  <span className="text-xs font-semibold text-brand-300 bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+                    Next scan {formatNextScanTime(nextScanAt)}
+                    <span className="text-zinc-500 font-normal">
+                      {quotaExhausted ? '· allowance used' : '· 4-hour gap'}
+                    </span>
+                  </span>
+                )}
                 {(profile?.subscription_status === 'trial' || (profile?.subscription_status === 'active' && profile?.subscription_plan_type === 'monthly')) && (
                   <Link to="/pricing" className="shrink-0">
                     <Button

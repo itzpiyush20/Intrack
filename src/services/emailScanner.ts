@@ -988,6 +988,13 @@ const FREE_MANUAL_SCANS_PER_DAY = 1
 const PREMIUM_MANUAL_SCANS_PER_DAY = 2
 /** Rolling, not calendar-day — matches the previous cooldown's semantics. */
 const MANUAL_QUOTA_WINDOW_MS = 24 * 60 * 60 * 1000
+/**
+ * R7: premium gets two scans a day but may not run them back to back. Applies
+ * to every limited tier, which in practice means premium only — a free user's
+ * single scan per 24h is already a longer wait than this. The owner is
+ * unlimited and returns before this is consulted.
+ */
+const MANUAL_SCAN_MIN_GAP_MS = 4 * 60 * 60 * 1000
 
 /**
  * Re-exported so the many existing importers of this module keep working.
@@ -1246,20 +1253,34 @@ export function computeManualQuotaState(
     return { used, limit, remaining: Infinity, nextAvailableAt: null }
   }
   const remaining = Math.max(0, limit - used)
+  // The minimum gap is measured from the most recent scan, whatever the
+  // allowance says. A user with scans left still waits it out (R7).
+  const gapEndsAt = scannedAtDesc.length > 0
+    ? new Date(scannedAtDesc[0]).getTime() + MANUAL_SCAN_MIN_GAP_MS
+    : 0
+
   if (remaining > 0) {
-    return { used, limit, remaining, nextAvailableAt: null }
+    return {
+      used,
+      limit,
+      remaining,
+      nextAvailableAt: gapEndsAt > now ? new Date(gapEndsAt) : null,
+    }
   }
   // Rolling window: the next slot opens when the Nth-newest scan ages out, not
   // when the most recent one does. Newest-first ordering makes that index
   // (limit - 1) — once it leaves the window only newer ones remain, which is
   // under the limit.
   const blocking = scannedAtDesc[limit - 1]
-  const nextAvailableAt = new Date(new Date(blocking).getTime() + MANUAL_QUOTA_WINDOW_MS)
+  const windowEndsAt = new Date(blocking).getTime() + MANUAL_QUOTA_WINDOW_MS
+  // Both rules can bind at once, and the LATER one governs. Returning the gap
+  // while the allowance is still exhausted would hand out an extra scan.
+  const nextAvailable = Math.max(windowEndsAt, gapEndsAt)
   return {
     used,
     limit,
     remaining: 0,
-    nextAvailableAt: nextAvailableAt.getTime() > now ? nextAvailableAt : null,
+    nextAvailableAt: nextAvailable > now ? new Date(nextAvailable) : null,
   }
 }
 
@@ -1352,7 +1373,8 @@ export interface ScanGmailOptions {
   /**
    * Whether this scan was triggered by the user or by the daily cron. Recorded
    * on the scan log, and decides whether the manual quota applies — scheduled
-   * scans are exempt, so a user's automatic scan never spends their manual
+   * rows recorded as scheduled are exempt, so the historical automatic scans
+   * never spent a user's manual
    * allowance. Defaults to 'manual'.
    */
   scanMode?: 'manual' | 'scheduled'
@@ -1616,14 +1638,13 @@ async function runGmailScan(opts?: ScanGmailOptions) {
 
     // ── Manual scan quota (R6/R7/R8) ─────────────────────────────────
     //   free            1 manual scan per day, no automatic scan
-    //   premium/trial   daily automatic scan + 2 manual scans per day
-    //   owner           daily automatic scan + unlimited manual scans
+    //   premium/trial   2 manual scans per rolling 24h, >= 4 hours apart
+    //   owner           unlimited manual scans, no gap
     //
-    // Only MANUAL scans are counted, so a user's automatic daily scan never
-    // consumes their manual allowance — R7 says the manual scans are "in
-    // addition to" the automatic one. Scheduled scans skip this block entirely;
-    // the cron gates eligibility on its own (owner/premium/trial), which is
-    // what implements "no automatic scan" for free users.
+    // Automatic scanning was removed on 2026-08-27 (R5, plans/remove-auto-sync.md),
+    // so every scan reaching here is user-initiated. Only rows already recorded
+    // as MANUAL are counted; the 16 historical 'scheduled' rows stay excluded,
+    // which is why the filter in fetchRecentManualScanTimes is unchanged.
     const scanLimit = resolveManualScanLimit(isOwner, isPremium)
 
     // A browser-initiated scan may only call itself 'scheduled' if the user is
@@ -1638,7 +1659,7 @@ async function runGmailScan(opts?: ScanGmailOptions) {
     if (scanMode === 'scheduled' && !isServerSide && !isOwner && !isPremium) {
       return {
         data: null,
-        error: new Error('Automatic scanning is a premium feature. Use Sync Now for your daily manual scan.'),
+        error: new Error('Scans are started by you. Use Scan Bank Alerts to check your inbox.'),
       }
     }
 
@@ -1646,19 +1667,24 @@ async function runGmailScan(opts?: ScanGmailOptions) {
       const timestamps = await fetchRecentManualScanTimes(supabase, user.id)
       const quota = computeManualQuotaState(timestamps, scanLimit)
 
-      if (quota.remaining === 0 && quota.nextAvailableAt) {
+      // Gate on nextAvailableAt, NOT on `remaining === 0`. The 4-hour minimum
+      // gap (R7) leaves a scan remaining while still refusing it, so keying off
+      // the allowance alone would enforce the gap in the UI and nowhere else.
+      if (quota.nextAvailableAt && quota.nextAvailableAt.getTime() > Date.now()) {
         const hoursLeft = Math.max(1, Math.ceil((quota.nextAvailableAt.getTime() - Date.now()) / (60 * 60 * 1000)))
         const plural = (n: number, word: string) => `${n} ${word}${n !== 1 ? 's' : ''}`
+        // Two genuinely different refusals. Telling someone with a scan in hand
+        // that they are out of scans is simply wrong, and it is the complaint
+        // that follows.
+        const reason = quota.remaining > 0
+          ? 'Scans must be at least 4 hours apart.'
+          : `Daily scan limit reached (${plural(scanLimit, 'manual scan')} per day).`
         // "Next scan available" is load-bearing: PendingPage keys its cooldown
         // banner off that phrase.
-        const suffix = isPremium
-          ? ' Your automatic daily scan still runs.'
-          : ' All transactions from your last scan are already captured.'
         return {
           data: null,
           error: new Error(
-            `Daily scan limit reached (${plural(scanLimit, 'manual scan')} per day). ` +
-            `Next scan available in ${plural(hoursLeft, 'hour')}.${suffix}`
+            `${reason} Next scan available in ${plural(hoursLeft, 'hour')}.`
           ),
         }
       }
@@ -2857,25 +2883,3 @@ async function runGmailScan(opts?: ScanGmailOptions) {
   }
 }
 
-/**
- * Calculate the next scheduled refresh time (always 6:00 AM today or tomorrow)
- */
-export function getNextRefreshTime(dailyScanTime = '06:00'): Date {
-  const [hour, minute] = dailyScanTime.split(':').map(Number)
-  const now = new Date()
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour || 6, minute || 0, 0, 0)
-  if (now.getTime() >= next.getTime()) next.setDate(next.getDate() + 1)
-  return next
-}
-
-/**
- * Calculate the last scheduled refresh time (always target scan time today or yesterday)
- */
-export function getLastScheduledRefreshTime(dailyScanTime = '06:00'): Date {
-  const [hour, minute] = dailyScanTime.split(':').map(Number)
-  const now = new Date()
-  const todayTarget = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour || 6, minute || 0, 0, 0)
-  if (now.getTime() >= todayTarget.getTime()) return todayTarget
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour || 6, minute || 0, 0, 0)
-}

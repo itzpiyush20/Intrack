@@ -879,7 +879,10 @@ describe('scanRealGmailInbox — strict 7-day scan window', () => {
   it('still asks for 7 days when a recent successful scan exists', async () => {
     // Previously the window narrowed to "since the last successful scan"
     // (26h floor). R3 requires the same 7 days every time.
-    const recent = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+    // 6h, not 2h: a 2-hour-old scan now trips the 4-hour minimum gap (R7) and
+    // the scan is refused before it ever builds a Gmail query, which is not
+    // what this test is about.
+    const recent = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
     const mockDb = makeMockDb([], [])
     const baseFrom = mockDb.from
     mockDb.from = (table: string) => {
@@ -1104,11 +1107,53 @@ describe('resolveManualScanLimit', () => {
 describe('computeManualQuotaState', () => {
   const hoursAgo = (h: number) => new Date(Date.now() - h * 3600000).toISOString()
 
-  it('reports an available scan when under the limit', async () => {
+  it('reports an available scan when under the limit and outside the gap', async () => {
+    // 5h ago: one scan left AND clear of the 4-hour minimum gap (R7).
     const { computeManualQuotaState } = await import('./emailScanner')
-    const q = computeManualQuotaState([hoursAgo(3)], 2)
+    const q = computeManualQuotaState([hoursAgo(5)], 2)
     expect(q.used).toBe(1)
     expect(q.remaining).toBe(1)
+    expect(q.nextAvailableAt).toBeNull()
+  })
+
+  it('holds a premium user inside the 4-hour gap even with a scan remaining', async () => {
+    // R7: two scans a day, but never back to back. One scan left, yet the last
+    // one was an hour ago, so the next is due three hours from now.
+    const { computeManualQuotaState } = await import('./emailScanner')
+    const q = computeManualQuotaState([hoursAgo(1)], 2)
+    expect(q.remaining).toBe(1)
+    expect(q.nextAvailableAt).not.toBeNull()
+    const hoursUntil = (q.nextAvailableAt!.getTime() - Date.now()) / 3600000
+    expect(hoursUntil).toBeGreaterThan(2.5)
+    expect(hoursUntil).toBeLessThan(3.5)
+  })
+
+  it('does not let the gap shorten the 24-hour wait on a free allowance', async () => {
+    // The gap must never be the answer when the allowance is what blocks: a
+    // free user 5h past their only scan still waits ~19h, not 0.
+    const { computeManualQuotaState } = await import('./emailScanner')
+    const q = computeManualQuotaState([hoursAgo(5)], 1)
+    expect(q.remaining).toBe(0)
+    const hoursUntil = (q.nextAvailableAt!.getTime() - Date.now()) / 3600000
+    expect(hoursUntil).toBeGreaterThan(18.5)
+    expect(hoursUntil).toBeLessThan(19.5)
+  })
+
+  it('returns the later of the two rules when both bind', async () => {
+    // Premium at the limit with both scans recent. The gap would say ~3h; the
+    // rolling allowance says ~22h. Returning the gap would hand out a third
+    // scan, so the allowance has to win.
+    const { computeManualQuotaState } = await import('./emailScanner')
+    const q = computeManualQuotaState([hoursAgo(1), hoursAgo(2)], 2)
+    expect(q.remaining).toBe(0)
+    const hoursUntil = (q.nextAvailableAt!.getTime() - Date.now()) / 3600000
+    expect(hoursUntil).toBeGreaterThan(21.5)
+    expect(hoursUntil).toBeLessThan(22.5)
+  })
+
+  it('exempts the owner from the gap', async () => {
+    const { computeManualQuotaState } = await import('./emailScanner')
+    const q = computeManualQuotaState([hoursAgo(0.1)], Infinity)
     expect(q.nextAvailableAt).toBeNull()
   })
 
@@ -1198,22 +1243,38 @@ describe('scanRealGmailInbox — quota enforcement', () => {
   })
 
   it('allows a premium user a second manual scan, then blocks the third', async () => {
+    // Timings deliberately clear the 4-hour minimum gap (R7) so this test stays
+    // about the allowance. The gap itself is covered by the case below.
     const { scanRealGmailInbox } = await import('./emailScanner')
     const premium = { subscription_status: 'active', subscription_expires_at: null }
 
     const second = await scanRealGmailInbox({
-      db: makeQuotaDb([hoursAgo(2)], premium),
+      db: makeQuotaDb([hoursAgo(5)], premium),
       askAI: async () => null,
     })
     expect(second.error).toBeNull()
 
     const third = await scanRealGmailInbox({
-      db: makeQuotaDb([hoursAgo(2), hoursAgo(5)], premium),
+      db: makeQuotaDb([hoursAgo(5), hoursAgo(9)], premium),
       askAI: async () => null,
     })
     expect(third.error?.message).toMatch(/Daily scan limit reached \(2 manual scans per day\)/)
-    // Premium keeps its automatic scan even while manually rate-limited.
-    expect(third.error?.message).toMatch(/automatic daily scan still runs/)
+    expect(third.error?.message).toMatch(/Next scan available in/)
+  })
+
+  it('refuses a premium scan inside the 4-hour gap, even with an allowance left', async () => {
+    // The engine must enforce the gap itself. It used to gate purely on
+    // `remaining === 0`, which the gap never triggers — so the rule would have
+    // lived in the UI and nowhere else, and any direct call would sail past it.
+    const { scanRealGmailInbox } = await import('./emailScanner')
+    const premium = { subscription_status: 'active', subscription_expires_at: null }
+
+    const tooSoon = await scanRealGmailInbox({
+      db: makeQuotaDb([hoursAgo(1)], premium),
+      askAI: async () => null,
+    })
+    expect(tooSoon.error?.message).toMatch(/at least 4 hours apart/)
+    expect(tooSoon.error?.message).toMatch(/Next scan available in/)
   })
 
   it('never blocks a scheduled scan, however many manual scans were used', async () => {
@@ -1239,7 +1300,9 @@ describe('scanRealGmailInbox — quota enforcement', () => {
       scanMode: 'scheduled',
       askAI: async () => null,
     })
-    expect(result.error?.message).toMatch(/Automatic scanning is a premium feature/)
+    // Wording changed with R5: there is no automatic scanning to be entitled
+    // to any more, so the refusal says what to do instead.
+    expect(result.error?.message).toMatch(/Scans are started by you/)
   })
 
   it('records scan_mode on the scan log', async () => {

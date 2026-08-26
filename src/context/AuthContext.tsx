@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase, readStoredSession } from '@/services/supabase'
-import { saveGoogleToken, clearGoogleToken, clearAllGoogleTokens, isGoogleConnected, purgeOldTokenKey, validateGoogleToken, saveGoogleRefreshTokenServerSide, migrateLegacyRefreshToken, disconnectGmail, tryRefreshGoogleToken } from '@/services/googleAuth'
+import { saveGoogleToken, clearGoogleToken, clearAllGoogleTokens, isGoogleConnected, purgeOldTokenKey, validateGoogleToken, migrateLegacyRefreshToken, disconnectGmail, tryRefreshGoogleToken } from '@/services/googleAuth'
 import { Button } from '@/components/ui'
 
 interface AuthState {
@@ -33,7 +33,7 @@ interface AuthContextValue extends AuthState {
   disconnectGoogle: () => Promise<{ error: string | null }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithGoogle: (redirectPath?: string, requestGmailScope?: boolean, forceConsent?: boolean) => Promise<{ error: string | null }>
+  signInWithGoogle: (redirectPath?: string, requestGmailScope?: boolean) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
   isSubscriptionActive: boolean
@@ -45,8 +45,6 @@ interface AuthContextValue extends AuthState {
   openAuthModal: (redirectPath?: string, tab?: 'login' | 'signup') => void
   closeAuthModal: () => void
   currencySymbol: string
-  dailyScanTime: string
-  updateDailyScanTime: (time: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -170,46 +168,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const currencySymbol = '₹'
 
-  const [dailyScanTime, setDailyScanTimeState] = useState<string>('06:00')
-
-  useEffect(() => {
-    if (state.user) {
-      try {
-        const stored = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`)
-        setDailyScanTimeState(stored || '06:00')
-      } catch {
-        setDailyScanTimeState('06:00')
-      }
-    }
-  }, [state.user])
-
-  /**
-   * Per-device, and deliberately so.
-   *
-   * This used to also write profiles.daily_scan_time, which failed on EVERY
-   * save with `42703: column does not exist` — the column is declared in
-   * schema.sql but no migration ever delivered it to production, the same drift
-   * that hit razorpay_subscription_id and is_admin. The failure was swallowed
-   * into a console warning, so the write appeared to work and never did.
-   *
-   * The column was not added, because the preference is client-side by nature:
-   * it decides whether DashboardPage and PendingPage run a catch-up sync when
-   * the app is OPENED. The server-side cron scans on one fixed schedule for
-   * everyone and has never read this value. Storing it server-side would imply
-   * a per-user schedule the backend does not implement.
-   */
-  const updateDailyScanTime = useCallback(async (time: string) => {
-    if (!state.user) return false
-    try {
-      setDailyScanTimeState(time)
-      localStorage.setItem(`intrack_daily_scan_time_${state.user.id}`, time)
-      return true
-    } catch (e) {
-      console.error('Failed to save daily scan time:', e)
-      return false
-    }
-  }, [state.user])
-
   // hasGoogleToken is a proper useState — not a computed value from localStorage.
   // It is SET explicitly when a token arrives (onAuthStateChange) or is cleared
   // (sign-out, expiry detection). This guarantees React re-renders whenever the
@@ -265,7 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription_status: 'trial',
       subscription_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       subscription_plan_type: 'trial',
-      daily_scan_time: '06:00',
       is_admin: readCachedIsAdmin(state.user!.id),
     })
 
@@ -276,7 +233,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const cachedStatus = localStorage.getItem(`intrack_sub_status_${state.user.id}`)
       const cachedExpires = localStorage.getItem(`intrack_sub_expires_${state.user.id}`)
       const cachedPlan = localStorage.getItem(`intrack_sub_plan_${state.user.id}`)
-      const cachedScanTime = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00'
 
       if (cachedStatus) {
         let subStatus = cachedStatus
@@ -292,14 +248,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           subscription_status: subStatus,
           subscription_expires_at: cachedExpires || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           subscription_plan_type: cachedPlan || 'trial',
-          daily_scan_time: cachedScanTime,
           is_admin: readCachedIsAdmin(state.user.id)
         })
       }
 
-      if (cachedScanTime) {
-        setDailyScanTimeState(cachedScanTime)
-      }
     } catch (e) {
       console.warn('Failed to load cached profile:', e)
     }
@@ -382,15 +334,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           expiresAt: subExpires || null,
         })
 
-        // Catch-up sync time is a per-device preference — see updateDailyScanTime
-        // for why it is not persisted server-side. This used to try writing the
-        // local value back to profiles.daily_scan_time on every profile load,
-        // against a column that does not exist in production, so it fired a
-        // failed request and a console warning on every single page load.
-        const localScanTimePref = localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`)
-        if (localScanTimePref) {
-          setDailyScanTimeState(localScanTimePref)
-        }
       } else {
         // The profile row could not be read. We still rebuild a profile from the
         // cache so the UI has something to draw and the app does not hang, but
@@ -421,7 +364,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           subscription_status: subStatus,
           subscription_expires_at: localExpires || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           subscription_plan_type: subPlan,
-          daily_scan_time: localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00',
           is_admin: readCachedIsAdmin(state.user.id)
         })
       }
@@ -456,7 +398,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscription_status: subStatus,
         subscription_expires_at: localExpires || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         subscription_plan_type: subPlan,
-        daily_scan_time: localStorage.getItem(`intrack_daily_scan_time_${state.user.id}`) || '06:00',
         is_admin: readCachedIsAdmin(state.user.id)
       })
     }
@@ -478,16 +419,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
-  const signInWithGoogle = async (redirectPath = '/dashboard', requestGmailScope = false, forceConsent = false) => {
+  const signInWithGoogle = async (redirectPath = '/dashboard', requestGmailScope = false) => {
     const oAuthOptions: any = {
       redirectTo: `${window.location.origin}${redirectPath}`,
     }
 
     if (requestGmailScope) {
       oAuthOptions.scopes = 'https://www.googleapis.com/auth/gmail.readonly'
+      // No `access_type: 'offline'`. Offline access exists to let the app act
+      // while the user is away, which it no longer does — automatic scanning
+      // was removed on 2026-08-27 (plans/remove-auto-sync.md). Asking for a
+      // permission we never use is also harder to justify in Google's Gmail
+      // verification review, so we ask for less.
       oAuthOptions.queryParams = {
-        access_type: 'offline',
-        prompt: forceConsent ? 'consent' : 'select_account',
+        prompt: 'select_account',
       }
       localStorage.setItem('intrack_requesting_gmail_scope', 'true')
     } else {
@@ -587,14 +532,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
       })
 
-      // The refresh token goes straight to the server and is never written to
-      // localStorage — it is a permanent Gmail credential.
-      if (session?.provider_refresh_token && session.access_token) {
-        saveGoogleRefreshTokenServerSide(session.access_token, session.provider_refresh_token)
-      } else if (session?.access_token) {
-        // Upgrade path: move any refresh token left in localStorage by an older
-        // build to the server, then erase it. Keeps existing Gmail connections
-        // working without forcing a re-authorisation.
+      // Any refresh token left in localStorage by an older build is still moved
+      // to the server and erased there. Google no longer issues new ones to
+      // this app — `access_type: 'offline'` was dropped with automatic
+      // scanning — so this is purely a cleanup path for existing devices.
+      if (session?.access_token) {
         migrateLegacyRefreshToken(session.access_token)
       }
 
@@ -653,10 +595,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false,
         })
 
-        // Server-side only — see the note on the matching block above.
-        if (session?.provider_refresh_token && session.access_token) {
-          saveGoogleRefreshTokenServerSide(session.access_token, session.provider_refresh_token)
-        } else if (session?.access_token) {
+        // Legacy cleanup only — see the note on the matching block above.
+        if (session?.access_token) {
           migrateLegacyRefreshToken(session.access_token)
         }
 
@@ -1081,9 +1021,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authModalTab,
         openAuthModal,
         closeAuthModal,
-        currencySymbol,
-        dailyScanTime,
-        updateDailyScanTime
+        currencySymbol
       }}
     >
       {children}

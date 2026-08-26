@@ -7,6 +7,7 @@ import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
+import { useNextScan } from '@/hooks'
 import { Card, Button, Input, Select, Badge, EmptyState, Modal } from '@/components/ui'
 import {
   getTransactions,
@@ -15,15 +16,13 @@ import {
   scanRealGmailInbox,
   saveMerchantRule,
   supabase,
-  getLastScheduledRefreshTime,
   applyMerchantRules,
-  getManualScanQuota,
   formatScanProgress,
 } from '@/services'
 import { saveMerchantRuleToDb } from '@/services/learningEngine'
 import { mergePayments } from '@/services/paymentMerge'
 import { useAuth } from '@/context/AuthContext'
-import { formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity } from '@/utils'
+import { formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime } from '@/utils'
 import type { Database } from '@/types/database'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
@@ -143,17 +142,8 @@ function errorMessage(err: unknown, fallback: string): string {
   return typeof message === 'string' && message ? message : fallback
 }
 
-/** Format countdown from ms remaining */
-function msToCountdown(ms: number): string {
-  if (ms <= 0) return '00:00:00'
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
 export default function PendingPage() {
-  const { user, signInWithGoogle, hasGoogleToken, notifyGoogleTokenCleared, profile, dailyScanTime } = useAuth()
+  const { user, signInWithGoogle, hasGoogleToken, notifyGoogleTokenCleared, profile } = useAuth()
   const { categories, getStyle } = useCategories()
   const [pendingTxns, setPendingTxns] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -172,7 +162,6 @@ export default function PendingPage() {
   const [totalPendingValue, setTotalPendingValue] = useState(0)
 
   const [showInactivityBanner, setShowInactivityBanner] = useState(false)
-  const [syncingBackground, setSyncingBackground] = useState(false)
 
   const [editingFields, setEditingFields] = useState<
     Record<string, { category: string; description: string }>
@@ -191,6 +180,7 @@ export default function PendingPage() {
   // Scan rate-limit / cooldown state
   const [scanCooldownMessage, setScanCooldownMessage] = useState<string | null>(null)
 
+
   // Which flagged row currently has a merge / keep-both write in flight.
   const [duplicateActionId, setDuplicateActionId] = useState<string | null>(null)
 
@@ -199,7 +189,13 @@ export default function PendingPage() {
 
   // Scan dashboard state
   const [lastScanLog, setLastScanLog] = useState<any>(null)
-  const [nextScanCountdown, setNextScanCountdown] = useState<string | null>(null)
+  // Next-scan availability, shared with DashboardPage so the two cannot drift.
+  // Re-checked when a scan completes, since that is what consumes the allowance.
+  const { nextScanAt, quotaExhausted } = useNextScan({
+    enabled: !!user,
+    refreshKey: lastScanLog,
+    onExpire: () => setScanCooldownMessage(null),
+  })
 
   // Shows a "still working" hint once a scan runs past a few seconds, so a
   // legitimately slow scan (large inbox, many AI classification calls) isn't
@@ -285,58 +281,15 @@ export default function PendingPage() {
     }
   }, [user])
 
-  // ── Live countdown timer ─────────────────────────────────
-  // Driven by the real manual-scan quota, not by "last scan + 24h". Those
-  // differ now: premium gets 2 manual scans a day, and the most recent scan may
-  // have been the automatic one, which costs no allowance at all. Deriving the
-  // countdown from the last scan would tell a premium user to wait 22 hours
-  // while the engine would happily run a scan on request.
-  useEffect(() => {
-    if (!user) return
-    let cancelled = false
-    let interval: ReturnType<typeof setInterval> | undefined
-
-    ;(async () => {
-      const quota = await getManualScanQuota()
-      if (cancelled) return
-      const nextScanMs = quota?.nextAvailableAt?.getTime() ?? null
-      if (!nextScanMs) {
-        setNextScanCountdown(null)
-        setScanCooldownMessage(null)
-        return
-      }
-
-      const tick = () => {
-        const remaining = nextScanMs - Date.now()
-        if (remaining <= 0) {
-          setNextScanCountdown(null)
-          setScanCooldownMessage(null)
-          if (interval) clearInterval(interval)
-          return
-        }
-        setNextScanCountdown(msToCountdown(remaining))
-      }
-
-      tick()
-      interval = setInterval(tick, 1000)
-    })()
-
-    return () => {
-      cancelled = true
-      if (interval) clearInterval(interval)
-    }
-    // Re-checked whenever a scan completes, since that is what consumes quota.
-  }, [user, lastScanLog])
-
   // ── "Still working" hint for slow-but-live scans ────────
   useEffect(() => {
-    if (!scanning && !syncingBackground) {
+    if (!scanning) {
       setScanTakingLong(false)
       return
     }
     const timer = setTimeout(() => setScanTakingLong(true), 6000)
     return () => clearTimeout(timer)
-  }, [scanning, syncingBackground])
+  }, [scanning])
 
   const fetchPendingData = useCallback(async () => {
     setLoading(true)
@@ -390,7 +343,7 @@ export default function PendingPage() {
     }
   }, [])
 
-  const checkInactivityAndAutoSync = useCallback(async () => {
+  const checkScanInactivity = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -420,32 +373,10 @@ export default function PendingPage() {
         setShowInactivityBanner(true)
       }
 
-      const lastScheduledTime = getLastScheduledRefreshTime(dailyScanTime)
-      if (!lastScan || lastScan.getTime() < lastScheduledTime.getTime()) {
-        setSyncingBackground(true)
-        if (hasGoogleToken) {
-          try {
-            // The one scan entry point that was never bounded. It fires on
-            // mount, so without a ceiling it can sit running — and contending
-            // with a manual scan the user starts — indefinitely. Shorter than
-            // the manual 90s because nothing is watching this one.
-            const res = await withTimeout(scanRealGmailInbox({ scanMode: 'scheduled' }), 45000, 'Gmail auto-sync')
-            if (res && !res.error) {
-              setShowInactivityBanner(false)
-              fetchPendingData()
-              fetchLastScanLog()
-              fetchUnconfirmedCategorizations()
-            }
-          } catch (e) {
-            console.warn('Auto-sync failed:', e)
-          }
-        }
-        setSyncingBackground(false)
-      }
     } catch (err) {
-      console.error('Pending page auto-sync check error:', err)
+      console.error('Pending page inactivity check error:', err)
     }
-  }, [fetchPendingData, fetchLastScanLog, fetchUnconfirmedCategorizations])
+  }, [])
 
   useEffect(() => {
     document.title = `Pending Alerts | ${APP_CONFIG.APP_NAME}`
@@ -455,8 +386,8 @@ export default function PendingPage() {
   }, [fetchPendingData, fetchLastScanLog, fetchUnconfirmedCategorizations])
 
   useEffect(() => {
-    checkInactivityAndAutoSync()
-  }, [checkInactivityAndAutoSync])
+    checkScanInactivity()
+  }, [checkScanInactivity])
 
   const handleFieldChange = (id: string, key: 'category' | 'description', value: string) => {
     setEditingFields((prev) => ({
@@ -889,7 +820,7 @@ export default function PendingPage() {
     try {
       setScanning(true)
       setError(null)
-      const { error } = await signInWithGoogle('/pending', true, false)
+      const { error } = await signInWithGoogle('/pending', true)
       if (error) throw new Error(error)
     } catch (err: any) {
       setError(err.message || 'Failed to redirect to Google.')
@@ -969,22 +900,28 @@ export default function PendingPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={() => handleScan()}
-                loading={scanning || syncingBackground}
-                disabled={scanning || syncingBackground || !!scanCooldownMessage}
+                loading={scanning}
+                disabled={scanning || !!scanCooldownMessage}
                 className="shrink-0 gap-1.5 shadow-md justify-center"
                 aria-label="Scan Gmail Inbox for new bank alerts"
               >
                 <Sparkles className="h-4 w-4 text-brand-300" /> Scan Bank Alerts
               </Button>
             </div>
-            {(scanning || syncingBackground) && (scanProgress || scanTakingLong) ? (
+            {scanning && (scanProgress || scanTakingLong) ? (
               <span role="status" className="text-xs text-zinc-500">
                 {scanProgress ?? 'Still scanning your inbox — large inboxes can take up to a minute…'}
               </span>
-            ) : (
-              <span className="text-xs font-semibold text-brand-300 font-mono bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-brand-300 shrink-0" /> Catches up when you open the app after {dailyScanTime}
+            ) : nextScanAt ? (
+              /* Directly under the scan button: when the next scan is due, as a
+                 clock time in the viewer's own timezone. Replaced a badge that
+                 claimed the app catches up on its own, which stopped being true
+                 when automatic scanning was removed on 2026-08-27. */
+              <span className="text-xs font-semibold text-brand-300 bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-brand-300 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
               </span>
+            ) : (
+              <span className="text-xs text-zinc-500">Ready to scan</span>
             )}
           </div>
         </div>
@@ -1033,12 +970,14 @@ export default function PendingPage() {
 
             <Card className="bg-surface-1 border-border-subtle p-4 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                {nextScanCountdown ? 'Next Scan In' : 'Scan Status'}
+                {nextScanAt ? 'Next Scan' : 'Scan Status'}
               </p>
-              {nextScanCountdown ? (
+              {nextScanAt ? (
                 <>
-                  <p className="text-sm font-bold text-brand-400 font-mono tracking-wider">{nextScanCountdown}</p>
-                  <p className="text-xs text-zinc-500">Cooldown active — HH:MM:SS</p>
+                  <p className="text-sm font-bold text-brand-400">{formatNextScanTime(nextScanAt)}</p>
+                  <p className="text-xs text-zinc-500">
+                    {quotaExhausted ? 'Daily scan allowance used' : 'Scans are at least 4 hours apart'}
+                  </p>
                 </>
               ) : (
                 <>
@@ -1119,8 +1058,8 @@ export default function PendingPage() {
               variant="secondary"
               className="shrink-0 text-[var(--status-warning-text)] border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] hover:bg-[var(--status-warning-border)] hover:border-[var(--status-warning-text)]/40 transition-all text-xs justify-center gap-1.5"
               onClick={handleScan}
-              loading={scanning || syncingBackground}
-              disabled={scanning || syncingBackground}
+              loading={scanning}
+              disabled={scanning}
             >
               <RefreshCw className="h-3.5 w-3.5" /> Sync Now
             </Button>
@@ -1168,11 +1107,13 @@ export default function PendingPage() {
             <div className="flex items-start gap-2.5">
               <Clock className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-white text-sm">Daily Scan Limit Reached</p>
+                <p className="font-bold text-white text-sm">
+                  {quotaExhausted ? 'Daily Scan Limit Reached' : 'Too Soon Since Your Last Scan'}
+                </p>
                 <p className="text-xs text-zinc-400 mt-0.5">{scanCooldownMessage}</p>
-                {nextScanCountdown && (
-                  <p className="text-brand-400 font-mono font-bold text-base mt-1.5 tracking-wider">
-                    {nextScanCountdown}
+                {nextScanAt && (
+                  <p className="text-brand-400 font-bold text-base mt-1.5">
+                    Next scan {formatNextScanTime(nextScanAt)}
                   </p>
                 )}
               </div>
