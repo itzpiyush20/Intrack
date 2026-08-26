@@ -32,8 +32,8 @@ const FREE_FEATURES = [
 ]
 
 const MONTHLY_FEATURES = [
-  'Automated daily Gmail inbox scanning',
-  'Two manual scans a day, on top of the automatic one',
+  'Two inbox scans a day, at least 4 hours apart',
+  'Double the free plan, which gets one a day',
   'Real-time category learning engine',
   'Subscription renewal tracking & calendar',
   'Encrypted CSV & JSON data export',
@@ -317,7 +317,7 @@ export default function PricingPage() {
               Simple, <span className="text-sb-primary">honest pricing</span>
             </h1>
             <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-              Unlock automated transaction logs, AI budget mapping, and offline security. One-time payment — nothing auto-renews, and we never store your card.
+              Unlock a second daily inbox scan, AI budget mapping, and offline security. One-time payment — nothing auto-renews, and we never store your card.
             </p>
           </div>
         </motion.div>
@@ -330,7 +330,7 @@ export default function PricingPage() {
                 <span className="text-2xl">⏳</span>
                 <div>
                   <p className="text-sm font-bold text-sb-ink">Trial Active — {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</p>
-                  <p className="text-xs text-zinc-400 font-medium mt-0.5">Full access to premium features active. Upgrade to prevent any interruption to your automatic email tracking.</p>
+                  <p className="text-xs text-zinc-400 font-medium mt-0.5">Full access to premium features active. Upgrade to keep two inbox scans a day instead of one.</p>
                 </div>
               </div>
               <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider">Trial Access</span>
@@ -344,7 +344,7 @@ export default function PricingPage() {
                 <div>
                   <p className="text-sm font-bold text-sb-ink">Start your 7-day free trial</p>
                   <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                    Try automated tracking, budgets, and insights free for 7 days. No card required.
+                    Try two daily scans, budgets, and insights free for 7 days. No card required.
                   </p>
                 </div>
               </div>
@@ -368,8 +368,8 @@ export default function PricingPage() {
                   </p>
                   <p className="text-xs text-zinc-400 font-medium mt-0.5">
                     {isCancelled
-                      ? 'Resubscribe to turn automated email tracking, budgets, and priority tracking back on.'
-                      : 'Renew to restore automated email tracking, budgets, and priority tracking.'}
+                      ? 'Resubscribe to turn the second daily scan, budgets, and priority tracking back on.'
+                      : 'Renew to restore the second daily scan, budgets, and priority tracking.'}
                   </p>
                 </div>
               </div>
@@ -614,7 +614,7 @@ export default function PricingPage() {
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-sb-ink">Sign in to complete checkout</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed font-medium max-w-sm mx-auto">
-                    To secure your billing and activate automated spends tracking, please log in or create an account first.
+                    To secure your billing and unlock the second daily scan, please log in or create an account first.
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

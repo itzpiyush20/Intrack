@@ -101,7 +101,7 @@ export interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: 'How does Intrack detect what I spent?',
-    a: 'Connect your Gmail inbox once and Intrack automatically reads bank transaction alert emails with AI, extracting the merchant, amount, and category without manual typing. You can also log any expense manually in seconds.',
+    a: 'Connect your Gmail inbox once. Whenever you run a scan, Intrack reads your bank transaction alert emails with AI and extracts the merchant, amount, and category without manual typing. Scans are started by you — the app never reads your inbox on its own. You can also log any expense manually in seconds.',
     category: 'scanning',
   },
   {
@@ -116,7 +116,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: 'Why does my Google connection occasionally expire?',
-    a: 'Standard Google OAuth security tokens expire periodically if security settings change. If automated scanning pauses, simply sign out and log back in to refresh your secure authorization token.',
+    a: 'Standard Google OAuth security tokens expire after about an hour, and sooner if your security settings change. If a scan says your Gmail connection has expired, simply sign out and log back in to refresh your secure authorization token.',
     category: 'scanning',
   },
   {
@@ -126,7 +126,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: 'What happens after the 7-day free trial ends?',
-    a: 'During the 7-day free trial, you receive full access to automated scanning, budgets, and smart insights. After the trial ends, automatic background scanning pauses until you upgrade. Manual logging remains free forever.',
+    a: 'During the 7-day free trial you get two inbox scans a day, budgets, and smart insights. After the trial ends you keep one scan a day, and upgrading restores the second. Manual logging remains free forever.',
     category: 'pricing',
   },
   {

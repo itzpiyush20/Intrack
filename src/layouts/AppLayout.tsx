@@ -910,7 +910,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <Clock className="h-3.5 w-3.5 shrink-0" /> Intrack Trial: You have {daysLeft} days remaining of full Pro access.
           </span>
           <Link to="/pricing" className="underline hover:opacity-85 transition-opacity font-bold text-[var(--status-warning-text)] flex items-center gap-1">
-            Upgrade Account to Keep Auto-Sync Active <Crown className="h-3 w-3 shrink-0" />
+            Upgrade to Keep Two Scans a Day <Crown className="h-3 w-3 shrink-0" />
           </Link>
         </div>
       )}

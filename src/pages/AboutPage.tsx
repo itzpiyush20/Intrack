@@ -55,7 +55,7 @@ export default function AboutPage() {
         </p>
         <div className="grid sm:grid-cols-3 sm:auto-rows-fr gap-4 mt-8">
           {[
-            { icon: <Brain className="w-8 h-8 text-emerald-400" />, title: 'Intelligent', body: 'Automatically tracks and categorizes your spending from bank emails with human-like accuracy.' },
+            { icon: <Brain className="w-8 h-8 text-emerald-400" />, title: 'Intelligent', body: 'Reads and categorizes your spending from bank emails with human-like accuracy, every time you run a scan.' },
             { icon: <Lock className="w-8 h-8 text-emerald-400" />, title: 'Private', body: 'Read-only Gmail access, limited to what a bank-alert search returns. Nothing is kept but the transaction itself. No ads, no data sold, ever.' },
             { icon: <TrendingUp className="w-8 h-8 text-emerald-400" />, title: 'Actionable', body: 'Turns raw transaction data into insights that help you actually improve your financial behavior.' },
           ].map((item, i) => (

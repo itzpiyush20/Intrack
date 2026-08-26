@@ -32,7 +32,7 @@ export default function RefundPage() {
           Intrack offers a 7-Day Free Trial to new users upon registration, allowing access to all premium features, including automated Gmail scanning and budget insights.
           
           - You will not be charged during the trial period.
-          - Once the trial expires, you must manually upgrade and select a paid subscription (Monthly at ₹31/month or Yearly at ₹365/year) to keep auto-synchronization active.
+          - Once the trial expires, you must manually upgrade and select a paid subscription (Monthly at ₹31/month or Yearly at ₹365/year) to keep two inbox scans a day. Without a paid plan you keep one scan a day.
           - Every plan is a ONE-TIME payment for a fixed period of access. Nothing renews automatically, no mandate is set up on your card, and you are never charged a second time. When the period ends, access simply stops until you choose to pay again.
         `)}
 
