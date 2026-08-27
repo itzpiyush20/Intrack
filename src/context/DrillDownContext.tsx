@@ -10,8 +10,6 @@ export interface DrillDownFilter {
   merchant?: string
   /** Rows in any of these categories are dropped. Used by the date-only drill-downs, whose numbers were built from a pool that already excluded credit-card bill payments. */
   excludeCategories?: string[]
-  /** When set, a CREDIT row is kept only if its category is in this list. Debit rows are untouched. Mirrors the page's one definition of income, so a list opened from an income bar cannot show credits the bar never counted. */
-  incomeCategories?: string[]
   type?: 'debit' | 'credit'
   /** YYYY-MM-DD. Takes precedence over `month` when both are set — matches getTransactions()'s own precedence in src/services/transactions.ts. */
   dateFrom?: string
@@ -28,13 +26,6 @@ export function filterTransactionsForDrillDown<T extends { category: string; dat
 ): T[] {
   return transactions.filter((t) => {
     if (filter.excludeCategories?.includes(t.category)) return false
-    if (
-      filter.incomeCategories &&
-      (t as { type?: string }).type === 'credit' &&
-      !filter.incomeCategories.includes(t.category)
-    ) {
-      return false
-    }
     if (filter.categories) {
       if (!filter.categories.includes(t.category)) return false
     } else if (filter.category && t.category !== filter.category) {

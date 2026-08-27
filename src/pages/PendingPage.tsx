@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
-import { Card, Button, Input, Select, Badge, EmptyState, Modal } from '@/components/ui'
+import { Card, Button, Input, Select, Badge, EmptyState, Modal, TransactionIdentity } from '@/components/ui'
 import {
   getTransactions,
   updateTransaction,
@@ -19,10 +19,11 @@ import {
   applyMerchantRules,
   formatScanProgress,
 } from '@/services'
+import { fetchAllTransactions } from '@/services/transactions'
 import { saveMerchantRuleToDb } from '@/services/learningEngine'
 import { mergePayments } from '@/services/paymentMerge'
 import { useAuth } from '@/context/AuthContext'
-import { formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime } from '@/utils'
+import { formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime, HOME_CURRENCY } from '@/utils'
 import type { Database } from '@/types/database'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
@@ -53,6 +54,18 @@ import {
 } from 'lucide-react'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
+
+/** How many pending rows the list renders. See fetchPendingData for why 250. */
+const PENDING_LIST_LIMIT = 250
+
+/** Page size for the auto-categorisation review sweep. */
+const AUTO_REVIEW_PAGE_SIZE = 500
+
+/** Exactly the columns the auto-categorisation review modal reads. */
+type AutoReviewRow = Pick<
+  TransactionRow,
+  'id' | 'amount' | 'type' | 'category' | 'currency' | 'date' | 'merchant' | 'description' | 'possible_duplicate_of'
+>
 
 function parseTransactionTime(txn: TransactionRow): string {
   // Prefer the dedicated transaction_time column (added in Phase 2)
@@ -136,6 +149,19 @@ function formatCardDetails(txn: TransactionRow): string | null {
   return null
 }
 
+/**
+ * What this row contributes to one of the two pending headline figures.
+ *
+ * `amount` is an unsigned magnitude — the direction lives in `type` — so summing
+ * it across both directions netted a salary credit into "pending spend". And the
+ * cards render a ₹ figure, so a foreign-currency row counts towards neither:
+ * converting is not this page's job.
+ */
+function homeCurrencyAmount(txn: Pick<TransactionRow, 'amount' | 'type' | 'currency'>, type: 'debit' | 'credit'): number {
+  if ((txn.currency ?? HOME_CURRENCY) !== HOME_CURRENCY) return 0
+  return txn.type === type ? Number(txn.amount) : 0
+}
+
 /** Message off a thrown Error or a Supabase error object, with a fallback. */
 function errorMessage(err: unknown, fallback: string): string {
   const message = (err as { message?: unknown } | null)?.message
@@ -155,11 +181,20 @@ export default function PendingPage() {
     lowConfidence: number
     merged: number
   } | null>(null)
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const isGoogleConnected = hasGoogleToken
   const [totalPendingCount, setTotalPendingCount] = useState(0)
   const [totalPendingValue, setTotalPendingValue] = useState(0)
+  const [totalPendingCredits, setTotalPendingCredits] = useState(0)
+
+  // Keeps the two headline figures in step with the optimistic row removals
+  // below, so an approved credit never comes off the spend total.
+  const adjustPendingTotals = useCallback((txns: TransactionRow[], sign: 1 | -1) => {
+    const debits = txns.reduce((sum, t) => sum + homeCurrencyAmount(t, 'debit'), 0)
+    const credits = txns.reduce((sum, t) => sum + homeCurrencyAmount(t, 'credit'), 0)
+    setTotalPendingValue((prev) => Math.max(0, prev + sign * debits))
+    setTotalPendingCredits((prev) => Math.max(0, prev + sign * credits))
+  }, [])
 
   const [showInactivityBanner, setShowInactivityBanner] = useState(false)
 
@@ -255,21 +290,42 @@ export default function PendingPage() {
       // months' never-confirmed rows from being asked about again — it
       // does not retroactively mark them confirmed.
       const monthStart = `${getCurrentMonth()}-01`
-      const { data } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        // Only auto-APPROVED rows belong here. Per migration 007, a NULL
-        // category_confirmed_at means "auto-categorized and auto-approved
-        // without human review" — a row still awaiting approval is already
-        // surfaced in the main Pending Review list below (which has its own
-        // category dropdown), so including it here made the same transaction
-        // demand confirmation twice, in two different places.
-        .eq('approval_status', 'approved')
-        .is('category_confirmed_at', null)
-        .gte('date', monthStart)
-        .order('date', { ascending: false })
-      if (data && data.length > 0) {
+      // Only auto-APPROVED rows belong here. Per migration 007, a NULL
+      // category_confirmed_at means "auto-categorized and auto-approved
+      // without human review" — a row still awaiting approval is already
+      // surfaced in the main Pending Review list below (which has its own
+      // category dropdown), so including it here made the same transaction
+      // demand confirmation twice, in two different places.
+      //
+      // Paged by hand rather than through fetchAllTransactions. That helper
+      // cannot express `category_confirmed_at IS NULL`, so routing through it
+      // meant pulling every approved row for the month and discarding almost
+      // all of them — on a phone, hundreds of rows fetched to keep five. The
+      // server does the filtering here, and the page loop still removes the
+      // silent 1000-row ceiling the original bare .select() had.
+      const data: AutoReviewRow[] = []
+      for (let offset = 0; ; ) {
+        // A fresh builder per page: PostgrestFilterBuilder can only be awaited
+        // once, so the same instance cannot be re-ranged and re-executed.
+        const { data: page, error: pageError } = await supabase
+          .from('transactions')
+          .select('id, amount, type, category, currency, date, merchant, description, possible_duplicate_of')
+          .eq('approval_status', 'approved')
+          .is('category_confirmed_at', null)
+          .gte('date', monthStart)
+          .order('id', { ascending: true })
+          .range(offset, offset + AUTO_REVIEW_PAGE_SIZE - 1)
+
+        if (pageError) throw pageError
+        const rows = page ?? []
+        data.push(...rows)
+        // Advance by what arrived, not by what was asked for — PostgREST clamps
+        // a response to its own db-max-rows, so a short page is not proof the
+        // result set is finished.
+        if (rows.length === 0) break
+        offset += rows.length
+      }
+      if (data.length > 0) {
         setAutoCategorizedTxns(data)
         setAutoCategorySelections(
           Object.fromEntries(data.map((t) => [t.id, t.category]))
@@ -308,7 +364,7 @@ export default function PendingPage() {
       // and the user's own queue peaked around 40. 250 is far above that while
       // still capping a pathological case.
       const txnsRes = await withTimeout(
-        getTransactions({ status: 'pending', limit: 250 }),
+        getTransactions({ status: 'pending', limit: PENDING_LIST_LIMIT }),
         45000,
         'Pending data fetch'
       )
@@ -319,13 +375,16 @@ export default function PendingPage() {
       setPendingTxns(txns)
       setTotalPendingCount(txnsRes.count || 0)
 
-      const { data: allPending } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('approval_status', 'pending')
-
-      const sum = allPending?.reduce((acc, t) => acc + Number(t.amount), 0) || 0
-      setTotalPendingValue(sum)
+      // The list above is capped, so the headline figures need their own query;
+      // fetchAllTransactions pages, where the bare .select() this replaced was
+      // silently truncated at PostgREST's 1000-row ceiling.
+      const { data: allPending } = await fetchAllTransactions({ status: 'pending' })
+      setTotalPendingValue(
+        (allPending ?? []).reduce((acc, t) => acc + homeCurrencyAmount(t, 'debit'), 0)
+      )
+      setTotalPendingCredits(
+        (allPending ?? []).reduce((acc, t) => acc + homeCurrencyAmount(t, 'credit'), 0)
+      )
 
       const fieldsMap: Record<string, { category: string; description: string }> = {}
       txns.forEach((t) => {
@@ -381,9 +440,12 @@ export default function PendingPage() {
   useEffect(() => {
     document.title = `Pending Alerts | ${APP_CONFIG.APP_NAME}`
     fetchPendingData()
-    fetchLastScanLog()
+    // The skipped-emails panel sits under the scan log and describes the same
+    // scan, so it has to be loaded on mount too — fetching it only after a scan
+    // meant it vanished on the next page load while the log above it stayed.
+    fetchLastScanLog().then((log) => fetchRecentRejections(log?.id ?? null))
     fetchUnconfirmedCategorizations()
-  }, [fetchPendingData, fetchLastScanLog, fetchUnconfirmedCategorizations])
+  }, [fetchPendingData, fetchLastScanLog, fetchRecentRejections, fetchUnconfirmedCategorizations])
 
   useEffect(() => {
     checkScanInactivity()
@@ -457,7 +519,7 @@ export default function PendingPage() {
 
     setPendingTxns((prev) => prev.filter((t) => t.id !== txn.id))
     setTotalPendingCount((prev) => Math.max(0, prev - 1))
-    setTotalPendingValue((prev) => Math.max(0, prev - Number(txn.amount)))
+    adjustPendingTotals([txn], -1)
 
     const timer = setTimeout(() => {
       pendingCommitTimers.delete(txn.id)
@@ -477,7 +539,7 @@ export default function PendingPage() {
           }
           setPendingTxns((prev) => [txn, ...prev])
           setTotalPendingCount((prev) => prev + 1)
-          setTotalPendingValue((prev) => prev + Number(txn.amount))
+          adjustPendingTotals([txn], 1)
         },
       },
     })
@@ -495,7 +557,7 @@ export default function PendingPage() {
 
     setPendingTxns((prev) => prev.filter((t) => !eligible.some((e) => e.id === t.id)))
     setTotalPendingCount((prev) => Math.max(0, prev - eligible.length))
-    setTotalPendingValue((prev) => Math.max(0, prev - eligible.reduce((sum, t) => sum + Number(t.amount), 0)))
+    adjustPendingTotals(eligible, -1)
 
     const snapshot = eligible.map((txn) => ({
       txn,
@@ -525,7 +587,7 @@ export default function PendingPage() {
           })
           setPendingTxns((prev) => [...snapshot.map((s) => s.txn), ...prev])
           setTotalPendingCount((prev) => prev + eligible.length)
-          setTotalPendingValue((prev) => prev + eligible.reduce((sum, t) => sum + Number(t.amount), 0))
+          adjustPendingTotals(eligible, 1)
         },
       },
     })
@@ -567,7 +629,7 @@ export default function PendingPage() {
   const handleRejectWithUndo = (txn: TransactionRow) => {
     setPendingTxns((prev) => prev.filter((t) => t.id !== txn.id))
     setTotalPendingCount((prev) => Math.max(0, prev - 1))
-    setTotalPendingValue((prev) => Math.max(0, prev - Number(txn.amount)))
+    adjustPendingTotals([txn], -1)
 
     const timer = setTimeout(() => {
       pendingCommitTimers.delete(txn.id)
@@ -587,7 +649,7 @@ export default function PendingPage() {
           }
           setPendingTxns((prev) => [txn, ...prev])
           setTotalPendingCount((prev) => prev + 1)
-          setTotalPendingValue((prev) => prev + Number(txn.amount))
+          adjustPendingTotals([txn], 1)
         },
       },
     })
@@ -670,7 +732,7 @@ export default function PendingPage() {
         prev.filter((t) => t.id !== absorbed.id).map((t) => (t.id === survivor.id ? mergedRow : t))
       )
       setTotalPendingCount((prev) => Math.max(0, prev - 1))
-      setTotalPendingValue((prev) => Math.max(0, prev - Number(absorbed.amount)))
+      adjustPendingTotals([absorbed], -1)
       setEditingFields((prev) => {
         const next = { ...prev }
         delete next[absorbed.id]
@@ -765,8 +827,11 @@ export default function PendingPage() {
           return
         }
 
-        // Cooldown — show countdown timer
-        if (msg.includes('Next scan available') || msg.includes('hour') || msg.includes('cooldown')) {
+        // Cooldown — show countdown timer. Matched on the engine's own phrases,
+        // never on a bare 'hour': any unrelated failure whose text happened to
+        // contain that word was dressed up as a cooldown and returned here, so
+        // the real error never reached the user.
+        if (msg.includes('Next scan available') || msg.includes('Daily scan limit reached')) {
           setScanCooldownMessage(msg)
           await fetchLastScanLog()
           return
@@ -794,6 +859,10 @@ export default function PendingPage() {
       // Per-transaction detail already lives in the auto-categorization review
       // modal below — this stays a short, glanceable summary, not a repeat dump.
       setScanSuccessMessage({ total: count, autoApproved, pendingReview: pendingCount, lowConfidence, merged })
+      // The scan the banner asked for just happened, so the warning is spent.
+      // It also outranks the success summary in the priority chain below, so
+      // leaving it up would hide the very result the user pressed Sync Now for.
+      setShowInactivityBanner(false)
 
       await fetchPendingData()
       const freshScanLog = await fetchLastScanLog()
@@ -1219,11 +1288,23 @@ export default function PendingPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Alerts</p>
             <p className="mt-1.5 text-2xl font-bold text-text-primary">{totalPendingCount}</p>
             <p className="text-xs text-zinc-500 mt-1">Awaiting your approval</p>
+            {/* The list below is capped; the count above is not. Say so, rather
+                than letting the headline disagree with what is on screen. */}
+            {totalPendingCount > pendingTxns.length && !loading && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Showing {pendingTxns.length} of {totalPendingCount} — approve or reject to see the rest
+              </p>
+            )}
           </Card>
           <Card className="shadow-md">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Cumulative Value</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Spend</p>
             <p className="mt-1.5 text-2xl font-bold text-brand-400">{formatCurrency(totalPendingValue)}</p>
-            <p className="text-xs text-zinc-500 mt-1">Total pending cashflow impact</p>
+            {totalPendingCredits > 0 && (
+              <p className="text-xs text-[var(--status-positive-text)] mt-1">
+                + {formatCurrency(totalPendingCredits)} pending income
+              </p>
+            )}
+            <p className="text-xs text-zinc-500 mt-1">Money out across pending alerts (₹ only)</p>
           </Card>
         </div>
 
@@ -1271,7 +1352,11 @@ export default function PendingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h2 className="text-lg font-bold text-white">Review Required</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Transactions displayed here are from the past 7 days.</p>
+              {/* The 7 days is the SCAN window, not the display window: this
+                  list is every unreviewed alert, however old. */}
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Every alert still awaiting your review. Each scan looks back 7 days, and anything you have not acted on stays here.
+              </p>
             </div>
             {(() => {
               const highConfidenceCount = pendingTxns.filter(
@@ -1444,7 +1529,6 @@ export default function PendingPage() {
                         id={`cat-select-${txn.id}`}
                         value={localFields.category}
                         onChange={(e) => handleFieldChange(txn.id, 'category', e.target.value)}
-                        disabled={actionLoadingId === txn.id}
                       >
                         {categories.map((cat) => (
                           <option key={cat.name} value={cat.name}>
@@ -1475,7 +1559,6 @@ export default function PendingPage() {
                         value={localFields.description}
                         onChange={(e) => handleFieldChange(txn.id, 'description', e.target.value)}
                         placeholder="e.g. Swiggy Lunch"
-                        disabled={actionLoadingId === txn.id}
                       />
                     </div>
                   </div>
@@ -1546,16 +1629,16 @@ export default function PendingPage() {
                 key={txn.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-surface-2 border border-border-subtle hover:border-zinc-700/50 transition-all gap-3 animate-fade-in"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-white">{txn.merchant || 'Unknown Vendor'}</span>
-                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/30">
+                {/* Same identity resolution as the review list above — the raw
+                    merchant/description pair this replaced printed bank
+                    narration verbatim and labelled blanks "Unknown Vendor". */}
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" className="max-w-[280px]" />
+                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/30 shrink-0">
                       {formatDate(txn.date)}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 italic max-w-[280px] truncate">
-                    {txn.description || 'No description'}
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
@@ -1568,7 +1651,7 @@ export default function PendingPage() {
                     disabled={confirmingIds.has(txn.id)}
                     onChange={(e) => handleAutoCategorySelect(txn.id, e.target.value)}
                     className="bg-surface-3 border border-border-subtle text-xs text-zinc-300 rounded-xl px-2.5 h-11 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer font-semibold"
-                    aria-label={`Category for ${txn.merchant}`}
+                    aria-label={`Category for ${resolveTransactionIdentity(txn).title}`}
                   >
                     {categories.map((cat) => (
                       <option key={cat.name} value={cat.name}>

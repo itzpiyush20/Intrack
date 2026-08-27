@@ -248,13 +248,20 @@ export default function DashboardPage() {
     setShowCategoryModal(true)
     setLoadingCategoryTxns(true)
     try {
-      const { data } = await getTransactions({
+      // fetchAllTransactions, not a capped getTransactions: this modal's header
+      // prints the category's full count from `summary`, so a hard limit of 100
+      // made the header promise 120 transactions and the list show 100.
+      const { data } = await fetchAllTransactions({
         ...resolveDateFilter(dateFilter),
         category: categoryCode,
         type: 'debit',
-        limit: 100,
       })
-      setCategoryTransactions(data || [])
+      // Home currency only, for the same reason getSummary works that way — the
+      // total in the header excludes foreign rows, so listing them underneath it
+      // would show rows that figure never counted.
+      setCategoryTransactions(
+        (data || []).filter((t) => (t.currency ?? HOME_CURRENCY) === HOME_CURRENCY)
+      )
     } catch (e) {
       console.error('Error loading category transactions:', e)
     } finally {
@@ -449,9 +456,12 @@ export default function DashboardPage() {
     const { dateFrom, dateTo } = resolveDateFilter(dateFilter)
     const key = ccBillQueryKey
 
+    // Paged, not capped at 100 per category: the tile's headline total and the
+    // modal's list are both built from these rows, so a truncated fetch would
+    // under-report the total as well as hide payments.
     Promise.all(
       ccBillQueryNames.map((category) =>
-        getTransactions({ dateFrom, dateTo, category, type: 'debit', limit: 100 })
+        fetchAllTransactions({ dateFrom, dateTo, category, type: 'debit' })
       )
     )
       .then((results) => {
@@ -479,6 +489,13 @@ export default function DashboardPage() {
   // new calendar month, recapping the month that just ended.
   useEffect(() => {
     if (!user) return
+    // Wait for the category list before doing anything — including stamping the
+    // marker below. getMonthlySummary needs `ccBillCategories` to know which
+    // rows are credit-card bill payments, and with it still undefined the
+    // helper falls back to the legacy category name, quietly folding bill
+    // payments into "Total spent". This effect stamps localStorage and so runs
+    // exactly once a month: get it wrong and it stays wrong for the month.
+    if (categoriesLoading) return
     const key = `intrack_last_seen_month_${user.id}`
     const lastSeen = localStorage.getItem(key)
     const current = getCurrentMonth()
@@ -509,7 +526,7 @@ export default function DashboardPage() {
     }
 
     localStorage.setItem(key, current)
-  }, [user])
+  }, [user, categoriesLoading, ccBillCategories, getStyle])
 
   const dismissChecklist = () => {
     if (!user) return
@@ -593,9 +610,13 @@ export default function DashboardPage() {
   }
 
   // Calculate savings percentage
+  // Not clamped at zero: an overspent period genuinely has a negative savings
+  // rate, and reporting it as "0%" beside a red negative figure reads as a bug.
+  // The progress bar still clamps — a bar cannot be negative — but the number
+  // tells the truth.
   const savingsRate =
     summary && summary.total_income > 0
-      ? Math.max(0, Math.min(100, (summary.savings / summary.total_income) * 100))
+      ? Math.min(100, (summary.savings / summary.total_income) * 100)
       : 0
 
   const isCurrentMonth = dateFilter.mode === 'month' && dateFilter.month === getCurrentMonth()
@@ -681,7 +702,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {!checklistDismissed && (recentTransactions.length === 0 || monthBudgetTotal === 0) && (
+        {/* Current month only: monthBudgetTotal follows the period picker, so
+            browsing an older month with no budget set used to bring the whole
+            first-run checklist back for an established user. */}
+        {!checklistDismissed && isCurrentMonth && (recentTransactions.length === 0 || monthBudgetTotal === 0) && (
           <Card className="relative overflow-hidden shadow-md animate-fade-in">
             <button
               onClick={dismissChecklist}
@@ -708,9 +732,11 @@ export default function DashboardPage() {
                 },
                 {
                   done: visitedAnalytics,
-                  label: 'Explore your Analytics',
+                  label: 'Explore your Insights',
                   hint: 'See trends, forecasts, and where your money goes.',
-                  to: visitedAnalytics ? null : '/analytics',
+                  // '/analytics' is not a route — App.tsx's catch-all redirected
+                  // this straight out of the app to the marketing landing page.
+                  to: visitedAnalytics ? null : '/insights',
                 },
               ].map((step) => (
                 <div key={step.label} className="flex items-center gap-3">
@@ -877,7 +903,7 @@ export default function DashboardPage() {
                     {formatCurrency(summary?.total_income || 0)}
                   </p>
                   <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
-                    <span>Earned this month</span>
+                    <span>Earned {dateFilter.mode === 'month' ? 'this month' : 'in this period'}</span>
                   </div>
                 </Card>
 
@@ -893,7 +919,7 @@ export default function DashboardPage() {
                     {formatCurrency(summary?.total_expenses || 0)}
                   </p>
                   <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
-                    <span>Spent this month</span>
+                    <span>Spent {dateFilter.mode === 'month' ? 'this month' : 'in this period'}</span>
                   </div>
                 </Card>
 
@@ -923,7 +949,7 @@ export default function DashboardPage() {
                     <div className="h-1.5 w-full bg-surface-3 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ease-out ${(summary?.savings || 0) >= 0 ? 'aurora-progress-fill' : 'bg-[var(--status-danger-text)]'}`}
-                        style={{ width: `${Math.min(100, savingsRate)}%` }}
+                        style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
                       />
                     </div>
                   </div>
@@ -1029,7 +1055,7 @@ export default function DashboardPage() {
               <Card className={`${widgets.recent ? 'lg:col-span-7' : 'lg:col-span-12'} flex flex-col h-auto`}>
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-lg font-bold text-text-primary">Monthly Spending Breakdown</h2>
+                    <h2 className="text-lg font-bold text-text-primary">Spending Breakdown</h2>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       Where your money went{dateFilter.mode === 'month' ? ' this month' : ' in this period'}
                     </p>
@@ -1189,11 +1215,12 @@ export default function DashboardPage() {
                                 {cat.emoji}
                               </div>
 
-                              {/* Details */}
+                              {/* Details — resolved identity, never raw narration.
+                                  This list used to print txn.description, so the
+                                  same payment read "Swiggy" in the modals below
+                                  and "UPI/4412/SWIGGY-ORDER-BLR" here. */}
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-zinc-200 truncate" title={txn.description || cat.label}>
-                                  {txn.description || cat.label}
-                                </p>
+                                <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
                                 <span className="text-xs text-zinc-500 block mt-0.5">
                                   {formatDate(txn.date)}
                                 </span>
@@ -1263,7 +1290,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="text-xl shrink-0">{cat.emoji}</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-zinc-200 truncate" title={txn.description || cat.label}>{txn.description || cat.label}</p>
+                          <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
                           <span className="text-xs text-zinc-500">
                             {new Date(txn.date).toLocaleDateString('en-IN', {
                               day: '2-digit',
@@ -1462,7 +1489,7 @@ export default function DashboardPage() {
                 <BarChart2 className="h-5 w-5 text-brand-400 shrink-0" />
                 <div>
                   <p className="text-xs font-bold text-text-primary">Spending Breakdown</p>
-                  <p className="text-xs text-zinc-500">Monthly category breakdown list</p>
+                  <p className="text-xs text-zinc-500">Category breakdown for the selected period</p>
                 </div>
               </div>
               <input

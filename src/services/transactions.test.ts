@@ -6,13 +6,29 @@ const mockSingle = vi.fn()
 const mockInsert = vi.fn()
 const mockEqUpdate = vi.fn()
 
+// The resolved value of a terminal call. It is the promise mockQueryResult
+// returns, with the methods real code may still chain off it hung on the side:
+// .lte() (getSummary narrows a range after .gte()) and .order()/.range()
+// (getSummary pages). .order()/.range() hand back the same promise so a paged
+// caller keeps awaiting the value the test set up.
+function terminal(...args: unknown[]) {
+  const result = mockQueryResult(...args)
+  if (!result) return result
+  result.lte = (...a: unknown[]) => terminal(...a)
+  result.order = () => result
+  // .range() re-consults mockQueryResult with the (from, to) offsets, so a test
+  // that cares about paging can hand back a different page per request.
+  result.range = (...a: unknown[]) => terminal(...a)
+  return result
+}
+
 // A reusable chainable query-builder mock. Every intermediate method
-// (.select()/.eq()/.order()) returns the SAME chain object, so any number
-// of chained .eq() calls works — real code chains a different number of
-// .eq()s per query (getLoggingStreak: 2, getActiveReceivables: 3,
-// settleReceivable's fetch-by-id: 1) and hand-nesting to a fixed depth
-// breaks whichever query doesn't match that exact depth. Only the
-// terminal methods (.gte/.lte/.single/.order) resolve to a value.
+// (.select()/.eq()) returns the SAME chain object, so any number of chained
+// .eq() calls works — real code chains a different number of .eq()s per query
+// (getLoggingStreak: 2, getActiveReceivables: 3, settleReceivable's
+// fetch-by-id: 1) and hand-nesting to a fixed depth breaks whichever query
+// doesn't match that exact depth. Only the terminal methods
+// (.gte/.lte/.range/.single) resolve to a value.
 function makeChain() {
   const chain: any = {
     select: () => chain,
@@ -20,12 +36,8 @@ function makeChain() {
     // .gte() is terminal on its own for callers like getLoggingStreak, but
     // getMonthlySummary chains a further .lte() off it — so the resolved
     // value also carries a .lte() that resolves the same way.
-    gte: (...args: any[]) => {
-      const result = mockQueryResult(...args)
-      result.lte = (...a: any[]) => mockQueryResult(...a)
-      return result
-    },
-    lte: (...args: any[]) => mockQueryResult(...args),
+    gte: (...args: any[]) => terminal(...args),
+    lte: (...args: any[]) => terminal(...args),
     single: (...args: any[]) => mockSingle(...args),
   }
   return chain
@@ -47,7 +59,7 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { getLoggingStreak, getActiveReceivables, settleReceivable, getMonthlySummary, getHistoricalAnalytics, getSummary, getTransactionById } from './transactions'
+import { getLoggingStreak, getActiveReceivables, settleReceivable, getMonthlySummary, getSummary, getTransactionById } from './transactions'
 
 function isoDaysAgo(n: number) {
   const d = new Date()
@@ -196,6 +208,7 @@ describe('getMonthlySummary', () => {
         { amount: 2000, type: 'credit', category: 'salary' },
       ],
       error: null,
+      count: 3,
     })
     const { data } = await getMonthlySummary('2026-07')
     expect(data!.total_expenses).toBe(500)
@@ -209,6 +222,7 @@ describe('getMonthlySummary', () => {
         { amount: 200, type: 'debit', category: 'transport' },
       ],
       error: null,
+      count: 2,
     })
     const { data } = await getMonthlySummary('2026-07')
     expect(data!.total_expenses).toBe(500)
@@ -224,6 +238,7 @@ describe('getSummary', () => {
         { amount: 2000, type: 'credit', category: 'salary' },
       ],
       error: null,
+      count: 3,
     })
     const { data } = await getSummary({ dateFrom: '2026-06-20', dateTo: '2026-07-05' })
     expect(data!.total_income).toBe(2000)
@@ -238,9 +253,81 @@ describe('getSummary', () => {
         { amount: 15000, type: 'debit', category: 'Credit Card Bill Payment' },
       ],
       error: null,
+      count: 2,
     })
     const { data } = await getSummary({ dateFrom: '2026-07-01', dateTo: '2026-07-31' })
     expect(data!.total_expenses).toBe(500)
+  })
+
+  it('keeps paging past the first page, so a range wider than db-max-rows still totals in full', async () => {
+    // 1500 debits of 1 each: more than the 1000 PostgREST will hand back at
+    // once. A single unbounded select would total 1000 and report no error.
+    const rows = Array.from({ length: 1500 }, (_, i) => ({
+      id: `t${i}`,
+      amount: 1,
+      type: 'debit',
+      category: 'food',
+    }))
+
+    mockQueryResult.mockImplementation((...args: unknown[]) => {
+      const [from, to] = args
+      // Only the .range() call carries numeric offsets; the .gte()/.lte()
+      // calls that precede it are just links in the chain.
+      if (typeof from !== 'number' || typeof to !== 'number') {
+        return Promise.resolve({ data: [], error: null, count: rows.length })
+      }
+      return Promise.resolve({
+        data: rows.slice(from, to + 1),
+        error: null,
+        count: rows.length,
+      })
+    })
+
+    const { data } = await getSummary({ dateFrom: '2026-01-01', dateTo: '2026-12-31' })
+    expect(data!.total_expenses).toBe(1500)
+    expect(data!.category_breakdown[0].count).toBe(1500)
+  })
+
+  it('stops paging when a page comes back empty, even without a count', async () => {
+    const firstPage = Array.from({ length: 3 }, (_, i) => ({
+      id: `t${i}`,
+      amount: 100,
+      type: 'debit',
+      category: 'food',
+    }))
+    let served = false
+
+    mockQueryResult.mockImplementation((...args: unknown[]) => {
+      if (typeof args[0] !== 'number') return Promise.resolve({ data: [], error: null })
+      if (served) return Promise.resolve({ data: [], error: null })
+      served = true
+      return Promise.resolve({ data: firstPage, error: null })
+    })
+
+    const { data } = await getSummary({ dateFrom: '2026-01-01', dateTo: '2026-12-31' })
+    expect(data!.total_expenses).toBe(300)
+  })
+
+  it('surfaces an error from a later page instead of returning partial totals', async () => {
+    const pageError = { message: 'connection reset' }
+    let calls = 0
+
+    mockQueryResult.mockImplementation((...args: unknown[]) => {
+      if (typeof args[0] !== 'number') return Promise.resolve({ data: [], error: null })
+      calls++
+      if (calls === 1) {
+        return Promise.resolve({
+          data: [{ id: 't0', amount: 100, type: 'debit', category: 'food' }],
+          error: null,
+          count: 2,
+        })
+      }
+      return Promise.resolve({ data: null, error: pageError, count: null })
+    })
+
+    const { data, error } = await getSummary({ dateFrom: '2026-01-01', dateTo: '2026-12-31' })
+    expect(data).toBeNull()
+    expect(error).toBe(pageError)
   })
 })
 
@@ -258,19 +345,3 @@ describe('getTransactionById', () => {
   })
 })
 
-describe('getHistoricalAnalytics', () => {
-  it('excludes credit_card_bill_payment transactions from each month\'s expenses total', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } } })
-    const thisMonth = new Date().toISOString().substring(0, 7)
-    mockQueryResult.mockResolvedValue({
-      data: [
-        { amount: 500, type: 'debit', date: `${thisMonth}-05` },
-        { amount: 15000, type: 'debit', date: `${thisMonth}-10`, category: 'Credit Card Bill Payment' },
-      ],
-      error: null,
-    })
-    const { data } = await getHistoricalAnalytics(1)
-    expect(data).toHaveLength(1)
-    expect(data![0].expenses).toBe(500)
-  })
-})

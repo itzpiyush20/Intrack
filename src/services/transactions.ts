@@ -200,6 +200,12 @@ export async function deleteTransaction(id: string) {
   return { error }
 }
 
+/** Only the columns the summary arithmetic needs, plus `id` to order by. */
+type SummaryRow = Pick<TransactionRow, 'id' | 'amount' | 'currency' | 'type' | 'category'>
+
+/** Rows requested per summary page — see ALL_TRANSACTIONS_PAGE_SIZE. */
+const SUMMARY_PAGE_SIZE = 1000
+
 /**
  * Get summary (income, expenses, savings, category breakdown) for an explicit
  * date range.
@@ -209,6 +215,15 @@ export async function deleteTransaction(id: string) {
  * alongside CategoriesContext should always pass it; omitting it falls back to
  * the legacy hardcoded name, which is wrong the moment a user renames or adds
  * a card-bill category.
+ *
+ * The query pages, for the same reason fetchAllTransactions does. A single
+ * unbounded select returns at most PostgREST's `db-max-rows` (1000 here) and
+ * reports no error when it truncates, so a range matching more rows than that
+ * would quietly hand the Dashboard and Budgets pages an income, expense,
+ * savings and category breakdown that are all too low — wrong numbers presented
+ * with the same confidence as right ones. The range is user-chosen and the
+ * custom-range picker can span many months, so this is reachable, not
+ * theoretical.
  */
 export async function getSummary(
   range: { dateFrom: string; dateTo: string },
@@ -216,14 +231,41 @@ export async function getSummary(
 ) {
   const isCreditCardBill = makeIsCreditCardBill(options?.creditCardBillCategories)
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('amount, currency, type, category')
-    .eq('approval_status', 'approved')
-    .gte('date', range.dateFrom)
-    .lte('date', range.dateTo)
+  const data: SummaryRow[] = []
+  let offset = 0
 
-  if (error || !data) return { data: null, error }
+  for (;;) {
+    // A fresh builder per page, for the same reason as fetchAllTransactions:
+    // PostgrestFilterBuilder is a thenable that can only be awaited once, so
+    // the same instance cannot be re-ranged and re-executed.
+    //
+    // `id` is selected purely to order by: the range this summary covers is
+    // user-chosen and the custom-range picker happily spans a year, so a total
+    // order is what stops a row drifting between pages and being counted twice
+    // or not at all. `id` is the primary key, so ordering by it alone is
+    // already total — no tiebreaker needed.
+    const { data: page, error, count } = await supabase
+      .from('transactions')
+      .select('id, amount, currency, type, category', { count: 'exact' })
+      .eq('approval_status', 'approved')
+      .gte('date', range.dateFrom)
+      .lte('date', range.dateTo)
+      .order('id', { ascending: true })
+      .range(offset, offset + SUMMARY_PAGE_SIZE - 1)
+
+    if (error) return { data: null, error }
+
+    const rows = (page ?? []) as SummaryRow[]
+    data.push(...rows)
+
+    // Advance by what actually ARRIVED, not by what we asked for: PostgREST
+    // clamps every response to its own `db-max-rows`, so a page can legitimately
+    // come back short without the result set being finished.
+    if (rows.length === 0) break
+    offset += rows.length
+
+    if (typeof count === 'number' && data.length >= count) break
+  }
 
   // Headline totals cover the home currency ONLY. Summing rupees with dollars
   // produces a number that means nothing, and the app deliberately holds no
@@ -295,73 +337,6 @@ export async function getMonthlySummary(
   return getSummary({ dateFrom: startDate, dateTo: endDate }, options)
 }
 
-/** Get historical monthly comparison for the last N months */
-export async function getHistoricalAnalytics(
-  monthsCount = 6,
-  options?: { creditCardBillCategories?: string[] }
-) {
-  const isCreditCardBill = makeIsCreditCardBill(options?.creditCardBillCategories)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { data: null, error: new Error('User not authenticated') }
-
-  // Generate target months list (e.g. ["2026-05", "2026-04", ...])
-  const rawMonths: string[] = []
-  const now = new Date()
-  for (let i = 0; i < monthsCount; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    rawMonths.unshift(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
-  }
-
-  const months = rawMonths
-
-  // Get start date of the oldest month in the window
-  const startDate = `${months[0]}-01`
-
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('amount, currency, type, date, category')
-    .eq('user_id', user.id)
-    .eq('approval_status', 'approved')
-    .gte('date', startDate)
-
-  if (error || !data) return { data: null, error }
-
-  // Aggregate stats per month
-  const monthlyData = months.map((m) => {
-    const [year, mon] = m.split('-').map(Number)
-    const monthLabel = new Date(year, mon - 1, 1).toLocaleDateString('en-IN', {
-      month: 'short',
-    })
-
-    // Home currency only, for the same reason as getSummary: a month's
-    // "spend" that mixes rupees and dollars is not a number.
-    const monthTxns = data.filter(
-      (t) => t.date.startsWith(m) && (t.currency ?? HOME_CURRENCY) === HOME_CURRENCY
-    )
-    
-    const income = monthTxns
-      .filter((t) => t.type === 'credit')
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-
-    // Credit card bill payments are excluded — the purchases they cover were
-    // already counted as expenses when they happened.
-    const expenses = monthTxns
-      .filter((t) => t.type === 'debit' && !isCreditCardBill(t.category))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-
-    return {
-      month: m,
-      label: `${monthLabel} ${String(year).substring(2)}`,
-      income,
-      expenses,
-      savings: income - expenses,
-    }
-  })
-
-  return { data: monthlyData, error: null }
-}
-
-/** Bulk delete transactions */
 export async function bulkDeleteTransactions(ids: string[]) {
   const { error } = await supabase
     .from('transactions')

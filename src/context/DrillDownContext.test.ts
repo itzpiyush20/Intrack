@@ -123,29 +123,3 @@ describe('filterTransactionsForDrillDown — excludeCategories', () => {
     expect(result.map((t) => t.id)).toEqual(['1', '2', '3'])
   })
 })
-
-describe('filterTransactionsForDrillDown — incomeCategories', () => {
-  // The page counts a credit as income only when its category is income-tagged.
-  // A list opened from an income bar must apply the same rule or it shows
-  // credits the bar never counted.
-  const txns = [
-    { id: '1', category: 'Salary', date: '2026-08-01', type: 'credit' },
-    { id: '2', category: 'Shopping', date: '2026-08-02', type: 'credit' },
-    { id: '3', category: 'Groceries', date: '2026-08-03', type: 'debit' },
-  ]
-
-  it('keeps only credits whose category is income-tagged', () => {
-    const result = filterTransactionsForDrillDown(txns, { incomeCategories: ['Salary'] })
-    expect(result.map((t) => t.id)).toEqual(['1', '3'])
-  })
-
-  it('never filters debits', () => {
-    const result = filterTransactionsForDrillDown(txns, { incomeCategories: [] })
-    expect(result.map((t) => t.id)).toEqual(['3'])
-  })
-
-  it('is inert when not supplied', () => {
-    const result = filterTransactionsForDrillDown(txns, { dateFrom: '2026-08-01', dateTo: '2026-08-31' })
-    expect(result.map((t) => t.id)).toEqual(['1', '2', '3'])
-  })
-})
