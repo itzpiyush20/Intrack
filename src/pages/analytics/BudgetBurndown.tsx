@@ -77,8 +77,11 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                 HEIGHT,
                 item.daysInMonth - 1
               )
+              // Day 1 of the ideal line is one day's allowance, not zero. The
+              // actual line's first point is day 1's spend (money already out),
+              // so anchoring the ideal at zero offset the two by a day.
               const idealPoints = buildPoints(
-                [0, item.budgetAmount],
+                [item.daysInMonth > 0 ? item.budgetAmount / item.daysInMonth : 0, item.budgetAmount],
                 maxY,
                 WIDTH,
                 HEIGHT,

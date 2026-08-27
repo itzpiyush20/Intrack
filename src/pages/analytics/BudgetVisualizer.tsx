@@ -9,7 +9,6 @@ interface BudgetVisualizerProps {
   wantsPct: number
   savingsSpent: number
   finalSavingsPct: number
-  totalIncome: number
   emergencyMonths: number
   isEmergencyFundReady: boolean
   onBucketClick?: (bucket: 'needs' | 'wants' | 'savings') => void
@@ -22,13 +21,10 @@ export function BudgetVisualizer({
   wantsPct,
   savingsSpent,
   finalSavingsPct,
-  totalIncome,
   emergencyMonths,
   isEmergencyFundReady,
   onBucketClick,
 }: BudgetVisualizerProps) {
-  const savingsValue = totalIncome > 0 ? (totalIncome - needsSpent - wantsSpent) : savingsSpent
-
   return (
     <Card className="md:col-span-2 border-border-subtle bg-surface-1 shadow-md flex flex-col justify-between p-5">
       <div>
@@ -95,7 +91,7 @@ export function BudgetVisualizer({
                 Savings / Investments (Target 20%)
               </span>
               <span className="text-zinc-200 font-medium">
-                {formatCurrency(savingsValue)} ({finalSavingsPct}%)
+                {formatCurrency(savingsSpent)} ({finalSavingsPct}%)
               </span>
             </div>
             <div className="h-2.5 w-full bg-zinc-800 rounded-full overflow-hidden">

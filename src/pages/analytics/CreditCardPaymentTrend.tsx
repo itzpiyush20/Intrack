@@ -58,7 +58,8 @@ export function CreditCardPaymentTrend({ data, loading, onMonthClick }: CreditCa
               </div>
 
               {data.map((d, index) => {
-                const height = maxVal > 0 ? (d.amount / maxVal) * 100 : 0
+                // Zero months render flat rather than as a 3% stub.
+                const height = d.amount > 0 && maxVal > 0 ? Math.max(3, (d.amount / maxVal) * 100) : 0
                 return (
                   <div
                     key={index}
@@ -74,7 +75,7 @@ export function CreditCardPaymentTrend({ data, loading, onMonthClick }: CreditCa
                       <div
                         onClick={onMonthClick ? () => onMonthClick(d.monthKey, d.label) : undefined}
                         className={`w-4 sm:w-6 bg-slate-500/80 rounded-t-md hover:bg-slate-400 transition-all duration-500 ease-out ${onMonthClick ? 'cursor-pointer hover:opacity-80' : ''}`}
-                        style={{ height: `${Math.max(3, height)}%` }}
+                        style={{ height: `${height}%` }}
                       />
                     </div>
 

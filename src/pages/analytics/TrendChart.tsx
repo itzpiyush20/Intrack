@@ -103,8 +103,12 @@ export function TrendChart({
                 </div>
 
                 {trendData.map((h, index) => {
-                  const incHeight = maxVal > 0 ? (h.income / maxVal) * 100 : 0
-                  const expHeight = maxVal > 0 ? (h.expenses / maxVal) * 100 : 0
+                  // A zero bar must render as nothing. Flooring every bar at 3%
+                  // drew a stub for days with no activity, which reads as spend
+                  // that did not happen.
+                  const barHeight = (v: number) => (v > 0 && maxVal > 0 ? Math.max(3, (v / maxVal) * 100) : 0)
+                  const incHeight = barHeight(h.income)
+                  const expHeight = barHeight(h.expenses)
 
                   return (
                     <div
@@ -138,11 +142,11 @@ export function TrendChart({
                       <div className="flex gap-1 sm:gap-2 items-end h-full w-full max-w-[64px] justify-center px-1 min-h-11">
                         <div
                           className="w-2.5 sm:w-4 bg-[var(--status-positive-text)]/80 rounded-t-md hover:bg-[var(--status-positive-text)] transition-all duration-500 ease-out"
-                          style={{ height: `${Math.max(3, incHeight)}%` }}
+                          style={{ height: `${incHeight}%` }}
                         />
                         <div
                           className="w-2.5 sm:w-4 bg-[var(--status-warning-text)]/80 rounded-t-md hover:bg-[var(--status-warning-text)] transition-all duration-500 ease-out"
-                          style={{ height: `${Math.max(3, expHeight)}%` }}
+                          style={{ height: `${expHeight}%` }}
                         />
                       </div>
 

@@ -79,3 +79,73 @@ describe('filterTransactionsForDrillDown', () => {
     expect(result.map((t) => t.id)).toEqual(['2'])
   })
 })
+
+describe('filterTransactionsForDrillDown — merchant matches resolved identity', () => {
+  // The Merchant Leaderboard groups by resolveTransactionIdentity().title, so the
+  // filter has to as well. Matching the raw `merchant` column meant a bar reading
+  // 500 opened a list totalling 200, and 'Unclassified' opened nothing at all.
+  const txns = [
+    { id: '1', category: 'Food', date: '2026-08-01', merchant: 'Swiggy', description: 'Swiggy order' },
+    { id: '2', category: 'Food', date: '2026-08-02', merchant: null, description: 'UPI/4412/SWIGGY-ORDER-BLR' },
+    { id: '3', category: 'Other', date: '2026-08-03', merchant: null, description: 'IMPS/1/JOHN DOE' },
+    { id: '4', category: 'Other', date: '2026-08-04', merchant: null, description: 'NEFT/2/JANE DOE' },
+  ]
+
+  it('folds a brand recognised in the narration under its real merchant', () => {
+    const result = filterTransactionsForDrillDown(txns, { merchant: 'Swiggy' })
+    expect(result.map((t) => t.id)).toEqual(['1', '2'])
+  })
+
+  it('resolves the Unclassified bucket instead of returning nothing', () => {
+    const result = filterTransactionsForDrillDown(txns, { merchant: 'Unclassified' })
+    expect(result.map((t) => t.id)).toEqual(['3', '4'])
+  })
+})
+
+describe('filterTransactionsForDrillDown — excludeCategories', () => {
+  const txns = [
+    { id: '1', category: 'Food & Dining', date: '2026-08-05' },
+    { id: '2', category: 'Credit Card Bill Payment', date: '2026-08-06' },
+    { id: '3', category: 'Groceries', date: '2026-08-07' },
+  ]
+
+  it('drops rows the chart pool had already removed', () => {
+    const result = filterTransactionsForDrillDown(txns, {
+      excludeCategories: ['Credit Card Bill Payment'],
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+    })
+    expect(result.map((t) => t.id)).toEqual(['1', '3'])
+  })
+
+  it('is a no-op when the list is empty', () => {
+    const result = filterTransactionsForDrillDown(txns, { excludeCategories: [] })
+    expect(result.map((t) => t.id)).toEqual(['1', '2', '3'])
+  })
+})
+
+describe('filterTransactionsForDrillDown — incomeCategories', () => {
+  // The page counts a credit as income only when its category is income-tagged.
+  // A list opened from an income bar must apply the same rule or it shows
+  // credits the bar never counted.
+  const txns = [
+    { id: '1', category: 'Salary', date: '2026-08-01', type: 'credit' },
+    { id: '2', category: 'Shopping', date: '2026-08-02', type: 'credit' },
+    { id: '3', category: 'Groceries', date: '2026-08-03', type: 'debit' },
+  ]
+
+  it('keeps only credits whose category is income-tagged', () => {
+    const result = filterTransactionsForDrillDown(txns, { incomeCategories: ['Salary'] })
+    expect(result.map((t) => t.id)).toEqual(['1', '3'])
+  })
+
+  it('never filters debits', () => {
+    const result = filterTransactionsForDrillDown(txns, { incomeCategories: [] })
+    expect(result.map((t) => t.id)).toEqual(['3'])
+  })
+
+  it('is inert when not supplied', () => {
+    const result = filterTransactionsForDrillDown(txns, { dateFrom: '2026-08-01', dateTo: '2026-08-31' })
+    expect(result.map((t) => t.id)).toEqual(['1', '2', '3'])
+  })
+})

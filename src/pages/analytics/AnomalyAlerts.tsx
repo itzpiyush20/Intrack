@@ -7,6 +7,8 @@ import { Flame } from 'lucide-react'
 interface AnomalyItem {
   category: string
   thisMonth: number
+  projectedMonth: number
+  isProjection: boolean
   baseline: number
   spike: number
 }
@@ -45,12 +47,21 @@ export function AnomalyAlerts({ anomalies, onAnomalyClick }: AnomalyAlertsProps)
                 </span>
                 <Badge variant="warning" className="shrink-0">+{anomaly.spike.toFixed(0)}%</Badge>
               </div>
+              {/* The percentage is measured on the month-end projection, so the
+                  rupee figures next to it have to be the projection too, or the
+                  three numbers on this card cannot be reconciled. */}
               <p className="text-xs text-zinc-300">
-                <span className="font-semibold text-white">{formatCurrency(anomaly.thisMonth)}</span> this month vs{' '}
+                <span className="font-semibold text-white">{formatCurrency(anomaly.thisMonth)}</span>
+                {anomaly.isProjection ? ' so far — on track for ' : ' this month vs '}
+                {anomaly.isProjection && (
+                  <span className="font-semibold text-white">{formatCurrency(anomaly.projectedMonth)}</span>
+                )}
+                {anomaly.isProjection ? ' vs ' : ''}
                 <span className="text-[var(--status-warning-text)] font-semibold">{formatCurrency(anomaly.baseline)}</span> baseline
               </p>
               <p className="text-xs text-[var(--status-warning-text)] mt-1 font-mono">
-                {formatCurrency(anomaly.thisMonth - anomaly.baseline)} above average
+                {formatCurrency(anomaly.projectedMonth - anomaly.baseline)} above average
+                {anomaly.isProjection ? ' at this pace' : ''}
               </p>
             </div>
           )

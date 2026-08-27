@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildMerchantLeaderboard } from './InsightsPage'
+import { computeEmergencyMonths, completedMonthsWindow } from './analytics/emergencyReserve'
 
 describe('buildMerchantLeaderboard', () => {
   it('groups a known-brand narration under its real merchant total', () => {
@@ -41,15 +42,65 @@ describe('buildMerchantLeaderboard', () => {
   })
 })
 
-describe('Emergency Fund Coverage Calculation', () => {
-  it('correctly calculates coverage months based on accumulated investments and monthly needs', () => {
-    // User has accumulated ₹3,60,000 in savings over 6 months, and has ₹60,000/mo essential needs.
-    const totalInvestments = 360000
-    const avgMonthlyNeeds = 60000
-    const emergencyMonths = Number((totalInvestments / avgMonthlyNeeds).toFixed(1))
-    
-    // Coverage must equal 6.0 months (not 1.0 month)
-    expect(emergencyMonths).toBe(6.0)
-    expect(emergencyMonths >= 6).toBe(true)
+describe('completedMonthsWindow', () => {
+  it('spans the five whole months before this one, excluding the month in progress', () => {
+    const w = completedMonthsWindow(new Date(2026, 7, 27)) // 27 Aug 2026
+    expect(w).toEqual({ startStr: '2026-03-01', endStr: '2026-07-31', months: 5 })
+  })
+
+  it('rolls across a year boundary', () => {
+    const w = completedMonthsWindow(new Date(2026, 1, 9)) // 9 Feb 2026
+    expect(w).toEqual({ startStr: '2025-09-01', endStr: '2026-01-31', months: 5 })
+  })
+})
+
+describe('computeEmergencyMonths', () => {
+  const win = { startStr: '2026-03-01', endStr: '2026-07-31', months: 5 }
+  const savings = ['Investments']
+  const needs = ['Rent']
+
+  const reserveRows = [
+    { type: 'debit', date: '2026-03-10', amount: 20000, category: 'Investments' },
+    { type: 'debit', date: '2026-04-10', amount: 20000, category: 'Investments' },
+    { type: 'debit', date: '2026-05-10', amount: 20000, category: 'Investments' },
+    { type: 'debit', date: '2026-06-10', amount: 20000, category: 'Investments' },
+    { type: 'debit', date: '2026-07-10', amount: 20000, category: 'Investments' },
+    { type: 'debit', date: '2026-08-10', amount: 20000, category: 'Investments' },
+  ]
+  const needsRows = ['2026-03', '2026-04', '2026-05', '2026-06', '2026-07'].map((m) => ({
+    type: 'debit', date: `${m}-01`, amount: 30000, category: 'Rent',
+  }))
+
+  it('divides the reserve by average monthly needs, not by one period of needs', () => {
+    // 1,20,000 saved (Mar-Aug) / 30,000 average monthly rent = 4.0 months
+    expect(computeEmergencyMonths([...reserveRows, ...needsRows], savings, needs, win)).toBe(4)
+  })
+
+  it('ignores credits sitting in a savings category', () => {
+    const withRedemption = [
+      ...reserveRows,
+      ...needsRows,
+      { type: 'credit', date: '2026-08-12', amount: 90000, category: 'Investments' },
+    ]
+    expect(computeEmergencyMonths(withRedemption, savings, needs, win)).toBe(4)
+  })
+
+  it('excludes the month in progress from the needs average', () => {
+    // A huge partial-month rent row must not drag the average up or down.
+    const withCurrentMonth = [
+      ...reserveRows,
+      ...needsRows,
+      { type: 'debit', date: '2026-08-02', amount: 500000, category: 'Rent' },
+    ]
+    expect(computeEmergencyMonths(withCurrentMonth, savings, needs, win)).toBe(4)
+  })
+
+  it('falls back to a nominal monthly need when no needs are recorded', () => {
+    // 1,20,000 / 15,000 fallback = 8.0
+    expect(computeEmergencyMonths(reserveRows, savings, needs, win)).toBe(8)
+  })
+
+  it('returns 0 when nothing has been saved', () => {
+    expect(computeEmergencyMonths(needsRows, savings, needs, win)).toBe(0)
   })
 })

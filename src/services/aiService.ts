@@ -263,10 +263,23 @@ export function generateRuleBasedInsights(ctx: FinancialContext): {
 
 export function detectAnomalies(
   transactions: Array<{ amount: number; category: string; date: string; merchant: string; type: string }>
-): Array<{ category: string; thisMonth: number; baseline: number; spike: number; merchant?: string }> {
+): Array<{
+  category: string
+  thisMonth: number
+  projectedMonth: number
+  isProjection: boolean
+  baseline: number
+  spike: number
+  merchant?: string
+}> {
   const anomalies: Array<{
     category: string
+    /** Actual spend recorded so far this month. */
     thisMonth: number
+    /** Where that lands by month end at the current pace. Equals `thisMonth` on a finished month. */
+    projectedMonth: number
+    /** True while the month is still running, i.e. `projectedMonth` is an estimate. */
+    isProjection: boolean
     baseline: number
     spike: number
     merchant?: string
@@ -292,13 +305,33 @@ export function detectAnomalies(
 
   if (prevMonths.length === 0) return anomalies
 
+  // The baselines are whole months, so comparing a half-finished month against
+  // them straight is not like-for-like — a real spike stays invisible until late
+  // in the month, which defeats the point of an alert. Scale the month in
+  // progress up to its month-end pace before comparing.
+  //
+  // The ramp over the first seven days is the same one getMoMTrend uses: on day
+  // 2, dividing by 2 and multiplying by 30 turns a single rent payment into a
+  // fifteen-fold "spike", so early in the month the projection is blended back
+  // toward the raw figure.
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysElapsed = Math.min(Math.max(1, now.getDate()), daysInMonth)
+  const isProjection = daysElapsed < daysInMonth
+  const rampWeight = Math.min(1, daysElapsed / 7)
+  const project = (actual: number) => {
+    if (!isProjection) return actual
+    const atPace = (actual / daysElapsed) * daysInMonth
+    return rampWeight * atPace + (1 - rampWeight) * actual
+  }
+
   for (const [category, amount] of Object.entries(currentSpend)) {
     const prevAmounts = prevMonths.map((m) => monthlySpend[m]?.[category] || 0)
     const baseline = prevAmounts.reduce((a, b) => a + b, 0) / prevMonths.length
     if (baseline === 0) continue
-    const spike = ((amount - baseline) / baseline) * 100
-    if (spike > 80 && amount - baseline > 1000) {
-      anomalies.push({ category, thisMonth: amount, baseline, spike })
+    const projectedMonth = project(amount)
+    const spike = ((projectedMonth - baseline) / baseline) * 100
+    if (spike > 80 && projectedMonth - baseline > 1000) {
+      anomalies.push({ category, thisMonth: amount, projectedMonth, isProjection, baseline, spike })
     }
   }
 
@@ -318,7 +351,19 @@ export function generateForecast(
   const now = new Date()
   const monthlyData: Record<string, { income: number; expenses: number }> = {}
 
-  for (let i = 5; i >= 0; i--) {
+  // COMPLETED months only: the five months before this one.
+  //
+  // The month we are standing in is partial by definition, and it used to sit
+  // in the weighted average carrying the HEAVIEST weight. With a flat
+  // 1,00,000/mo income history, one 2,000 purchase on day 1 of a new month
+  // dropped next month's forecast income to 44,074 and the three-month
+  // forecast to 4,074.
+  //
+  // The window stops at month -5 rather than reaching back a full six: the
+  // caller fetches from six months before *today*, so month -6 would only be
+  // partly loaded and would read as an artificially cheap month — the same
+  // defect at the other end of the window.
+  for (let i = 5; i >= 1; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     monthlyData[key] = { income: 0, expenses: 0 }
@@ -331,25 +376,34 @@ export function generateForecast(
     else monthlyData[month].expenses += Number(t.amount)
   })
 
+  // Chronological by construction above. Recency weight is derived from a
+  // month's position in THIS list, not from its index in the filtered list
+  // below — indexing the filtered list meant a single month with no activity
+  // shifted the weight of every month after it, moving the forecast by ~9%
+  // on data that had not changed.
+  const orderedKeys = Object.keys(monthlyData)
+  const weightFor = (key: string) => 1 + orderedKeys.indexOf(key) * 0.5
+
   const months = Object.entries(monthlyData).filter(([, d]) => d.income > 0 || d.expenses > 0)
   if (months.length < 2) return []
 
-  const weights = [1, 1.5, 2, 2.5, 3, 3.5].slice(0, months.length)
-  const totalWeight = weights.reduce((a, b) => a + b, 0)
-  const avgIncome = months.reduce((sum, [, d], i) => sum + d.income * weights[i], 0) / totalWeight
+  const totalWeight = months.reduce((sum, [key]) => sum + weightFor(key), 0)
+  const avgIncome = months.reduce((sum, [key, d]) => sum + d.income * weightFor(key), 0) / totalWeight
   const avgExpenses =
-    months.reduce((sum, [, d], i) => sum + d.expenses * weights[i], 0) / totalWeight
+    months.reduce((sum, [key, d]) => sum + d.expenses * weightFor(key), 0) / totalWeight
 
+  // Per-month slope is the rise divided by the number of GAPS between the
+  // samples, not by the sample count — /3 across three months understated a
+  // real 10,000/month climb as 6,667.
   const recentMonths = months.slice(-3)
+  const span = recentMonths.length - 1
   const incomeTrend =
-    recentMonths.length >= 2
-      ? (recentMonths[recentMonths.length - 1][1].income - recentMonths[0][1].income) /
-        recentMonths.length
+    span > 0
+      ? (recentMonths[recentMonths.length - 1][1].income - recentMonths[0][1].income) / span
       : 0
   const expenseTrend =
-    recentMonths.length >= 2
-      ? (recentMonths[recentMonths.length - 1][1].expenses - recentMonths[0][1].expenses) /
-        recentMonths.length
+    span > 0
+      ? (recentMonths[recentMonths.length - 1][1].expenses - recentMonths[0][1].expenses) / span
       : 0
 
   const forecast = []

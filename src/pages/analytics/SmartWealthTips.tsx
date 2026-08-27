@@ -91,7 +91,7 @@ export function SmartWealthTips({
                       ? `Your outflow expanded by ${trend.pct.toFixed(0)}% (+${formatCurrency(
                           Math.abs(trend.diff)
                         )}) compared to ${trend.prevLabel}. Check your category limits stack in budgets to establish tighter caps.`
-                      : `Outstanding discipline! Your monthly expenses decreased by ${Math.abs(
+                      : `Outstanding discipline! Your expenses decreased by ${Math.abs(
                           trend.pct
                         ).toFixed(0)}% compared to ${trend.prevLabel}.`}
                   </p>
@@ -99,55 +99,68 @@ export function SmartWealthTips({
               </div>
             )}
 
-            <div
-              className={`rounded-2xl border p-4 flex gap-3.5 animate-slide-up stagger-1 ${
-                savingsRate >= 30
-                  ? 'bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)]'
-                  : savingsRate >= 10
-                  ? 'bg-zinc-800/20 border-border-subtle/50'
-                  : 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)]'
-              }`}
-            >
-              {savingsRate >= 30 ? (
-                <ShieldCheck className="w-6 h-6 text-[var(--status-positive-icon)] shrink-0 mt-0.5" />
-              ) : savingsRate >= 10 ? (
+            {summary.total_income === 0 ? (
+              <div className="rounded-2xl border border-border-default bg-surface-2/20 p-4 flex gap-3.5 animate-slide-up stagger-1">
                 <TrendingUp className="w-6 h-6 text-[var(--status-info-icon)] shrink-0 mt-0.5" />
-              ) : (
-                <Lightbulb className="w-6 h-6 text-[var(--status-warning-icon)] shrink-0 mt-0.5" />
-              )}
-              <div className="text-xs leading-relaxed">
-                <h4
-                  className={`font-bold ${
-                    savingsRate >= 30
-                      ? 'text-[var(--status-positive-text)]'
-                      : savingsRate >= 10
-                      ? 'text-zinc-200'
-                      : 'text-[var(--status-warning-text)]'
-                  }`}
-                >
-                  {savingsRate >= 30
-                    ? 'High Wealth Accumulation'
-                    : savingsRate >= 10
-                    ? 'Healthy Saving Pattern'
-                    : 'Aggressive Outflow Impact'}
-                </h4>
-                <p className="text-zinc-400 mt-1">
-                  {savingsRate >= 30
-                    ? `You secured a magnificent ${savingsRate.toFixed(
-                        0
-                      )}% savings rate (${formatCurrency(
-                        summary.savings
-                      )}) of your total earnings in this period! Highly effective wealth retention.`
-                    : savingsRate >= 10
-                    ? `Your savings rate sits at ${savingsRate.toFixed(
-                        0
-                      )}% in this period. A very stable pattern. Keep mapping discretionary purchases to maintain this line.`
-                    : `You saved only ${Math.max(0, savingsRate).toFixed(
-                        0
-                      )}% of your income in this period. Discretionary debit leaks are absorbing your cash flow. Establish category limits immediately.`}
-                </p>
+                <div className="text-xs leading-relaxed">
+                  <h4 className="font-bold text-zinc-200">No income recorded this period</h4>
+                  <p className="text-zinc-400 mt-1">
+                    We can't work out a savings rate without income to measure it against. Add
+                    your salary or other credits for this period to unlock this reading.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                className={`rounded-2xl border p-4 flex gap-3.5 animate-slide-up stagger-1 ${
+                  savingsRate >= 30
+                    ? 'bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)]'
+                    : savingsRate >= 10
+                    ? 'bg-zinc-800/20 border-border-subtle/50'
+                    : 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)]'
+                }`}
+              >
+                {savingsRate >= 30 ? (
+                  <ShieldCheck className="w-6 h-6 text-[var(--status-positive-icon)] shrink-0 mt-0.5" />
+                ) : savingsRate >= 10 ? (
+                  <TrendingUp className="w-6 h-6 text-[var(--status-info-icon)] shrink-0 mt-0.5" />
+                ) : (
+                  <Lightbulb className="w-6 h-6 text-[var(--status-warning-icon)] shrink-0 mt-0.5" />
+                )}
+                <div className="text-xs leading-relaxed">
+                  <h4
+                    className={`font-bold ${
+                      savingsRate >= 30
+                        ? 'text-[var(--status-positive-text)]'
+                        : savingsRate >= 10
+                        ? 'text-zinc-200'
+                        : 'text-[var(--status-warning-text)]'
+                    }`}
+                  >
+                    {savingsRate >= 30
+                      ? 'High Wealth Accumulation'
+                      : savingsRate >= 10
+                      ? 'Healthy Saving Pattern'
+                      : 'Aggressive Outflow Impact'}
+                  </h4>
+                  <p className="text-zinc-400 mt-1">
+                    {savingsRate >= 30
+                      ? `You secured a magnificent ${savingsRate.toFixed(
+                          0
+                        )}% savings rate (${formatCurrency(
+                          summary.savings
+                        )}) of your total earnings in this period! Highly effective wealth retention.`
+                      : savingsRate >= 10
+                      ? `Your savings rate sits at ${savingsRate.toFixed(
+                          0
+                        )}% in this period. A very stable pattern. Keep mapping discretionary purchases to maintain this line.`
+                      : `You saved only ${Math.max(0, savingsRate).toFixed(
+                          0
+                        )}% of your income in this period. Discretionary debit leaks are absorbing your cash flow. Establish category limits immediately.`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {summary.category_breakdown.length > 0 && (
               <div className="rounded-2xl border border-border-default bg-surface-2/20 p-4 flex gap-3.5 animate-slide-up stagger-2">

@@ -105,7 +105,7 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
                       })}
                     </div>
 
-                    <div className="flex flex-col-reverse w-full max-w-[40px] rounded-t-md overflow-hidden min-h-11" style={{ height: `${maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}>
+                    <div className="flex flex-col-reverse w-full max-w-[40px] rounded-t-md overflow-hidden min-h-11" style={{ height: `${m.total > 0 && maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}>
                       {m.segments.filter((s) => s.amount > 0).map((s) => {
                         const isOther = s.category === OTHER_KEY
                         const cat = isOther ? null : getStyle(s.category)

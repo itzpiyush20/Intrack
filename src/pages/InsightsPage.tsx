@@ -9,10 +9,12 @@ import { Link } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
 import { Card, DateFilterPicker } from '@/components/ui'
 import { supabase } from '@/services/supabase'
+import { fetchAllTransactions } from '@/services/transactions'
 import { useAuth } from '@/context/AuthContext'
 import { useCategories } from '@/context/CategoriesContext'
 import { getCurrentMonth, withTimeout, resolveDateFilter, formatDateFilterLabel, resolveTransactionIdentity, creditCardBillCategoryNames, type DateFilter } from '@/utils'
 import { toISODateLocal } from '@/utils/dateFilter'
+import { completedMonthsWindow, computeEmergencyMonths } from './analytics/emergencyReserve'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { detectAnomalies, generateForecast, generateAIInsights } from '@/services/aiService'
 import type { FinancialContext } from '@/services/aiService'
@@ -137,7 +139,18 @@ const getRangeDates = (range: RangeType) => {
   return { start, end }
 }
 
-const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
+/** True when a credit row counts as income.
+ *
+ * One definition across the whole page: a credit is income only when its
+ * category carries the `income` analytics tag — the same rule the advisory
+ * block has always used. Counting every credit here meant refunds, reversals
+ * and transfers in inflated the trend chart and the savings rate, so the same
+ * period reported two different incomes depending on which card you read.
+ * Untagged credits are neither income nor expense; they are simply not spend. */
+const isIncomeRow = (t: { type: string; category: string }, incomeCategories: string[]) =>
+  t.type === 'credit' && incomeCategories.includes(t.category)
+
+const getTrendData = (txns: any[], range: RangeType, incomeCategories: string[]): TrendItem[] => {
   const { start } = getRangeDates(range)
   
   if (range === 'this-week' || range === 'last-week') {
@@ -154,7 +167,7 @@ const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
       if (dayObj) {
         const amt = Number(t.amount)
         if (t.type === 'credit') {
-          dayObj.income += amt
+          if (isIncomeRow(t, incomeCategories)) dayObj.income += amt
         } else {
           dayObj.expenses += amt
         }
@@ -178,7 +191,7 @@ const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
       if (dayObj) {
         const amt = Number(t.amount)
         if (t.type === 'credit') {
-          dayObj.income += amt
+          if (isIncomeRow(t, incomeCategories)) dayObj.income += amt
         } else {
           dayObj.expenses += amt
         }
@@ -221,7 +234,7 @@ const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
       if (week) {
         const amt = Number(t.amount)
         if (t.type === 'credit') {
-          week.income += amt
+          if (isIncomeRow(t, incomeCategories)) week.income += amt
         } else {
           week.expenses += amt
         }
@@ -250,7 +263,7 @@ const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
       if (monthObj) {
         const amt = Number(t.amount)
         if (t.type === 'credit') {
-          monthObj.income += amt
+          if (isIncomeRow(t, incomeCategories)) monthObj.income += amt
         } else {
           monthObj.expenses += amt
         }
@@ -263,7 +276,7 @@ const getTrendData = (txns: any[], range: RangeType): TrendItem[] => {
   return []
 }
 
-const getAllocationData = (txns: any[], range: RangeType): SummaryData => {
+const getAllocationData = (txns: any[], range: RangeType, incomeCategories: string[]): SummaryData => {
   const { start, end } = getRangeDates(range)
   const startStr = toISODateLocal(start)
   const endStr = toISODateLocal(end)
@@ -271,7 +284,7 @@ const getAllocationData = (txns: any[], range: RangeType): SummaryData => {
   const filtered = txns.filter((t) => t.date && t.date >= startStr && t.date <= endStr)
   
   const total_income = filtered
-    .filter((t) => t.type === 'credit')
+    .filter((t) => isIncomeRow(t, incomeCategories))
     .reduce((sum, t) => sum + Number(t.amount), 0)
     
   const total_expenses = filtered
@@ -306,8 +319,8 @@ const getAllocationData = (txns: any[], range: RangeType): SummaryData => {
   }
 }
 
-const getMoMTrend = (allTxns: any[]) => {
-  const monthlyStats = getTrendData(allTxns, 'last-6-months')
+const getMoMTrend = (allTxns: any[], incomeCategories: string[]) => {
+  const monthlyStats = getTrendData(allTxns, 'last-6-months', incomeCategories)
   if (monthlyStats.length < 2) return null
   
   const prevMonthData = monthlyStats[monthlyStats.length - 2]
@@ -381,6 +394,10 @@ export default function InsightsPage() {
     [categories]
   )
   const ccBillCategories = useMemo(() => creditCardBillCategoryNames(categories), [categories])
+  const incomeCategoryNames = useMemo(
+    () => categories.filter((c) => c.analytics_tags?.includes('income')).map((c) => c.name),
+    [categories]
+  )
   const hasTag = (categoryName: string, tag: 'income' | 'subscription' | 'credit_card_bill') =>
     categoryMap[categoryName]?.analytics_tags?.includes(tag) ?? false
   const [range, setRange] = useState<RangeType>('this-week')
@@ -424,26 +441,22 @@ export default function InsightsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
+      const sixMonthsAgo = (() => {
+        const d = new Date()
+        d.setMonth(d.getMonth() - 6)
+        return toISODateLocal(d)
+      })()
+
+      // fetchAllTransactions, not a bare .select(): PostgREST clamps a response
+      // to its own db-max-rows (1000 here), and a single unbounded query has no
+      // way to tell a complete answer from a truncated one. Ordering newest-first
+      // only chose *which* rows got dropped — a heavy user still lost their
+      // oldest months from every six-month chart on this page, with no error
+      // anywhere. This pages until the server says there is nothing left.
+      // The Dashboard's anomaly teaser already fetches this way for the same
+      // reason; see src/services/transactions.ts.
       const { data, error: queryError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from('transactions')
-            .select('id, amount, type, category, date, merchant, description')
-            .eq('user_id', user.id)
-            .eq('approval_status', 'approved')
-            .gte('date', (() => { const d = new Date(); d.setMonth(d.getMonth() - 6); return toISODateLocal(d) })())
-            // Newest-first so that if this ever crosses PostgREST's max-rows cap
-            // (1000 by default, and this query sets no limit of its own), the
-            // rows silently dropped are old history rather than the current
-            // month. Ascending meant a busy user would lose today's data from
-            // every chart on this page with no error anywhere.
-            //
-            // Safe to flip: every consumer builds its own date buckets and looks
-            // transactions up, so none depend on the array being chronological.
-            // The one visible effect is that drill-down lists now read
-            // newest-first, matching getTransactions() elsewhere in the app.
-            .order('date', { ascending: false })
-        ) as Promise<any>,
+        fetchAllTransactions({ dateFrom: sixMonthsAgo }),
         45000,
         'Insights data fetch'
       )
@@ -488,7 +501,10 @@ export default function InsightsPage() {
     }
 
     transactions
-      .filter((t) => hasTag(t.category, 'credit_card_bill') && t.date)
+      // Debits only: a bill *payment* is money going out. A credit sitting in a
+      // credit-card-bill category is a reversal or refund, and adding it to the
+      // bar made the bar disagree with the list behind it.
+      .filter((t) => t.type === 'debit' && hasTag(t.category, 'credit_card_bill') && t.date)
       .forEach((t) => {
         const tMonth = t.date.substring(0, 7)
         const monthObj = months.find((m) => m.monthKey === tMonth)
@@ -556,9 +572,18 @@ export default function InsightsPage() {
   }, [expenseTransactions])
 
   // 1. Cashflow Analytics Data (memoized to avoid recalculation on every render)
-  const trendData = useMemo(() => getTrendData(expenseTransactions, range), [expenseTransactions, range])
-  const summary = useMemo(() => getAllocationData(expenseTransactions, range), [expenseTransactions, range])
-  const trend = useMemo(() => getMoMTrend(expenseTransactions), [expenseTransactions])
+  const trendData = useMemo(
+    () => getTrendData(expenseTransactions, range, incomeCategoryNames),
+    [expenseTransactions, range, incomeCategoryNames]
+  )
+  const summary = useMemo(
+    () => getAllocationData(expenseTransactions, range, incomeCategoryNames),
+    [expenseTransactions, range, incomeCategoryNames]
+  )
+  const trend = useMemo(
+    () => getMoMTrend(expenseTransactions, incomeCategoryNames),
+    [expenseTransactions, incomeCategoryNames]
+  )
 
   // 2. Anomaly detection & forecasting (memoized)
   const anomalies = useMemo(() => detectAnomalies(expenseTransactions), [expenseTransactions])
@@ -607,7 +632,11 @@ export default function InsightsPage() {
       .map((b) => {
         const dailyTotals = new Array(daysInMonth).fill(0)
         monthlyTxns
-          .filter((t) => t.type === 'debit' && t.category === b.category && t.date)
+          // `startsWith(targetMonth)` is load-bearing: monthlyTxns follows the
+          // advisory period, which in Custom mode can span several months, and
+          // the day-of-month bucketing below would otherwise pile 5 July and
+          // 5 August into the same slot.
+          .filter((t) => t.type === 'debit' && t.category === b.category && t.date?.startsWith(targetMonth))
           .forEach((t) => {
             const day = Number(t.date.slice(8, 10))
             if (day >= 1 && day <= daysInMonth) dailyTotals[day - 1] += Number(t.amount)
@@ -625,13 +654,26 @@ export default function InsightsPage() {
         const projectedTotal = dailyPace * daysInMonth
         const projectedOverBy = projectedTotal - b.amount
 
+        const asDayLabel = (day: number) =>
+          new Date(y, m - 1, day).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+
+        // If the limit has already been crossed, report the day it ACTUALLY
+        // happened by reading the cumulative curve. Deriving that date from the
+        // average daily pace named the wrong day whenever spending was lumpy.
+        const crossedOnIndex = cumulative.findIndex((v, i) => i < daysElapsed && v > b.amount)
+
         let projectedOverDate: string | null = null
         let isPastOvershoot = false
-        if (dailyPace > 0 && projectedOverBy > 0) {
-          const dayOfOvershoot = Math.min(daysInMonth, Math.ceil(b.amount / dailyPace))
-          isPastOvershoot = dayOfOvershoot <= daysElapsed || spentSoFar > b.amount
-          const d = new Date(y, m - 1, dayOfOvershoot)
-          projectedOverDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        if (crossedOnIndex >= 0) {
+          isPastOvershoot = true
+          projectedOverDate = asDayLabel(crossedOnIndex + 1)
+        } else if (dailyPace > 0 && projectedOverBy > 0) {
+          // Not crossed yet, so the projected day must lie ahead of today.
+          const dayOfOvershoot = Math.min(
+            daysInMonth,
+            Math.max(daysElapsed + 1, Math.ceil(b.amount / dailyPace))
+          )
+          projectedOverDate = asDayLabel(dayOfOvershoot)
         }
 
         return {
@@ -650,7 +692,7 @@ export default function InsightsPage() {
       .sort((a, b) => b.spentSoFar / b.budgetAmount - a.spentSoFar / a.budgetAmount)
   }, [budgets, monthlyTxns, dateFilter])
 
-  const incomeTxns = monthlyTxns.filter((t) => t.type === 'credit' && hasTag(t.category, 'income'))
+  const incomeTxns = monthlyTxns.filter((t) => isIncomeRow(t, incomeCategoryNames))
   const totalIncome = incomeTxns.reduce((sum, t) => sum + Number(t.amount), 0)
 
   const debitTxns = monthlyTxns.filter((t) => t.type === 'debit')
@@ -696,9 +738,11 @@ export default function InsightsPage() {
   const denominator = totalIncome > 0 ? totalIncome : totalDebit || 1
   const needsPct = Math.round((needsSpent / denominator) * 100)
   const wantsPct = Math.round((wantsSpent / denominator) * 100)
-  const savingsPct = totalIncome > 0 
-    ? Math.round(((totalIncome - needsSpent - wantsSpent) / totalIncome) * 100)
-    : Math.round((savingsSpent / denominator) * 100)
+  // Actual spend into savings-tagged categories, measured the same way Needs
+  // and Wants are. This used to be the *residual* (income - needs - wants),
+  // which silently counted every untagged category as savings and could not be
+  // reconciled with the rupee figure or the transaction list beside it.
+  const savingsPct = Math.round((savingsSpent / denominator) * 100)
 
   const finalSavingsPct = Math.max(0, savingsPct)
 
@@ -708,13 +752,19 @@ export default function InsightsPage() {
   const totalVariance = needsVariance + wantsVariance + savingsVariance
   const healthScore = Math.max(10, 100 - Math.round(totalVariance * 1.5))
 
-  const avgMonthlyNeeds = needsSpent || 15000
-  const totalInvestments = transactions
-    .filter((t) => savingsCategoryNames.includes(t.category))
-    .reduce((sum, t) => sum + Number(t.amount), 0)
-
-  // Total savings accumulated across the trailing window divided by monthly essential needs
-  const emergencyMonths = Number((totalInvestments / avgMonthlyNeeds).toFixed(1))
+  // Deliberately NOT scoped to the advisory period — a reserve is a stock, and
+  // its coverage should not move when the period picker moves. See
+  // computeEmergencyMonths above.
+  const emergencyMonths = useMemo(
+    () =>
+      computeEmergencyMonths(
+        expenseTransactions,
+        savingsCategoryNames,
+        needsCategoryNames,
+        completedMonthsWindow()
+      ),
+    [expenseTransactions, savingsCategoryNames, needsCategoryNames]
+  )
   const isEmergencyFundReady = emergencyMonths >= 6
 
   // Set default simulation inputs once data is loaded
@@ -811,6 +861,8 @@ export default function InsightsPage() {
             trendData={trendData}
             loading={loading}
             hasTransactions={transactions.length > 0}
+            ccBillCategories={ccBillCategories}
+            incomeCategories={incomeCategoryNames}
           />
 
           <CreditCardPaymentTrendWithDrillDown data={ccBillPaymentTrend} loading={loading} ccBillCategories={ccBillCategories} />
@@ -826,8 +878,8 @@ export default function InsightsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-12">
-            <CategoryTrendChartWithDrillDown data={categoryTrendData} loading={loading} hasTransactions={transactions.length > 0} />
-            <MerchantLeaderboardWithDrillDown data={merchantLeaderboard} loading={loading} range={range} />
+            <CategoryTrendChartWithDrillDown data={categoryTrendData} loading={loading} hasTransactions={categoryTrendData.some((m) => m.total > 0)} />
+            <MerchantLeaderboardWithDrillDown data={merchantLeaderboard} loading={loading} range={range} ccBillCategories={ccBillCategories} />
           </div>
 
           {/* Progressive disclosure toggle */}
@@ -865,6 +917,8 @@ export default function InsightsPage() {
                     totalDebit={totalDebit}
                     advisoryFrom={advisoryFrom}
                     advisoryTo={advisoryTo}
+                    ccBillCategories={ccBillCategories}
+                    incomeCategories={incomeCategoryNames}
                   />
                   <BudgetVisualizerWithDrillDown
                     needsSpent={needsSpent}
@@ -873,7 +927,6 @@ export default function InsightsPage() {
                     wantsPct={wantsPct}
                     savingsSpent={savingsSpent}
                     finalSavingsPct={finalSavingsPct}
-                    totalIncome={totalIncome}
                     emergencyMonths={emergencyMonths}
                     isEmergencyFundReady={isEmergencyFundReady}
                     advisoryFrom={advisoryFrom}
@@ -934,7 +987,7 @@ function ExpenseBreakdownWithDrillDown({ summary, loading, range }: { summary: S
       onCategoryClick={(category) => {
         const { start, end } = getRangeDates(range)
         openDrillDown(
-          { category, dateFrom: toISODateLocal(start), dateTo: toISODateLocal(end) },
+          { category, type: 'debit', dateFrom: toISODateLocal(start), dateTo: toISODateLocal(end) },
           category
         )
       }}
@@ -951,14 +1004,18 @@ function CategoryTrendChartWithDrillDown({ data, loading, hasTransactions }: { d
       hasTransactions={hasTransactions}
       onSegmentClick={(category, monthKey) => {
         const monthLabel = data.find((m) => m.monthKey === monthKey)?.label ?? monthKey
-        openDrillDown({ category, month: monthKey }, `${category} — ${monthLabel}`)
+        openDrillDown({ category, type: 'debit', month: monthKey }, `${category} — ${monthLabel}`)
       }}
     />
   )
 }
 
-function TrendChartWithDrillDown({ range, trendData, loading, hasTransactions }: { range: RangeType; trendData: TrendItem[]; loading: boolean; hasTransactions: boolean }) {
+function TrendChartWithDrillDown({ range, trendData, loading, hasTransactions, ccBillCategories, incomeCategories }: { range: RangeType; trendData: TrendItem[]; loading: boolean; hasTransactions: boolean; ccBillCategories: string[]; incomeCategories: string[] }) {
   const { openDrillDown } = useDrillDown()
+  // No `type` filter -- these bars carry income and expenses both. But they were
+  // built from a pool with credit-card bill payments removed, so the list has to
+  // drop them too or it shows rows the bar never counted.
+  const excludeCategories = ccBillCategories
   return (
     <TrendChart
       range={range}
@@ -966,12 +1023,13 @@ function TrendChartWithDrillDown({ range, trendData, loading, hasTransactions }:
       loading={loading}
       hasTransactions={hasTransactions}
       onPeriodClick={(item, label) => {
+        const base = { excludeCategories, incomeCategories }
         if (item.dateStr) {
-          openDrillDown({ dateFrom: item.dateStr, dateTo: item.dateStr }, label)
+          openDrillDown({ ...base, dateFrom: item.dateStr, dateTo: item.dateStr }, label)
         } else if (item.startStr && item.endStr) {
-          openDrillDown({ dateFrom: item.startStr, dateTo: item.endStr }, label)
+          openDrillDown({ ...base, dateFrom: item.startStr, dateTo: item.endStr }, label)
         } else if (item.monthKey) {
-          openDrillDown({ month: item.monthKey }, label)
+          openDrillDown({ ...base, month: item.monthKey }, label)
         }
       }}
     />
@@ -988,12 +1046,12 @@ function CreditCardPaymentTrendWithDrillDown({ data, loading, ccBillCategories }
       // This used to filter on the literal name 'Credit Card Bill Payment',
       // so a bar could show an amount and open to an empty list whenever the
       // tagged category was named anything else.
-      onMonthClick={(monthKey, label) => openDrillDown({ categories: ccBillCategories, month: monthKey }, `Credit Card Bill Payments — ${label}`)}
+      onMonthClick={(monthKey, label) => openDrillDown({ categories: ccBillCategories, type: 'debit', month: monthKey }, `Credit Card Bill Payments — ${label}`)}
     />
   )
 }
 
-function MerchantLeaderboardWithDrillDown({ data, loading, range }: { data: MerchantLeaderboardItem[]; loading: boolean; range: RangeType }) {
+function MerchantLeaderboardWithDrillDown({ data, loading, range, ccBillCategories }: { data: MerchantLeaderboardItem[]; loading: boolean; range: RangeType; ccBillCategories: string[] }) {
   const { openDrillDown } = useDrillDown()
   return (
     <MerchantLeaderboard
@@ -1001,18 +1059,21 @@ function MerchantLeaderboardWithDrillDown({ data, loading, range }: { data: Merc
       loading={loading}
       onMerchantClick={(merchant) => {
         const { start, end } = getRangeDates(range)
-        openDrillDown({ merchant, dateFrom: toISODateLocal(start), dateTo: toISODateLocal(end) }, merchant)
+        openDrillDown(
+          { merchant, type: 'debit', excludeCategories: ccBillCategories, dateFrom: toISODateLocal(start), dateTo: toISODateLocal(end) },
+          merchant
+        )
       }}
     />
   )
 }
 
-function AnomalyAlertsWithDrillDown({ anomalies }: { anomalies: { category: string; thisMonth: number; baseline: number; spike: number }[] }) {
+function AnomalyAlertsWithDrillDown({ anomalies }: { anomalies: ReturnType<typeof detectAnomalies> }) {
   const { openDrillDown } = useDrillDown()
   return (
     <AnomalyAlerts
       anomalies={anomalies}
-      onAnomalyClick={(category) => openDrillDown({ category, month: getCurrentMonth() }, `${category} — spike this month`)}
+      onAnomalyClick={(category) => openDrillDown({ category, type: 'debit', month: getCurrentMonth() }, `${category} — spike this month`)}
     />
   )
 }
@@ -1025,30 +1086,30 @@ function BudgetBurndownWithDrillDown({ data, loading, dateFilter }: { data: Budg
       loading={loading}
       onCategoryClick={(category) => {
         const targetMonth = dateFilter.mode === 'month' ? dateFilter.month : resolveDateFilter(dateFilter).dateTo.slice(0, 7)
-        openDrillDown({ category, month: targetMonth }, category)
+        openDrillDown({ category, type: 'debit', month: targetMonth }, category)
       }}
     />
   )
 }
 
-function AdherenceDiagnosticWithDrillDown({ healthScore, totalIncome, totalDebit, advisoryFrom, advisoryTo }: { healthScore: number; totalIncome: number; totalDebit: number; advisoryFrom: string; advisoryTo: string }) {
+function AdherenceDiagnosticWithDrillDown({ healthScore, totalIncome, totalDebit, advisoryFrom, advisoryTo, ccBillCategories, incomeCategories }: { healthScore: number; totalIncome: number; totalDebit: number; advisoryFrom: string; advisoryTo: string; ccBillCategories: string[]; incomeCategories: string[] }) {
   const { openDrillDown } = useDrillDown()
   return (
     <AdherenceDiagnostic
       healthScore={healthScore}
       totalIncome={totalIncome}
       totalDebit={totalDebit}
-      onClick={() => openDrillDown({ dateFrom: advisoryFrom, dateTo: advisoryTo }, 'All transactions this period')}
+      onClick={() => openDrillDown({ excludeCategories: ccBillCategories, incomeCategories, dateFrom: advisoryFrom, dateTo: advisoryTo }, 'All transactions this period')}
     />
   )
 }
 
 function BudgetVisualizerWithDrillDown({
-  needsSpent, needsPct, wantsSpent, wantsPct, savingsSpent, finalSavingsPct, totalIncome, emergencyMonths, isEmergencyFundReady,
+  needsSpent, needsPct, wantsSpent, wantsPct, savingsSpent, finalSavingsPct, emergencyMonths, isEmergencyFundReady,
   advisoryFrom, advisoryTo, needsCategoryNames, wantsCategoryNames, savingsCategoryNames,
 }: {
   needsSpent: number; needsPct: number; wantsSpent: number; wantsPct: number; savingsSpent: number; finalSavingsPct: number
-  totalIncome: number; emergencyMonths: number; isEmergencyFundReady: boolean
+  emergencyMonths: number; isEmergencyFundReady: boolean
   advisoryFrom: string; advisoryTo: string
   needsCategoryNames: string[]; wantsCategoryNames: string[]; savingsCategoryNames: string[]
 }) {
@@ -1067,11 +1128,10 @@ function BudgetVisualizerWithDrillDown({
       wantsPct={wantsPct}
       savingsSpent={savingsSpent}
       finalSavingsPct={finalSavingsPct}
-      totalIncome={totalIncome}
       emergencyMonths={emergencyMonths}
       isEmergencyFundReady={isEmergencyFundReady}
       onBucketClick={(bucket) => openDrillDown(
-        { categories: bucketCategories[bucket], dateFrom: advisoryFrom, dateTo: advisoryTo },
+        { categories: bucketCategories[bucket], type: 'debit', dateFrom: advisoryFrom, dateTo: advisoryTo },
         bucketLabels[bucket]
       )}
     />

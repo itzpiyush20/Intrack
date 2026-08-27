@@ -37,6 +37,9 @@ import { useToast } from '@/context'
 import { getTransactions, fetchAllTransactions, getMonthlySummary, getSummary, getLoggingStreak } from '@/services/transactions'
 import { getBudgets } from '@/services/budgets'
 import { detectAnomalies } from '@/services/aiService'
+
+/** Kept in step with detectAnomalies by derivation — the shape used to be spelled out here and silently fell behind when the function gained fields. */
+type DetectedAnomaly = ReturnType<typeof detectAnomalies>[number]
 import {
   supabase,
   scanRealGmailInbox,
@@ -123,7 +126,7 @@ export default function DashboardPage() {
   // isn't worth it. 'loading' while the background fetch is in flight, 'none'
   // once resolved with nothing notable, or the top anomaly itself.
   const [insightsTeaser, setInsightsTeaser] = useState<
-    'loading' | 'none' | { category: string; thisMonth: number; baseline: number; spike: number }
+    'loading' | 'none' | DetectedAnomaly
   >('loading')
 
   // Post-sync summary card (replaces plain "sync complete" toast)
@@ -996,11 +999,13 @@ export default function DashboardPage() {
                     const cat = getStyle(insightsTeaser.category)
                     return (
                       <>
-                        <span className="font-semibold">{cat.emoji} {cat.label}</span> spending is up{' '}
+                        <span className="font-semibold">{cat.emoji} {cat.label}</span> spending is
+                        {insightsTeaser.isProjection ? ' on track to be up ' : ' up '}
                         <span className="font-semibold text-[var(--status-warning-text)]">
                           {Math.round(insightsTeaser.spike)}%
                         </span>{' '}
-                        this month — {formatCurrency(insightsTeaser.thisMonth)} vs a{' '}
+                        this month — {formatCurrency(insightsTeaser.projectedMonth)}{' '}
+                        {insightsTeaser.isProjection ? 'projected' : ''} vs a{' '}
                         {formatCurrency(insightsTeaser.baseline)} average.
                       </>
                     )

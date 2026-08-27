@@ -70,7 +70,7 @@ export function MerchantLeaderboard({ data, loading, onMerchantClick }: Merchant
                 <div className="h-1.5 w-full bg-surface-3 rounded-full overflow-hidden ml-7">
                   <div
                     className="h-full bg-brand-400/80 rounded-full transition-all duration-500"
-                    style={{ width: `${maxAmount > 0 ? Math.max(3, (item.amount / maxAmount) * 100) : 0}%` }}
+                    style={{ width: `${item.amount > 0 && maxAmount > 0 ? Math.max(3, (item.amount / maxAmount) * 100) : 0}%` }}
                   />
                 </div>
               </div>

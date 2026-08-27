@@ -29,8 +29,21 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Needs / Wants / Savings are the three buckets of the 50/30/20 split, so a
+  // category belongs to exactly one of them. Letting two be ticked at once
+  // counted that category's spend in both bars and pushed the split past 100%.
+  // The remaining tags (income, subscription, credit card bill) describe
+  // different things and stay independently tickable.
+  const BUDGET_SPLIT_TAGS: AnalyticsTag[] = ['needs', 'wants', 'savings']
+
   const toggleTag = (tag: AnalyticsTag) => {
-    setAnalyticsTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+    setAnalyticsTags((prev) => {
+      if (prev.includes(tag)) return prev.filter((t) => t !== tag)
+      if (BUDGET_SPLIT_TAGS.includes(tag)) {
+        return [...prev.filter((t) => !BUDGET_SPLIT_TAGS.includes(t)), tag]
+      }
+      return [...prev, tag]
+    })
   }
 
   const handleSubmit = async (e: FormEvent) => {
