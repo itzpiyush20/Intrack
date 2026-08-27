@@ -40,7 +40,6 @@ import {
   Key,
   Shield,
   Lightbulb,
-  Leaf,
   Store,
   CreditCard,
   Building2,
@@ -1245,7 +1244,7 @@ export default function PendingPage() {
         {/* NOT gated by activeBanner — this explainer should always show
             alongside the connect banner above, regardless of banner priority. */}
         {!isGoogleConnected && (
-          <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
+          <div className="animate-fade-in">
             <Card className="bg-surface-1 border-border-subtle p-6 space-y-4 shadow-md">
               <div className="flex items-center gap-3">
                 <Shield className="h-6 w-6 text-brand-400 shrink-0" />
@@ -1262,23 +1261,6 @@ export default function PendingPage() {
               </div>
             </Card>
 
-            <Card className="bg-surface-1 border-border-subtle p-6 space-y-4 shadow-md">
-              <div className="flex items-center gap-3">
-                <Leaf className="h-6 w-6 text-brand-400 shrink-0" />
-                <h3 className="font-bold text-white text-base">Explore with Demo Data</h3>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                Not ready to connect your Gmail yet? You can try out every feature using pre-generated sample transactions.
-              </p>
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-zinc-500 font-bold uppercase tracking-wide">No credentials required</span>
-                <Link to="/profile">
-                  <Button size="sm" variant="secondary" className="text-xs font-bold text-brand-400 border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10">
-                    Go to Demo Setup
-                  </Button>
-                </Link>
-              </div>
-            </Card>
           </div>
         )}
 
