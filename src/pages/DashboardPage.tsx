@@ -37,9 +37,6 @@ import { useToast } from '@/context'
 import { getTransactions, fetchAllTransactions, getMonthlySummary, getSummary, getLoggingStreak } from '@/services/transactions'
 import { getBudgets } from '@/services/budgets'
 import { detectAnomalies } from '@/services/aiService'
-
-/** Kept in step with detectAnomalies by derivation — the shape used to be spelled out here and silently fell behind when the function gained fields. */
-type DetectedAnomaly = ReturnType<typeof detectAnomalies>[number]
 import {
   supabase,
   scanRealGmailInbox,
@@ -73,6 +70,10 @@ interface SyncSummary {
   pendingReview: number
   topCategory?: { label: string; amount: number }
 }
+
+/** Kept in step with detectAnomalies by derivation — this shape used to be
+ * spelled out by hand and silently fell behind when the function gained fields. */
+type DetectedAnomaly = ReturnType<typeof detectAnomalies>[number]
 
 export default function DashboardPage() {
   const { user, profile, hasGoogleToken, notifyGoogleTokenCleared } = useAuth()
@@ -1004,8 +1005,8 @@ export default function DashboardPage() {
                         <span className="font-semibold text-[var(--status-warning-text)]">
                           {Math.round(insightsTeaser.spike)}%
                         </span>{' '}
-                        this month — {formatCurrency(insightsTeaser.projectedMonth)}{' '}
-                        {insightsTeaser.isProjection ? 'projected' : ''} vs a{' '}
+                        this month — {formatCurrency(insightsTeaser.projectedMonth)}
+                        {insightsTeaser.isProjection ? ' projected' : ''} vs a{' '}
                         {formatCurrency(insightsTeaser.baseline)} average.
                       </>
                     )
