@@ -28,6 +28,8 @@ import type { Database } from '@/types/database'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
 import {
+  ArrowDown,
+  ArrowUp,
   Crown,
   Zap,
   Brain,
@@ -187,7 +189,7 @@ export default function PendingPage() {
   const [totalPendingCredits, setTotalPendingCredits] = useState(0)
 
   // Keeps the two headline figures in step with the optimistic row removals
-  // below, so an approved credit never comes off the spend total.
+  // below, so an approved credit never comes off the outgoing total.
   const adjustPendingTotals = useCallback((txns: TransactionRow[], sign: 1 | -1) => {
     const debits = txns.reduce((sum, t) => sum + homeCurrencyAmount(t, 'debit'), 0)
     const credits = txns.reduce((sum, t) => sum + homeCurrencyAmount(t, 'credit'), 0)
@@ -1279,14 +1281,28 @@ export default function PendingPage() {
             )}
           </Card>
           <Card className="shadow-md">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Spend</p>
-            <p className="mt-1.5 text-2xl font-bold text-brand-400">{formatCurrency(totalPendingValue)}</p>
-            {totalPendingCredits > 0 && (
-              <p className="text-xs text-[var(--status-positive-text)] mt-1">
-                + {formatCurrency(totalPendingCredits)} pending income
-              </p>
-            )}
-            <p className="text-xs text-zinc-500 mt-1">Money out across pending alerts (₹ only)</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Value</p>
+            {/* Both directions, side by side and never netted. A single figure
+                cannot describe this card honestly: summing them hides that the
+                amounts move opposite ways, and netting them lets one large
+                salary credit mask a large pending spend behind a healthy
+                positive number. When nothing incoming is waiting — the common
+                case — only the outgoing figure renders. */}
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+              <span className="text-2xl font-bold text-brand-400 flex items-baseline gap-1.5">
+                <ArrowDown className="h-4 w-4 shrink-0 self-center" aria-hidden="true" />
+                {formatCurrency(totalPendingValue)}
+                <span className="text-xs font-medium text-zinc-500">out</span>
+              </span>
+              {totalPendingCredits > 0 && (
+                <span className="text-2xl font-bold text-[var(--status-positive-text)] flex items-baseline gap-1.5">
+                  <ArrowUp className="h-4 w-4 shrink-0 self-center" aria-hidden="true" />
+                  {formatCurrency(totalPendingCredits)}
+                  <span className="text-xs font-medium text-zinc-500">in</span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-zinc-500 mt-1">Awaiting your approval (₹ only)</p>
           </Card>
         </div>
 
