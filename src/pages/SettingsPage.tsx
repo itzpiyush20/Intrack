@@ -800,9 +800,10 @@ export default function SettingsPage() {
               {hasGoogleToken ? (
                 <>
                   <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                    Intrack can read bank transaction alerts from your Gmail to log expenses
-                    automatically. Disconnecting revokes our access at Google immediately and stops
-                    all scheduled scans. Your already-imported transactions stay untouched.
+                    Intrack reads bank transaction alerts from your Gmail when you run a scan,
+                    and logs them as expenses for you to approve. Disconnecting revokes our access
+                    at Google immediately, so no further scan can run. Your already-imported
+                    transactions stay untouched.
                   </p>
                   <Button
                     onClick={handleDisconnectGmail}
