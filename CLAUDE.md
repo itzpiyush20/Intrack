@@ -24,8 +24,16 @@ for review. "The scanner" in this repo always means this, never a camera.
 Main files: `src/services/emailScanner.ts` (engine, `scanRealGmailInbox`),
 `src/services/aiService.ts` (Gemini classifier), `src/services/emailScanGates.ts`
 (rejection gates + audit logging), `src/services/learningEngine.ts` (merchant rules),
-`api/gemini-proxy.ts` (server-side AI proxy + quota), `api/auto-sync-gmail.ts` (daily
-cron). UI entry points: `src/pages/PendingPage.tsx`, `src/pages/DashboardPage.tsx`.
+`api/gemini-proxy.ts` (server-side AI proxy + quota). UI entry points:
+`src/pages/PendingPage.tsx`, `src/pages/DashboardPage.tsx`.
+
+**Every scan is user-initiated.** Automatic scanning was removed on 2026-08-27
+(`plans/remove-auto-sync.md`), taking `api/auto-sync-gmail.ts` with it, and
+sign-in no longer requests `access_type=offline` — Google issues no new refresh
+token to this app. Do not reintroduce either: an unused always-on permission is
+a liability in the Gmail verification review. Refresh tokens granted before that
+change are still honoured, which is why the refresh path in
+`src/services/googleAuth.ts` stays.
 
 ### Non-negotiable invariants
 
