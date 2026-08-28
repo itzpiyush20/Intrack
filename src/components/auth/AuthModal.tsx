@@ -103,8 +103,20 @@ export default function AuthModal() {
 
   const handleGoogleAuth = async () => {
     const destination = authModalRedirect || '/dashboard'
-    // Request Gmail scope by default so Gmail is connected immediately upon signing in with Google!
-    const { error: oAuthErr } = await signInWithGoogle(destination, true)
+    // Sign-in asks Google for name and email only — never gmail.readonly.
+    //
+    // Bundling the inbox scope into login meant every Google signer, including
+    // someone who only ever types expenses in by hand, was shown a restricted
+    // scope request and the unverified-app warning before they had seen the
+    // product. Google's own guidance is to request a scope at the moment it is
+    // needed, and asking for a restricted one at first sign-in is a standard
+    // rejection reason in their verification review.
+    //
+    // Gmail is requested later, in context, from the Connect Gmail Inbox
+    // button on the Pending Alerts page (`handleReconnectGoogle` there passes
+    // requestGmailScope = true). Basic scopes show a plain consent screen with
+    // no warning attached.
+    const { error: oAuthErr } = await signInWithGoogle(destination, false)
     if (oAuthErr) {
       setError(oAuthErr)
     } else {
@@ -278,30 +290,33 @@ export default function AuthModal() {
           Continue with Google
         </Button>
 
-        {/* Calm, glanceable version of what Google sign-in means — shown
-            before the user clicks through to Google's consent screen,
-            rather than only reassuring after the fact. */}
+        {/* What signing in with Google actually asks for. This block used to
+            describe inbox reading, because the modal requested gmail.readonly
+            along with login. It no longer does — see handleGoogleAuth — so the
+            inbox explanation now lives where the inbox permission is actually
+            requested: the Pending Alerts page. What belongs here is the fact
+            that this button does NOT touch the user's mail. */}
         <div className="mt-5 p-3.5 rounded-2xl bg-surface-2 border border-border-subtle/50 space-y-2.5">
           <div className="flex items-start gap-2.5">
-            <span className="text-sm shrink-0 mt-0.5" aria-hidden="true">📩</span>
+            <span className="text-sm shrink-0 mt-0.5" aria-hidden="true">🪪</span>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              <strong className="text-zinc-50">What's read:</strong> only messages a bank-alert search returns. Judging whether one is a real transaction means reading it, so a few newsletters caught by that search get read too — and discarded.
+              <strong className="text-zinc-50">What Google is asked for:</strong> your name and email address. That is the whole request — this button does not ask for access to your inbox.
             </p>
           </div>
           <div className="flex items-start gap-2.5">
-            <span className="text-sm shrink-0 mt-0.5" aria-hidden="true">🔒</span>
+            <span className="text-sm shrink-0 mt-0.5" aria-hidden="true">📩</span>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              <strong className="text-zinc-50">How it's read:</strong> your inbox is read straight from Gmail — we never hold a copy of your mailbox. To classify an alert, its subject and the start of its body pass through our server to Google's Gemini in real time. Nothing is retained afterwards and none of it trains any model.
+              <strong className="text-zinc-50">Inbox scanning is separate:</strong> if you want {APP_CONFIG.APP_NAME} to pull transactions out of your bank alert emails, you connect Gmail later from the Pending Alerts page — read-only, and explained in full there before you decide.
             </p>
           </div>
           <div className="flex items-start gap-2.5">
             <span className="text-sm shrink-0 mt-0.5" aria-hidden="true">✅</span>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              <strong className="text-zinc-50">What you get:</strong> transactions tracked automatically, with zero manual entry.
+              <strong className="text-zinc-50">Never connect it and nothing breaks:</strong> every part of {APP_CONFIG.APP_NAME} works with expenses you enter yourself.
             </p>
           </div>
           <p className="text-xs text-zinc-500 leading-relaxed pt-1 border-t border-border-subtle/40">
-            Prefer not to connect Gmail? Sign up with email/password instead — no external permissions requested, and you can link Gmail later from Settings. Since {APP_CONFIG.APP_NAME} is still completing Google's formal app verification, Google may show an "unverified app" screen with a developer key instead of our name — that's expected; click <span className="font-mono text-zinc-400">Advanced → Go to {APP_CONFIG.APP_NAME}</span> to continue safely.
+            How your data is handled is set out in our <Link to="/privacy" onClick={closeAuthModal} className="text-brand-400 hover:text-brand-300 font-medium transition-colors">Privacy Policy</Link>.
           </p>
         </div>
       </div>

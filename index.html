@@ -188,6 +188,25 @@
       </style>
     </noscript>
     <div id="root"></div>
+
+    <!-- Legal links in the served HTML, not only after React mounts.
+         Every page renders SiteFooter with Privacy and Terms, but those links
+         exist only once the bundle has run. Google's OAuth verification review
+         and any crawler that does not execute JavaScript look at this document,
+         and a policy link they cannot find is a policy link that is not there.
+         React replaces #root's contents on mount and never touches this block,
+         so it stays reachable to a JS-less fetch while being visually out of
+         the way for everyone else. -->
+    <div id="static-legal-links" aria-hidden="true"
+         style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">
+      <!-- tabindex="-1" keeps a keyboard user from tabbing into links they
+           cannot see; the visible footer carries the accessible copies. -->
+      <a href="/privacy" tabindex="-1">Privacy Policy</a>
+      <a href="/terms" tabindex="-1">Terms of Service</a>
+      <a href="/refund-policy" tabindex="-1">Refund Policy</a>
+      <a href="/support" tabindex="-1">Support</a>
+    </div>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

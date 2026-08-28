@@ -96,12 +96,28 @@ function setGoogleLinked(linked: boolean): void {
 }
 
 /**
- * Persist the Google refresh token server-side so the automatic daily sync
- * cron can use it without a live browser session. Never stores it locally.
- * Returns true if the save was confirmed — callers that need to know (the
- * legacy migration below) rely on this before discarding their only copy.
- * Everyone else can treat it as fire-and-forget: a failure just means the user
- * keeps manual-only sync until the next login re-attempts the save.
+ * Persist a Google refresh token server-side. Never stores it locally.
+ *
+ * LEGACY PATH — no new refresh token can reach this function. Sign-in stopped
+ * passing `access_type: 'offline'` when automatic scanning was removed on
+ * 2026-08-27 (plans/remove-auto-sync.md), so Google no longer issues one, and
+ * the daily sync cron this originally fed no longer exists. The only surviving
+ * caller is migrateLegacyRefreshToken() below, moving a token an older build
+ * left in a user's localStorage.
+ *
+ * Tokens already stored by that older build are still live, and
+ * tryRefreshGoogleToken() still spends them to keep those users' Gmail
+ * connections working without a re-authorisation prompt — including mid-scan,
+ * from emailScanner.ts. Deleting this path would silently force every
+ * long-standing user to reconnect, so it stays until a deliberate migration
+ * retires it.
+ *
+ * Worth knowing for Google's verification review: if asked why the app stores
+ * Google refresh tokens, the answer is that it no longer obtains them and only
+ * honours ones granted before that change.
+ *
+ * Returns true if the save was confirmed — the legacy migration relies on that
+ * before discarding its only copy.
  */
 export async function saveGoogleRefreshTokenServerSide(supabaseJwt: string, refreshToken: string): Promise<boolean> {
   try {

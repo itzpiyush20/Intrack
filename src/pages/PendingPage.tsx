@@ -1261,6 +1261,15 @@ export default function PendingPage() {
                   <strong>What is kept:</strong> the transaction itself — merchant, amount, date, category — saved to a database row only your account can read. <strong>What we never see:</strong> your Gmail password, your net-banking credentials, PINs, or OTPs.
                 </span>
               </div>
+              {/* This warning used to sit in the sign-up modal, back when
+                  logging in with Google also requested the inbox scope. Sign-in
+                  now asks only for name and email, which Google shows without
+                  any warning, so the note belongs here — at the one button that
+                  really does trigger the unverified-app screen. Delete it once
+                  Google's verification review completes. */}
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Because {APP_CONFIG.APP_NAME} is still completing Google's formal app verification, the next screen may warn that the app is unverified and show a developer key instead of our name. That is expected — choose <span className="font-mono text-zinc-400">Advanced → Go to {APP_CONFIG.APP_NAME}</span> to continue. You can revoke this access at any time from your Google Account, or from Settings here.
+              </p>
             </Card>
 
           </div>
