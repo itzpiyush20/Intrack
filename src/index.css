@@ -398,6 +398,23 @@ html { scroll-behavior: smooth; }
   opacity: 1 !important;
   transform: none !important;
 }
+
+/* Horizontal reveals become vertical on narrow screens.
+   `from-left` / `from-right` park an element 32px sideways until the observer
+   reveals it. On a phone those elements are full-bleed, so the offset pushes
+   them past the viewport and the whole document scrolls sideways from first
+   paint — measured at 391px of content in a 375px viewport, which also threw
+   the fixed cookie banner and the auth modal off-centre, since both position
+   against the document width rather than the viewport.
+   Fixed here rather than with `overflow-x: clip` on a wrapper: clipping would
+   also swallow anything else that overhangs at wider widths, turning a page
+   the user can scroll to into content they cannot reach at all. */
+@media (max-width: 767px) {
+  [data-reveal="from-left"],
+  [data-reveal="from-right"] {
+    transform: translateY(28px);
+  }
+}
 [data-delay="80"]  { transition-delay: 80ms; }
 [data-delay="150"] { transition-delay: 150ms; }
 [data-delay="220"] { transition-delay: 220ms; }

@@ -116,7 +116,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: 'Why does my Google connection occasionally expire?',
-    a: 'Standard Google OAuth security tokens expire after about an hour, and sooner if your security settings change. If a scan says your Gmail connection has expired, simply sign out and log back in to refresh your secure authorization token.',
+    a: "Google's access tokens expire after about an hour for security. If a scan says your Gmail connection has expired, open Pending Alerts and press Connect Gmail Inbox to reconnect. Signing out and back in will not restore it — signing in only identifies you, and inbox access is granted separately.",
     category: 'scanning',
   },
   {

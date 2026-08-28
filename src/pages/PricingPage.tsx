@@ -317,7 +317,7 @@ export default function PricingPage() {
               Simple, <span className="text-sb-primary">honest pricing</span>
             </h1>
             <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-              Unlock a second daily inbox scan, AI budget mapping, and offline security. One-time payment — nothing auto-renews, and we never store your card.
+              The subscription tracker that isn't a subscription. Pay once for a second daily scan, a categoriser that learns your merchants, and encrypted exports — then nothing renews, and we never store your card.
             </p>
           </div>
         </motion.div>

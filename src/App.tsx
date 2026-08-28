@@ -156,8 +156,24 @@ function PageLoader() {
 // ─── Animated Routes — page transition wrapper ───────────
 function AnimatedRoutes() {
   const location = useLocation()
+  // No `mode="wait"`, and no exit animation.
+  //
+  // `mode="wait"` holds the incoming page until the outgoing one has finished
+  // exiting. When a route redirects immediately on mount — a mistyped URL,
+  // /login, /signup, or any protected route opened while signed out — the key
+  // changes before the entry animation has finished, so the exit never starts
+  // and the incoming page is never mounted. The result was a blank page showing
+  // only the cookie banner: no console error, no failed request, and a correct
+  // URL in the address bar. Reproduced on production, and verified fixed
+  // against a production build here.
+  //
+  // Dropping `mode="wait"` alone would let both pages render together for the
+  // length of the exit, and since each sets `min-height: 100vh` the document
+  // briefly doubles in height and the scrollbar jumps. Removing `exit` too
+  // means the outgoing page unmounts at once, so there is no overlap.
+  // Transitions are entry-only now, which is what the eye reads anyway.
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence initial={false}>
       <motion.div
         key={location.pathname}
         // IMPORTANT: animate TRANSFORM ONLY — never opacity — for the app-shell
@@ -171,7 +187,6 @@ function AnimatedRoutes() {
         // leaves content a few px off, so the app is always visible regardless.
         initial={{ y: 14 }}
         animate={{ y: 0 }}
-        exit={{ y: -8 }}
         transition={{ duration: 0.30, ease: [0.16, 1, 0.3, 1] }}
         style={{ minHeight: '100vh' }}
       >

@@ -80,7 +80,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Intrack | Expenses that track themselves.',
+      title: 'Intrack | Expenses, without the data entry.',
       description: "Connect Gmail once and Intrack turns your bank's transaction alert emails into expenses you approve. Read-only access, every Indian bank and UPI app, free 7-day trial.",
       canonicalPath: '/',
     })
@@ -141,7 +141,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.4, delay: 0.2 }}
               >
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-sb-ink mb-4">
-                  Connect Gmail.<br />Expenses track themselves.
+                  One tap.<br />Every expense, sorted.
                 </h1>
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
@@ -149,7 +149,7 @@ export default function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                   className="text-lg text-sb-ink-secondary leading-relaxed max-w-md min-h-[3.5rem]"
                 >
-                  Intrack reads your bank's transaction emails automatically and logs all your{" "}
+                  Your bank emails you every time money moves. Intrack reads those alerts and keeps your{" "}
                   <span className="inline-flex relative min-w-[135px] overflow-hidden align-baseline font-semibold text-brand-400">
                     <AnimatePresence mode="wait">
                       <motion.span
@@ -164,7 +164,7 @@ export default function LandingPage() {
                       </motion.span>
                     </AnimatePresence>
                   </span>{" "}
-                  automatically. Add anything else by hand in seconds.
+                  up to date — merchant, amount and category already filled in. Add anything else by hand in seconds.
                 </motion.p>
               </motion.div>
 
