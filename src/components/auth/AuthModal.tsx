@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { APP_CONFIG } from '@/constants'
 import { useToast } from '@/context'
 import { useDialog } from '@/hooks'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, BrandMark } from '@/components/ui'
 
 export default function AuthModal() {
   const {
@@ -20,7 +20,6 @@ export default function AuthModal() {
     signIn,
     signUp,
     signInWithGoogle,
-    currencySymbol,
   } = useAuth()
 
   const { showToast } = useToast()
@@ -149,9 +148,10 @@ export default function AuthModal() {
 
         {/* Brand Header */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[var(--shadow-sm)] border-0" aria-hidden="true">
-            <span className="text-xl font-bold">{currencySymbol || '₹'}</span>
-          </div>
+          {/* The brand mark, not the user's currency symbol. This tile used to
+              render `currencySymbol`, so the logo above the sign-in title
+              changed shape depending on the viewer's currency setting. */}
+          <BrandMark size={44} className="mb-3 text-brand-500" />
           <h1 id="auth-modal-title" className="text-2xl font-black tracking-tight text-zinc-50 mb-1 flex items-center justify-center select-none">
             <span className="text-brand-400">In</span><span>track</span>
           </h1>

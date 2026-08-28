@@ -19,6 +19,7 @@
 import { Link } from 'react-router-dom'
 import { FOOTER_NAV_ITEMS } from '@/constants'
 import { cn } from '@/utils'
+import BrandMark from './BrandMark'
 
 interface SiteFooterProps {
   /**
@@ -61,7 +62,7 @@ export default function SiteFooter({
         <div className="flex flex-col items-center md:items-start gap-1">
           {showWordmark && (
             <div className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-lg bg-brand-500 flex items-center justify-center text-xs font-black text-white" aria-hidden="true">₹</span>
+              <BrandMark size={24} className="text-brand-500 shrink-0" />
               <span className="text-sm font-extrabold">
                 <span className="text-brand-400">In</span><span className={strong}>track</span>
               </span>

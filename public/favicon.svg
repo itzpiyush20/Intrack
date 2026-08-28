@@ -1,14 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 960" width="960" height="960" role="img" aria-label="Intrack">
-  <!-- The IN monogram: the N's final stem does not stop at the letter, it
-       carries on and becomes an arrow. Geometry matches the PNG icons in this
-       folder and the logo on Google's OAuth consent screen — regenerate all of
-       them together if this ever changes. -->
-  <rect width="960" height="960" rx="211" fill="#138a6c"/>
-  <g fill="#fff">
-    <rect x="146" y="420" width="86" height="370" rx="10"/>
-    <rect x="346" y="420" width="86" height="370" rx="10"/>
-    <path d="M346 420h86l300 370h-86z"/>
-    <rect x="646" y="275" width="86" height="515" rx="10"/>
-    <path d="M689 170l125 125h-250z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="450 310 1501 1641" width="1501" height="1641" role="img" aria-label="Intrack">
+  <!-- One rounded square, cut into three diagonal slices, each slice sitting
+       higher than the one below it. Nothing here is drawn as an arrow — the
+       rise is the cut. Geometry is shared with every PNG in this folder and
+       with the logo on Google's OAuth consent screen; if it changes here it
+       must be regenerated there too, or the brand splits in half. -->
+  <defs>
+    <clipPath id="tile">
+      <rect x="450" y="450" width="1500" height="1500" rx="430"/>
+    </clipPath>
+  </defs>
+  <g fill="#138a6c" clip-rule="nonzero">
+    <g transform="translate(0,-140)"><g clip-path="url(#tile)">
+      <path d="M0 -2400 L2400 -3000 L2400 350 L0 950 Z"/>
+    </g></g>
+    <g transform="translate(0,-70)"><g clip-path="url(#tile)">
+      <path d="M0 950 L2400 350 L2400 850 L0 1450 Z"/>
+    </g></g>
+    <g clip-path="url(#tile)">
+      <path d="M0 1450 L2400 850 L2400 2400 L0 2400 Z"/>
+    </g>
   </g>
 </svg>
