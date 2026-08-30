@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ROUTES, FOOTER_NAV_ITEMS } from '@/constants'
+import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth, useToast } from '@/context'
@@ -139,7 +139,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           return
         }
       }
-    } catch (e) {}
+    } catch { /* Cached notifications unreadable; fall through and rebuild them. */ }
 
     const items: NotificationItem[] = []
 
@@ -259,7 +259,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         items,
         timestamp: Date.now()
       }))
-    } catch (e) {}
+    } catch { /* sessionStorage blocked; skip the cache, the list still renders. */ }
 
     const dismissed = getDismissedKeys()
     setNotifications(items.filter((i) => !dismissed.has(i.key)))
@@ -270,7 +270,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       const dismissed = getDismissedKeys()
       notifications.forEach((n) => dismissed.add(n.key))
       localStorage.setItem('intrack_dismissed_notifications', JSON.stringify([...dismissed]))
-    } catch (e) {}
+    } catch { /* localStorage blocked; dismissals just will not persist. */ }
     setNotifications([])
   }
 
@@ -367,7 +367,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [showPrivacyNote, setShowPrivacyNote] = useState(() => {
     try {
       return localStorage.getItem('intrack_security_acknowledged') !== 'true'
-    } catch (e) {
+    } catch {
       return true
     }
   })
@@ -376,7 +376,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setShowPrivacyNote(false)
     try {
       localStorage.setItem('intrack_security_acknowledged', 'true')
-    } catch (e) {}
+    } catch { /* localStorage blocked; the note reappears next visit. */ }
   }
 
 
@@ -1072,7 +1072,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* PWA Install Banner for Mobile Viewports */}
       {showInstallBanner && (
         <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 md:hidden animate-slide-up">
-          <div className="bg-surface-1/95 border border-border-subtle/85 backdrop-blur-xl rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
+          <div className="bg-surface-1 border border-border-subtle/85 backdrop-blur-xl rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 shadow-[var(--shadow-sm)]">
                 <span className="text-base font-bold text-static-white">{currencySymbol}</span>

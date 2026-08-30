@@ -38,7 +38,7 @@ export default function CookieConsent() {
 
   return (
     <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:max-w-md z-modal animate-slide-up">
-      <div className="bg-surface-1/95 border border-border-subtle/80 backdrop-blur-xl rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
+      <div className="bg-surface-1 border border-border-subtle/80 backdrop-blur-xl rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <span className="text-xl shrink-0 mt-0.5" aria-hidden="true">🍪</span>
           <div>

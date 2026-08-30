@@ -62,7 +62,7 @@ export default function AutoUpdateChecker() {
               return
             }
             sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
-          } catch (e) {}
+          } catch { /* sessionStorage blocked; the reload loop-guard fails open. */ }
           window.location.reload()
         }
       } catch (err) {
@@ -97,7 +97,7 @@ export default function AutoUpdateChecker() {
               return
             }
             sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
-          } catch (err) {}
+          } catch { /* sessionStorage blocked; the reload loop-guard fails open. */ }
           window.location.reload()
         }
       }

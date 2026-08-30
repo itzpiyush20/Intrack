@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {/* Floating Toast Container */}
       <div className="fixed bottom-6 right-6 z-toast flex flex-col gap-2 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => {
-          let bgColor = 'bg-surface-1/95 border-border-subtle'
+          let bgColor = 'bg-[var(--surface-1)] border-border-subtle'
           let textColor = 'text-zinc-200'
           let emoji = 'ℹ️'
 

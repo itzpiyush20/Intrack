@@ -100,7 +100,7 @@ function getOrCreateDeviceId(): string {
       localStorage.setItem('intrack_device_id', id)
     }
     return id
-  } catch (e) {
+  } catch {
     return 'temp-device-' + Math.random().toString(36).substring(2)
   }
 }
