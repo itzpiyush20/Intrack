@@ -419,6 +419,18 @@ export interface Database {
         Args: { days: number }
         Returns: { gate: string; rejections: number }[]
       }
+      admin_charges_needing_review: {
+        Args: { lim?: number }
+        Returns: {
+          id: string
+          email: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          plan_type: string
+          amount_inr: number
+          created_at: string
+        }[]
+      }
       admin_ai_usage: {
         Args: Record<string, never>
         Returns: { email: string; ai_calls_count: number; ai_scan_calls_count: number }[]

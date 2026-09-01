@@ -63,6 +63,23 @@ confirmation this section asked for.**
    so it means a race. Money has been taken, so the function adds the duration to the
    queued plan rather than dropping it (`queue_extended`). Never lose a payment.
 
+   **DECIDED: keep adding the days, AND report the charge to the operator.**
+   The "never lose a payment" half was right and is unchanged. What this
+   section missed is that the app already makes a narrower published promise
+   about exactly this event — `src/pages/RefundPage.tsx` section 3 commits to
+   refunding a payment source "charged multiple times for a single subscription
+   cycle due to payment gateway lag or server errors". Silently converting that
+   charge into extra days left the customer unaware they had paid twice and the
+   operator unaware they owed a refund, so the code and the published policy
+   disagreed.
+
+   `supabase/041` persists `payments.outcome` and adds
+   `admin_charges_needing_review()`; `RefundReviewCard` puts any
+   `queue_extended` payment at the top of the admin Overview with its Razorpay
+   order id, and it can be marked reviewed once handled. Nothing refunds
+   automatically — moving money stays a human judgement. The card renders
+   nothing when there is nothing to act on.
+
 ## Why `035` is rewritten rather than superseded
 
 `supabase/035_extend_subscription.sql` has never been run in production and is not

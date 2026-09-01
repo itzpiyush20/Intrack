@@ -216,6 +216,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount_inr: typeof order?.amount === 'number' ? order.amount / 100 : 0,
         source: 'razorpay',
         status: 'captured',
+        // What the purchase actually did. Persisted because 'queue_extended'
+        // means this money landed on an already-occupied queue — a double
+        // charge the published refund policy says is refundable, and which
+        // otherwise existed only in a serverless log line. The admin panel
+        // reads it back through admin_charges_needing_review(). See
+        // supabase/041.
+        outcome,
       })
       .then(({ error: paymentError }: { error: { code?: string; message?: string } | null }) => {
         if (paymentError && paymentError.code !== '23505') {
