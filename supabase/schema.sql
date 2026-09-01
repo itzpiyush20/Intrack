@@ -694,4 +694,10 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --                              claim_promo_use() (max_uses enforced in one
 --                              statement, so two simultaneous redemptions of a
 --                              one-use code cannot both succeed)
+--   041_flag_double_charges.sql  payments.outcome + refund_reviewed_at, and
+--                              admin_charges_needing_review() — a purchase that
+--                              landed on an occupied queue is a double charge
+--                              the published refund policy covers, so it is
+--                              reported to the operator instead of silently
+--                              becoming extra days
 -- ==========================================

@@ -57,7 +57,7 @@ change are still honoured, which is why the refresh path in
 
 - Commits: `fix:` / `feat:` / `docs:` prefixes.
 - Multi-phase work gets a plan document in `plans/` first, executed phase by phase.
-- Supabase migrations are numbered sequentially in `supabase/` (next is `040_`).
+- Supabase migrations are numbered sequentially in `supabase/` (next is `042_`).
 - `schema.sql` is only run when a database is created. Anything added to it later
   reaches production **only** if a numbered migration also delivers it — twice now
   (`razorpay_subscription_id`, `is_admin`) a column existed in `schema.sql` and not in
@@ -67,3 +67,55 @@ change are still honoured, which is why the refresh path in
 - Lint has a large pre-existing baseline of `@typescript-eslint/no-explicit-any` and
   `setState`-in-effect errors. Don't treat those as regressions; just don't add new ones
   in files you touch.
+
+## Skills to use in every session
+
+Owner's standing instruction (2026-09-01). Recorded here because it was given in
+an earlier session, was written down nowhere, and therefore did not carry over —
+sessions share no memory, only this file.
+
+- **`caveman`** — ultra-compressed replies. Invoke it at the start of a session
+  rather than waiting to be reminded. One judgement call the owner has not
+  overridden: findings about money, security or data loss are worth stating in
+  full sentences even in caveman mode, because a compressed description of a
+  payment bug is how a payment bug gets misread. Compress the narration, not the
+  finding.
+- **`superpowers`** — the brainstorm → plan → implement workflow that produced
+  `docs/superpowers/plans/` and `docs/superpowers/specs/`. **Not currently
+  installed on this account** (checked 2026-09-01: a skill search returns only
+  `caveman`). If a session is asked to use it and it is missing, say so rather
+  than improvising something similar and calling it superpowers.
+
+## Always double-check before deploying
+
+Owner's standing instruction (2026-09-01), and it applies to every session, not
+just the one it was given in. Before anything ships — a merge, a push that
+triggers a deploy, a migration run against production — go back over the change
+and verify it, rather than trusting that writing it correctly the first time was
+enough.
+
+Concretely, before calling a change ready:
+
+1. **Run the checks, don't assume them.** `npx tsc -b`, `npm test -- --run`,
+   `npm run build`, and lint on every file touched. Compare lint counts against
+   the pre-change state so a new error is not lost in the documented baseline.
+2. **Prove new tests actually fail against the old behaviour.** A test that
+   passes either way protects nothing. Revert the fix, watch the test go red,
+   restore it.
+3. **Check the dependent edges the change implies**, not only the lines edited:
+   the callers of a function whose contract moved, the RLS policy or guard
+   trigger a new SQL function has to pass, whether a new column needs a
+   migration *and* a `schema.sql` safety-net entry, whether a swallowed error
+   upstream defeats the fix.
+4. **Say what was verified and what was not.** "Tests pass" and "I could not
+   test this path from here" are both useful; only pretending is not.
+
+This has already caught real defects — a rollback window that leaked a promo
+claim and would have permanently disqualified an account, and a merchant-rules
+fix whose `try/catch` could never fire because the helper it wrapped swallowed
+its own error. Both were found in the double-check, not in the writing.
+
+**Deploy order is part of the check.** When a change adds a database function or
+column that the new code calls, the migration runs FIRST, and the grants are
+verified before the code merges. Never merge a change whose migration has not
+been applied.

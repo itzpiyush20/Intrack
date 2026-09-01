@@ -113,6 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount_inr: typeof orderEntity?.amount === 'number' ? orderEntity.amount / 100 : 0,
           source: 'razorpay',
           status: 'captured',
+          // See the note in verify-payment.ts: 'queue_extended' marks a double
+          // charge the operator needs to see. supabase/041.
+          outcome: result.outcome,
         })
         .then(({ error: paymentError }: { error: { code?: string; message?: string } | null }) => {
           if (paymentError && paymentError.code !== '23505') {

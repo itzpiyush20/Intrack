@@ -2,6 +2,7 @@ import { Card } from '@/components/ui'
 import { useAdminQuery } from './useAdminQuery'
 import { approximateMonthlyRevenue } from './adminMetrics'
 import AdminBarChart from './AdminBarChart'
+import RefundReviewCard from './RefundReviewCard'
 
 interface OverviewRow {
   total_accounts: number
@@ -55,6 +56,11 @@ export default function OverviewTab() {
 
   return (
     <div className="space-y-6">
+      {/* First thing on the page, and only when there is something to act on.
+          A double charge is the one item here that costs a customer money
+          while nobody is looking. Renders nothing on the happy path. */}
+      <RefundReviewCard />
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Total accounts" value={String(s.total_accounts)} hint={`+${s.signups_7d} this week`} />
         <Stat label="Paying" value={String(paying)} hint={`${s.paying_monthly} monthly · ${s.paying_annual} yearly`} />
