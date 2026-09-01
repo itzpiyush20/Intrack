@@ -9,7 +9,7 @@
 // than swallowed, because it is a rule the operator needs to see.
 // ============================================
 
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Card, Button, Input, Select } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { useAdminQuery } from './useAdminQuery'
@@ -39,6 +39,8 @@ interface AdminUserOpsResponse {
   success?: boolean
   email?: string
   expiresAt?: string
+  /** True when the account already held unexpired time that this grant added to. */
+  extended?: boolean
   error?: string
 }
 
@@ -131,9 +133,29 @@ function ScanHistory({ userId }: { userId: string }) {
   )
 }
 
+/**
+ * How long typing must pause before the search actually runs.
+ *
+ * `search` feeds useAdminQuery's args, which are part of its request key, so
+ * without this every keystroke fired admin_user_list — a SECURITY DEFINER
+ * function doing an unanchored ILIKE over `profiles` plus two correlated
+ * subqueries per returned row. Typing an eleven-character address issued
+ * eleven full scans and eleven sets of those subqueries, of which ten were
+ * discarded on arrival.
+ */
+const SEARCH_DEBOUNCE_MS = 300
+
 export default function UsersTab() {
+  // `search` is what the box shows and must update on every keystroke, or
+  // typing feels broken. `debouncedSearch` is what the RPC actually runs on.
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const [historyFor, setHistoryFor] = useState<string | null>(null)
   const [grantFor, setGrantFor] = useState<string | null>(null)
@@ -144,7 +166,7 @@ export default function UsersTab() {
   const [opSuccess, setOpSuccess] = useState<string | null>(null)
 
   const { data, loading, error, reload } = useAdminQuery<UserRow[]>('admin_user_list', {
-    search,
+    search: debouncedSearch,
     lim: PAGE_SIZE,
     off: page * PAGE_SIZE,
   })
@@ -171,8 +193,14 @@ export default function UsersTab() {
         days: Number(grantDays),
         planType: grantPlan,
       })
+      // "extended to" rather than "now has ... for N days": the grant adds to
+      // whatever the account already held, so quoting the number of days
+      // granted next to the new expiry would read as a contradiction for
+      // anyone who still had time left.
       setOpSuccess(
-        `${user.email} now has ${grantPlan} access for ${grantDays} days (until ${formatDate(result.expiresAt ?? null)}).`
+        result.extended
+          ? `${user.email} had unexpired access, so ${grantDays} ${grantPlan} days were added — now valid until ${formatDate(result.expiresAt ?? null)}.`
+          : `${user.email} now has ${grantPlan} access for ${grantDays} days (until ${formatDate(result.expiresAt ?? null)}).`
       )
       setGrantFor(null)
       reload()
@@ -225,7 +253,7 @@ export default function UsersTab() {
 
       {!loading && !error && (data?.length ?? 0) === 0 && (
         <p className="py-8 text-center text-sm text-zinc-500">
-          {search ? 'No accounts match that search.' : 'No accounts yet.'}
+          {debouncedSearch ? 'No accounts match that search.' : 'No accounts yet.'}
         </p>
       )}
 
@@ -317,7 +345,8 @@ export default function UsersTab() {
                           </Button>
                         </div>
                         <p className="mt-2 text-xs text-zinc-500">
-                          Between 1 and 365 days. The grant is recorded in payments as a ₹0 admin payment.
+                          Between 1 and 365 days. Added to any unexpired time the account already
+                          has, never replacing it. Recorded in payments as a ₹0 admin payment.
                         </p>
                       </td>
                     </tr>

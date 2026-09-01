@@ -80,9 +80,20 @@ export default function OverviewTab() {
         )}
       </Card>
 
+      {/* This used to end "No payments table exists yet, so historic revenue
+          cannot be shown." It has existed since migration 025, and
+          verify-payment.ts, redeem-promo.ts and api/admin.ts have all been
+          writing real receipts to it — with source and amount_inr — ever
+          since. The panel was telling the operator the data did not exist
+          while it was being collected. What is still true is narrower: this
+          particular figure is a projection, and no view over `payments` has
+          been built yet. */}
       <p className="text-xs text-zinc-500">
-        Revenue is approximate — derived from the plans people hold today, not from payment
-        records. No payments table exists yet, so historic revenue cannot be shown.
+        Revenue is approximate — projected from the plans people hold today, not read from
+        payment records. It counts every active plan at list price, so accounts on an admin
+        grant or a coupon are included even though nothing was paid for them. Real receipts
+        are recorded in <code className="text-zinc-400">payments</code>; a historic view over
+        them is not built yet.
       </p>
     </div>
   )

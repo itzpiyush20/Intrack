@@ -152,6 +152,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw claimError
     }
 
+    // Take the usage count BEFORE granting anything, and take it atomically.
+    //
+    // checkRedeemable's `exhausted` test above compares a used_count READ a
+    // few statements ago against max_uses in JavaScript, and the increment
+    // used to happen after the grant as fire-and-forget bookkeeping, writing
+    // `row.used_count + 1` from that same stale read. Two people redeeming a
+    // max_uses:1 code at the same moment therefore both read 0, both passed
+    // the check, and both were granted a plan — UNIQUE (code, user_id) never
+    // covered this, because it stops ONE account redeeming twice, not TWO
+    // accounts racing. claim_promo_use() folds the limit check into the
+    // UPDATE's WHERE clause, so the second caller matches no row. See
+    // supabase/040.
+    //
+    // The check above is still worth keeping: it refuses an exhausted code
+    // without writing anything in the overwhelmingly common uncontended case.
+    const { data: claimed, error: claimUseError } = await supabaseAdmin.rpc('claim_promo_use', {
+      p_code: code,
+    })
+
+    if (claimUseError) throw claimUseError
+
+    if (!claimed) {
+      // Lost the race. Release the redemption claim so this account is not
+      // left holding a row for a coupon it never received.
+      await supabaseAdmin.from('promo_redemptions').delete().eq('code', code).eq('user_id', user.id)
+      return res.status(400).json({ error: REFUSAL_MESSAGE.exhausted })
+    }
+
     const expiresAt = grantExpiryFrom(row.duration_days)
 
     const { data: updated, error: grantError } = await supabaseAdmin
@@ -168,19 +196,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (grantError) throw grantError
     if (!updated || updated.length === 0) {
-      // No profile row matched. Release the claim so the user can retry once
-      // their profile exists, rather than being locked out of the code.
+      // No profile row matched. Release BOTH the redemption claim and the
+      // usage count, so the user can retry once their profile exists rather
+      // than being locked out of the code — and so a code with a usage limit
+      // does not quietly lose one of its uses to a grant that never happened.
       await supabaseAdmin.from('promo_redemptions').delete().eq('code', code).eq('user_id', user.id)
+      await supabaseAdmin.rpc('release_promo_use', { p_code: code })
       throw new Error('No matching profile found to update.')
     }
-
-    // Bookkeeping past this point must never fail the redemption — the user
-    // already has their access.
-    await supabaseAdmin
-      .from('promo_codes')
-      .update({ used_count: row.used_count + 1 })
-      .eq('code', code)
-      .then(({ error }) => { if (error) console.warn('Failed to increment promo used_count:', error.message) })
 
     await supabaseAdmin
       .from('payments')

@@ -212,21 +212,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Plan must be monthly or annual.' })
         }
 
-        const expiresAt = grantExpiryFrom(grantDays)
-
-        const { data, error } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            subscription_status: 'active',
-            subscription_expires_at: expiresAt,
-            subscription_plan_type: planType,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId)
-          .select('id, email')
+        // The expiry is computed in the DATABASE, for the same reason
+        // verify-payment.ts computes it there: this used to write
+        // `now() + grantDays` absolutely, so granting a goodwill 30 days to
+        // someone holding 300 paid days left them with 30 and destroyed the
+        // time they had paid for. admin_grant_subscription() extends from
+        // GREATEST(now(), current expiry), which also does the right thing for
+        // a lapsed account — 30 days from today, not from an expiry already in
+        // the past. See supabase/040.
+        //
+        // The admin panel spec scoped this phase as "grant/extend plans"
+        // (docs/superpowers/specs/2026-08-15-admin-panel-design.md); only the
+        // grant half was ever implemented.
+        const { data: grantResult, error } = await supabaseAdmin.rpc('admin_grant_subscription', {
+          p_user_id: userId,
+          p_plan_type: planType,
+          p_duration_days: grantDays,
+        })
 
         if (error) throw error
-        if (!data || data.length === 0) return res.status(404).json({ error: 'No such account.' })
+        // NULL means no profile row matched, the same contract
+        // apply_plan_purchase uses. Without this check a missing account would
+        // report a successful grant while granting nothing.
+        if (!grantResult) return res.status(404).json({ error: 'No such account.' })
+
+        const expiresAt = new Date(grantResult.expires_at as string).toISOString()
 
         // Auditable: who got free access, when, and for how long.
         await supabaseAdmin
@@ -242,7 +252,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (paymentError) console.warn('Failed to record admin grant in payments:', paymentError.message)
           })
 
-        return res.status(200).json({ success: true, email: data[0].email, expiresAt })
+        // `extended` lets the panel say "extended to" rather than implying the
+        // account was empty before the grant.
+        return res.status(200).json({
+          success: true,
+          email: grantResult.email,
+          expiresAt,
+          extended: grantResult.extended === true,
+        })
       }
 
       const { data, error } = await supabaseAdmin

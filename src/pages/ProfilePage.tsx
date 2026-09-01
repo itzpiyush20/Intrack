@@ -119,7 +119,17 @@ export default function ProfilePage() {
       if (error) throw error
 
       setResetSuccess(true)
-      setTimeout(() => setResetSuccess(false), 4000)
+
+      // Actually reload, rather than only claiming to.
+      //
+      // The banner said "Refreshing dashboard..." and nothing happened: there
+      // is no transactions context to invalidate — every page fetches on mount
+      // — so the deleted rows stayed on screen everywhere the user had already
+      // been. After a destructive wipe that reads as the delete having failed.
+      // A full reload is the honest version of what the message promises, and
+      // this is a once-ever action, so the cost of one is irrelevant.
+      // Delayed so the confirmation is legible first.
+      setTimeout(() => window.location.reload(), 1500)
     } catch (err: any) {
       console.error('Error wiping user data:', err)
       setError(err.message || 'Failed to clear account databases.')
@@ -301,13 +311,15 @@ export default function ProfilePage() {
                 <Card className="border-[var(--status-danger-border)]/50 bg-[var(--status-danger-subtle)]/10">
                   <h2 className="text-base font-bold text-[var(--status-danger-text)] mb-2">Danger Zone: Data Reset</h2>
                   <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                    Permanently delete all your transaction entries, custom budgets, and inbox scan logs from our database. This returns your account to a clean starting state and is irreversible!
+                    Permanently deletes all your transaction entries, custom budgets, and inbox
+                    scan logs. Your learned merchant rules, saved cards and insurance policies
+                    are kept — use Delete Account below to remove everything. This is irreversible!
                   </p>
 
                   <div className="space-y-4">
                     {resetSuccess && (
                       <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-xs text-[var(--status-positive-text)] leading-relaxed">
-                        ✨ Wipe complete! All databases flushed successfully. Refreshing dashboard...
+                        ✨ Wipe complete. Your transactions, budgets and scan logs are gone — reloading…
                       </div>
                     )}
                     <Button
