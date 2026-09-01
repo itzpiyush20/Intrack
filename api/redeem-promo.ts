@@ -152,58 +152,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw claimError
     }
 
-    // Take the usage count BEFORE granting anything, and take it atomically.
+    // Everything from here to a completed grant is rolled back as a unit.
     //
-    // checkRedeemable's `exhausted` test above compares a used_count READ a
-    // few statements ago against max_uses in JavaScript, and the increment
-    // used to happen after the grant as fire-and-forget bookkeeping, writing
-    // `row.used_count + 1` from that same stale read. Two people redeeming a
-    // max_uses:1 code at the same moment therefore both read 0, both passed
-    // the check, and both were granted a plan — UNIQUE (code, user_id) never
-    // covered this, because it stops ONE account redeeming twice, not TWO
-    // accounts racing. claim_promo_use() folds the limit check into the
-    // UPDATE's WHERE clause, so the second caller matches no row. See
-    // supabase/040.
-    //
-    // The check above is still worth keeping: it refuses an exhausted code
-    // without writing anything in the overwhelmingly common uncontended case.
-    const { data: claimed, error: claimUseError } = await supabaseAdmin.rpc('claim_promo_use', {
-      p_code: code,
-    })
-
-    if (claimUseError) throw claimUseError
-
-    if (!claimed) {
-      // Lost the race. Release the redemption claim so this account is not
-      // left holding a row for a coupon it never received.
-      await supabaseAdmin.from('promo_redemptions').delete().eq('code', code).eq('user_id', user.id)
-      return res.status(400).json({ error: REFUSAL_MESSAGE.exhausted })
+    // The account now holds a promo_redemptions row, and `hasRedeemedAnyCoupon`
+    // above is checked across EVERY code, not just this one — so a claim left
+    // behind by a failure does not merely waste this coupon, it permanently
+    // disqualifies the account from all of them, for a coupon the person never
+    // received. The old code released the claim on exactly one branch (no
+    // matching profile) and leaked it on any thrown error.
+    const rollbackClaim = async (releaseUse: boolean) => {
+      // Best-effort, and deliberately not allowed to mask the original
+      // failure: if the rollback itself fails there is nothing further this
+      // request can do, and the caller still needs to see why it failed.
+      try {
+        await supabaseAdmin.from('promo_redemptions').delete().eq('code', code).eq('user_id', user.id)
+        if (releaseUse) await supabaseAdmin.rpc('release_promo_use', { p_code: code })
+      } catch (rollbackError) {
+        console.error('Failed to roll back promo claim for', code, user.id, rollbackError)
+      }
     }
 
+    // Computed once, before the write, so the value stored on the profile and
+    // the value reported back to the browser are the same instant rather than
+    // two Date.now() calls a few milliseconds apart.
     const expiresAt = grantExpiryFrom(row.duration_days)
 
-    const { data: updated, error: grantError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_expires_at: expiresAt,
-        subscription_plan_type: row.plan_type,
-        promo_code: code,
-        updated_at: new Date().toISOString(),
+    let useClaimed = false
+    try {
+      // Take the usage count BEFORE granting anything, and take it atomically.
+      //
+      // checkRedeemable's `exhausted` test above compares a used_count READ a
+      // few statements ago against max_uses in JavaScript, and the increment
+      // used to happen after the grant as fire-and-forget bookkeeping, writing
+      // `row.used_count + 1` from that same stale read. Two people redeeming a
+      // max_uses:1 code at the same moment therefore both read 0, both passed
+      // the check, and both were granted a plan — UNIQUE (code, user_id) never
+      // covered this, because it stops ONE account redeeming twice, not TWO
+      // accounts racing. claim_promo_use() folds the limit check into the
+      // UPDATE's WHERE clause, so the second caller matches no row. See
+      // supabase/040.
+      //
+      // The check above is still worth keeping: it refuses an exhausted code
+      // without writing anything in the overwhelmingly common uncontended case.
+      const { data: claimed, error: claimUseError } = await supabaseAdmin.rpc('claim_promo_use', {
+        p_code: code,
       })
-      .eq('id', user.id)
-      .select('id')
 
-    if (grantError) throw grantError
-    if (!updated || updated.length === 0) {
-      // No profile row matched. Release BOTH the redemption claim and the
-      // usage count, so the user can retry once their profile exists rather
-      // than being locked out of the code — and so a code with a usage limit
-      // does not quietly lose one of its uses to a grant that never happened.
-      await supabaseAdmin.from('promo_redemptions').delete().eq('code', code).eq('user_id', user.id)
-      await supabaseAdmin.rpc('release_promo_use', { p_code: code })
-      throw new Error('No matching profile found to update.')
+      if (claimUseError) throw claimUseError
+
+      if (!claimed) {
+        // Lost the race. No use was taken, so only the redemption claim needs
+        // releasing.
+        await rollbackClaim(false)
+        return res.status(400).json({ error: REFUSAL_MESSAGE.exhausted })
+      }
+      useClaimed = true
+
+      const { data: updated, error: grantError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          subscription_expires_at: expiresAt,
+          subscription_plan_type: row.plan_type,
+          promo_code: code,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select('id')
+
+      if (grantError) throw grantError
+      if (!updated || updated.length === 0) {
+        throw new Error('No matching profile found to update.')
+      }
+    } catch (grantFailure) {
+      await rollbackClaim(useClaimed)
+      throw grantFailure
     }
+
+    // Past this line the access IS granted, so nothing below may roll back —
+    // releasing the claim now would let the same account redeem a second
+    // coupon on top of the one it is already holding. The payments row is
+    // bookkeeping and its failure is logged, never surfaced.
 
     await supabaseAdmin
       .from('payments')

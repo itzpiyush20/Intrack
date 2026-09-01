@@ -113,6 +113,22 @@ describe('buildRestoreRow', () => {
     expect(buildRestoreRow({ ...fullBackupRow, tags: undefined }, 'u').tags).toEqual([])
   })
 
+  it('nulls a text field holding something that is not text', () => {
+    // A hand-edited or version-skewed file. Posting the raw value to PostgREST
+    // would either fail the whole batch or store something nonsensical.
+    const restored = buildRestoreRow(
+      { ...fullBackupRow, merchant: 42, counterparty: { name: 'A' }, payment_mode: ['upi'] },
+      'u'
+    )
+    expect(restored.merchant).toBeNull()
+    expect(restored.counterparty).toBeNull()
+    expect(restored.payment_mode).toBeNull()
+  })
+
+  it('drops non-string entries from tags rather than posting them', () => {
+    expect(buildRestoreRow({ ...fullBackupRow, tags: ['work', 7, null] }, 'u').tags).toEqual(['work'])
+  })
+
   it('treats a missing is_returnable as false, not as undefined', () => {
     const { is_returnable, ...without } = fullBackupRow
     void is_returnable

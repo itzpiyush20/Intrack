@@ -12,6 +12,18 @@
 // be added to buildRestoreRow AND to the field list in the test.
 // ============================================
 
+/**
+ * A backup value as a non-empty string, or null.
+ *
+ * Every text column goes through this rather than `value || null`, so a number
+ * or an object sitting where a string belongs — a hand-edited or
+ * version-skewed file — becomes null instead of being posted to PostgREST as
+ * whatever it happened to be.
+ */
+function str(value: unknown): string | null {
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
 /** The subset of a transaction the dedup key is built from. */
 export interface DedupableTransaction {
   date: string
@@ -33,6 +45,17 @@ export function buildDedupKey(t: DedupableTransaction): string {
 }
 
 /**
+ * One row as it appears inside a decrypted .drbak file.
+ *
+ * Every field is optional and `unknown`, which is the honest type: the file is
+ * whatever the user hands us, and may have been written by an older version of
+ * the app that had fewer columns. Narrowing happens per field in
+ * buildRestoreRow, which is the point — an index signature typed `any` would
+ * let a malformed value through to PostgREST unexamined.
+ */
+export type BackupTransaction = Record<string, unknown>
+
+/**
  * Rebuild one transaction row from a decrypted backup, for insertion under
  * `userId`.
  *
@@ -50,19 +73,19 @@ export function buildDedupKey(t: DedupableTransaction): string {
  *   * `settled_by_transaction_id` — it references a transaction id that no
  *     longer exists after a restore, so the foreign key would reject it.
  */
-export function buildRestoreRow(t: Record<string, any>, userId: string | undefined) {
+export function buildRestoreRow(t: BackupTransaction, userId: string | undefined) {
   return {
     user_id: userId,
     amount: Number(t.amount),
     type: t.type,
     category: t.category,
-    description: t.description || '',
-    notes: t.notes || null,
+    description: str(t.description) ?? '',
+    notes: str(t.notes),
     date: t.date,
-    source: t.source || 'manual',
-    approval_status: t.approval_status || 'approved',
-    reference_id: t.reference_id || null,
-    merchant: t.merchant || null,
+    source: str(t.source) ?? 'manual',
+    approval_status: str(t.approval_status) ?? 'approved',
+    reference_id: str(t.reference_id),
+    merchant: str(t.merchant),
     // Every field below this line was being dropped.
     //
     // `currency` is the one that did real damage without looking wrong: a USD
@@ -70,21 +93,21 @@ export function buildRestoreRow(t: Record<string, any>, userId: string | undefin
     // leaving the number intact. The defaults match the column defaults in
     // supabase/schema.sql, so a backup taken before a column existed still
     // restores cleanly.
-    currency: t.currency || 'INR',
-    payment_mode: t.payment_mode || null,
-    card_issuer: t.card_issuer || null,
-    card_brand: t.card_brand || null,
-    transaction_time: t.transaction_time || null,
+    currency: str(t.currency) ?? 'INR',
+    payment_mode: str(t.payment_mode),
+    card_issuer: str(t.card_issuer),
+    card_brand: str(t.card_brand),
+    transaction_time: str(t.transaction_time),
     confidence_score: typeof t.confidence_score === 'number' ? t.confidence_score : null,
-    email_message_id: t.email_message_id || null,
-    event_type: t.event_type || null,
-    tags: Array.isArray(t.tags) ? t.tags : [],
+    email_message_id: str(t.email_message_id),
+    event_type: str(t.event_type),
+    tags: Array.isArray(t.tags) ? t.tags.filter((tag): tag is string => typeof tag === 'string') : [],
     // The whole lending feature. Without these, money the user had lent out
     // simply stopped being money they had lent out.
     is_returnable: t.is_returnable === true,
-    counterparty: t.counterparty || null,
-    expected_return_date: t.expected_return_date || null,
-    return_status: t.return_status || null,
+    counterparty: str(t.counterparty),
+    expected_return_date: str(t.expected_return_date),
+    return_status: str(t.return_status),
   }
 }
 
