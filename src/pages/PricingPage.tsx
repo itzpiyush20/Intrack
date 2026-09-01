@@ -210,7 +210,16 @@ export default function PricingPage() {
               })
             } else {
               await updateSubscriptionStatus('active', selectedPlan)
-              showToast(`👑 Payment Successful! ${planName} features unlocked.`, 'success')
+              // 'already_applied' means this order was credited earlier — the
+              // webhook usually beats the browser here. The plan IS active, so
+              // this is still a success, but announcing a fresh unlock for a
+              // second delivery of the same payment reads as a double charge.
+              showToast(
+                verifyData.outcome === 'already_applied'
+                  ? `Payment already confirmed — your ${planName} plan is active.`
+                  : `👑 Payment Successful! ${planName} features unlocked.`,
+                'success'
+              )
               navigate('/payment-success', { state: { planName, expiresAt: verifyData.expiresAt } })
             }
           } catch (err: any) { showToast(`Verification Failed: ${err.message}`, 'error') }

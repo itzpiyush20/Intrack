@@ -165,12 +165,13 @@ export default function ProfilePage() {
         throw deleteErr || new Error('An error occurred during account deletion.')
       }
 
+      // No "wiped but errored" branch: deleteAccount only ever reports success
+      // with a null error — a partial deletion comes back success:false and is
+      // thrown above. The branch that used to be here could not run.
       showToast(
-        deleteErr
-          ? 'Account data wiped. You are being signed out.'
-          : method === 'rpc'
-            ? 'Your account and all data have been deleted. Thank you for using Intrack.'
-            : 'Account data deleted. You have been signed out.',
+        method === 'rpc'
+          ? 'Your account and all data have been deleted. Thank you for using Intrack.'
+          : 'Account data deleted. You have been signed out.',
         'success'
       )
 

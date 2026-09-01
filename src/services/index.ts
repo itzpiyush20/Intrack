@@ -46,6 +46,7 @@ export {
 } from './feedback'
 export {
   getMerchantRulesFromDB,
+  fetchMerchantRules,
   saveMerchantRuleToDb,
   migrateLocalStorageRulesToDB,
   applyMerchantRulesFromDB,

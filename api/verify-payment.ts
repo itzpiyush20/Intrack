@@ -228,10 +228,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // "Subscription activated successfully" is a lie for a queued purchase —
       // the customer paid for a plan that starts later, and the page must not
       // tell them their plan just changed.
+      // Three outcomes, three messages. 'already_applied' — the same order
+      // delivered twice, which happens whenever the webhook and the browser
+      // both report a payment — used to fall into the queued wording and tell
+      // a customer whose plan was ALREADY RUNNING that it starts later.
       message:
         outcome === 'activated'
           ? 'Subscription activated successfully.'
-          : 'Payment received. Your new plan starts when your current one ends.',
+          : outcome === 'already_applied'
+            ? 'This payment was already applied to your account.'
+            : 'Payment received. Your new plan starts when your current one ends.',
       expiresAt: subscription_expires_at,
       outcome,
       pendingActivatesAt,

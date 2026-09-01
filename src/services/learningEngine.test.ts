@@ -7,7 +7,7 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { getMerchantRulesFromDB, applyMerchantRulesFromDB, applyMerchantRulesFromRows } from './learningEngine'
+import { getMerchantRulesFromDB, fetchMerchantRules, applyMerchantRulesFromDB, applyMerchantRulesFromRows } from './learningEngine'
 
 describe('applyMerchantRulesFromDB', () => {
   it('never returns approval_status "approved", even for a high-confidence, auto_approve, many-times-confirmed exact match', async () => {
@@ -84,6 +84,36 @@ describe('getMerchantRulesFromDB', () => {
   it('falls back to the default module client when none is passed', async () => {
     await getMerchantRulesFromDB('u1')
     expect(defaultMockOrder).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('fetchMerchantRules — an empty account is not a failed read', () => {
+  // getMerchantRulesFromDB collapses both into [], which is correct for the
+  // scanner: a failed rules read must cost the scan its rules, never the scan.
+  // But SettingsPage has to choose between showing nothing and falling back to
+  // the browser copy, and keyed off the empty array alone it could not tell the
+  // two apart — so deleting your last rule looked like a failed read and the
+  // list repopulated itself from stale localStorage.
+  const dbReturning = (result: unknown) => ({
+    from: () => ({ select: () => ({ eq: () => ({ order: vi.fn().mockResolvedValue(result) }) }) }),
+  }) as any
+
+  it('reports ok for an account that genuinely has no rules', async () => {
+    const { rules, ok } = await fetchMerchantRules('u1', dbReturning({ data: [], error: null }))
+    expect(ok).toBe(true)
+    expect(rules).toEqual([])
+  })
+
+  it('reports NOT ok when the read failed', async () => {
+    const { rules, ok } = await fetchMerchantRules('u1', dbReturning({ data: null, error: { message: 'boom' } }))
+    expect(ok).toBe(false)
+    expect(rules).toEqual([])
+  })
+
+  it('getMerchantRulesFromDB still swallows the failure, for the scanner', async () => {
+    // Changing this would let a rules outage fail a whole scan.
+    const rules = await getMerchantRulesFromDB('u1', dbReturning({ data: null, error: { message: 'boom' } }))
+    expect(rules).toEqual([])
   })
 })
 

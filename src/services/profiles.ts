@@ -24,16 +24,46 @@ export async function getProfile() {
 }
 
 /** Update profile row and auth user metadata synchronously */
+/**
+ * An avatar URL we are willing to store, or null.
+ *
+ * Only http(s). The value is rendered straight into an <img src>, and while a
+ * `javascript:` URL is inert there, storing one means it is sitting in the
+ * profile row ready for any future consumer that is less careful — a link, a
+ * redirect, an email template. Rejecting it at the point of storage is the
+ * cheap place to do it.
+ */
+export function cleanAvatarUrl(input: string | undefined): string | null {
+  const trimmed = (input ?? '').trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? trimmed : null
+  } catch {
+    return null
+  }
+}
+
 export async function updateProfile(updates: { fullName: string; avatarUrl?: string }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: new Error('User not authenticated') }
+
+  // Trimmed before it is stored, and refused if that leaves nothing. The form
+  // marks the field required, but `required` accepts a string of spaces — which
+  // then rendered as a blank name and an empty avatar initial everywhere the
+  // profile appears.
+  const fullName = updates.fullName.trim()
+  if (!fullName) {
+    return { data: null, error: new Error('Please enter your name.') }
+  }
+  const avatarUrl = cleanAvatarUrl(updates.avatarUrl)
 
   // 1. Update public.profiles row
   const { error: profileErr } = await supabase
     .from('profiles')
     .update({
-      full_name: updates.fullName,
-      avatar_url: updates.avatarUrl || null,
+      full_name: fullName,
+      avatar_url: avatarUrl,
     })
     .eq('id', user.id)
 
@@ -42,8 +72,8 @@ export async function updateProfile(updates: { fullName: string; avatarUrl?: str
   // 2. Update auth metadata so useAuth() context gets instant refresh
   const { error: authErr } = await supabase.auth.updateUser({
     data: {
-      full_name: updates.fullName,
-      avatar_url: updates.avatarUrl || null,
+      full_name: fullName,
+      avatar_url: avatarUrl,
     },
   })
 

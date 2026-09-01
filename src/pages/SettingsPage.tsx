@@ -12,7 +12,7 @@ import {
   deleteMerchantRule,
   saveMerchantRule,
   supabase,
-  getMerchantRulesFromDB,
+  fetchMerchantRules,
   saveMerchantRuleToDb,
   migrateLocalStorageRulesToDB
 } from '@/services'
@@ -249,23 +249,34 @@ export default function SettingsPage() {
     }
   }
 
+  /**
+   * Load the merchant rules, preferring the database.
+   *
+   * The localStorage fallback fires only when the database could not be READ —
+   * never when it simply returned nothing. It used to key off
+   * `data.length > 0`, which cannot tell "this account has no rules" from "the
+   * request failed", so deleting your last rule fell through to the browser
+   * copy and rules you had just removed reappeared. Rules created on another
+   * device made it worse: the local copy is stale by definition, so the list
+   * could repopulate with something the account no longer had anywhere.
+   *
+   * An empty database answer is a real answer. Only a throw is not.
+   */
   const loadRules = async () => {
     if (user) {
-      try {
-        const data = await getMerchantRulesFromDB(user.id)
-        if (data && data.length > 0) {
-          const dbRules: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
-          data.forEach(r => {
-            dbRules[r.merchant_key] = { category: r.preferred_category, autoApprove: r.auto_approve, ruleType: r.rule_type }
-          })
-          setMerchantRules(dbRules)
-          return
-        }
-      } catch (err) {
-        console.warn('Failed to load rules from DB:', err)
+      const { rules, ok } = await fetchMerchantRules(user.id)
+      if (ok) {
+        const dbRules: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
+        rules.forEach(r => {
+          dbRules[r.merchant_key] = { category: r.preferred_category, autoApprove: r.auto_approve, ruleType: r.rule_type }
+        })
+        setMerchantRules(dbRules)
+        return
       }
+      // ok === false: the read failed. Showing the last known rules beats
+      // showing none while the database is unreachable, so fall through.
     }
-    // Fallback to localStorage
+    // Signed out, or the database could not be reached.
     const localRules = getMerchantRules()
     const withType: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
     Object.entries(localRules).forEach(([key, rule]) => {
@@ -932,13 +943,26 @@ export default function SettingsPage() {
                 <Globe className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>General Preferences</span>
               </h2>
+              {/* This card said "Configure your currency formatting and locale
+                  structure" above a single fixed line. There is nothing to
+                  configure — Intrack is built for the Indian market and both
+                  values are constants. Saying so is more useful than implying a
+                  control that does not exist and never did. */}
               <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Configure your currency formatting and locale structure.
+                Intrack is built for India, so amounts and dates use Indian conventions.
+                These are fixed and not configurable.
               </p>
-              
-              <div className="space-y-4 text-xs">
 
-                <div className="flex items-center justify-between pt-1">
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Currency</span>
+                  <span className="font-bold text-zinc-300 font-mono">INR ({currencySymbol})</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Date format</span>
+                  <span className="font-bold text-zinc-300 font-mono">dd/mm/yyyy</span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-zinc-400">Language Locale</span>
                   <span className="font-bold text-zinc-300 font-mono">en-IN</span>
                 </div>
