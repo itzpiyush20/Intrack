@@ -212,21 +212,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Plan must be monthly or annual.' })
         }
 
-        const expiresAt = grantExpiryFrom(grantDays)
-
-        const { data, error } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            subscription_status: 'active',
-            subscription_expires_at: expiresAt,
-            subscription_plan_type: planType,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', userId)
-          .select('id, email')
+        // The expiry is computed in the DATABASE, for the same reason
+        // verify-payment.ts computes it there: this used to write
+        // `now() + grantDays` absolutely, so granting a goodwill 30 days to
+        // someone holding 300 paid days left them with 30 and destroyed the
+        // time they had paid for. admin_grant_subscription() extends from
+        // GREATEST(now(), current expiry), which also does the right thing for
+        // a lapsed account — 30 days from today, not from an expiry already in
+        // the past. See supabase/040.
+        //
+        // The admin panel spec scoped this phase as "grant/extend plans"
+        // (docs/superpowers/specs/2026-08-15-admin-panel-design.md); only the
+        // grant half was ever implemented.
+        const { data: grantResult, error } = await supabaseAdmin.rpc('admin_grant_subscription', {
+          p_user_id: userId,
+          p_plan_type: planType,
+          p_duration_days: grantDays,
+        })
 
         if (error) throw error
-        if (!data || data.length === 0) return res.status(404).json({ error: 'No such account.' })
+        // NULL means no profile row matched, the same contract
+        // apply_plan_purchase uses. Without this check a missing account would
+        // report a successful grant while granting nothing.
+        if (!grantResult) return res.status(404).json({ error: 'No such account.' })
+
+        const expiresAt = new Date(grantResult.expires_at as string).toISOString()
 
         // Auditable: who got free access, when, and for how long.
         await supabaseAdmin
@@ -242,14 +252,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (paymentError) console.warn('Failed to record admin grant in payments:', paymentError.message)
           })
 
-        return res.status(200).json({ success: true, email: data[0].email, expiresAt })
+        // `extended` lets the panel say "extended to" rather than implying the
+        // account was empty before the grant.
+        return res.status(200).json({
+          success: true,
+          email: grantResult.email,
+          expiresAt,
+          extended: grantResult.extended === true,
+        })
       }
+
+      // The pending_* columns are cleared TOO, and that is the whole point.
+      //
+      // Ending access used to set the status and expiry and stop there, leaving
+      // any queued plan untouched. activate_pending_plan() — which every
+      // profile load calls from AuthContext — looks only at whether
+      // pending_activates_at has arrived; it never reads subscription_status.
+      // So a revoked account switched itself straight back on at the queued
+      // plan's start date, and the revocation silently undid itself. It also
+      // meant a queued plan could overwrite an admin's grant, wiping out days
+      // the operator had deliberately given.
+      //
+      // Refunds are deliberately NOT automated here: money that has been taken
+      // for the queued plan is the operator's to return through Razorpay, and
+      // guessing at it from this endpoint would be worse than leaving it
+      // visible in `payments`.
+      // Read the queue BEFORE clearing it. Cancelling a queued plan voids
+      // something the customer has already PAID for, and the operator is the
+      // only one who can refund it — so this has to come back in the response
+      // rather than disappearing silently.
+      const { data: beforeExpiry } = await supabaseAdmin
+        .from('profiles')
+        .select('pending_plan_type, pending_order_id')
+        .eq('id', userId)
+        .maybeSingle()
 
       const { data, error } = await supabaseAdmin
         .from('profiles')
         .update({
           subscription_status: 'expired',
           subscription_expires_at: new Date().toISOString(),
+          pending_plan_type: null,
+          pending_duration_days: null,
+          pending_order_id: null,
+          pending_activates_at: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', userId)
@@ -258,7 +304,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (error) throw error
       if (!data || data.length === 0) return res.status(404).json({ error: 'No such account.' })
 
-      return res.status(200).json({ success: true, email: data[0].email })
+      return res.status(200).json({
+        success: true,
+        email: data[0].email,
+        cancelledQueuedPlan: beforeExpiry?.pending_plan_type ?? null,
+        cancelledQueuedOrderId: beforeExpiry?.pending_order_id ?? null,
+      })
     }
 
     return res.status(400).json({ error: 'Unknown action.' })

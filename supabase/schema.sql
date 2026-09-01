@@ -675,4 +675,23 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --   034_trial_defaults.sql     trial becomes 7 days, not 14, and the signup
 --                              defaults are recorded instead of living only in
 --                              the Supabase dashboard
+--   035_extend_subscription.sql  apply_plan_purchase() and
+--                              activate_pending_plan(): renewals extend rather
+--                              than overwrite, and a plan bought early is
+--                              queued behind the running one
+--   036_erase_on_delete.sql    anonymize_user_authored_records — deleting an
+--                              account scrubs the name and email off the
+--                              feedback and support tickets it leaves behind
+--   037_revoke_ai_quota_from_untrusted_roles.sql  strips the direct anon and
+--                              authenticated grants Supabase's default
+--                              privileges hand to SECURITY DEFINER functions
+--   038_align_subscription_status_check.sql  the status CHECK matches the
+--                              statuses the app actually writes
+--   039_fix_signin_logs_admin_read.sql  admins can read signin_logs, which
+--                              admin_user_list's "last seen" column needs
+--   040_admin_grant_and_promo_use.sql  admin_grant_subscription() (a grant
+--                              extends paid time instead of replacing it) and
+--                              claim_promo_use() (max_uses enforced in one
+--                              statement, so two simultaneous redemptions of a
+--                              one-use code cannot both succeed)
 -- ==========================================

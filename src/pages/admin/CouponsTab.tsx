@@ -62,6 +62,10 @@ export default function CouponsTab() {
   })
 
   const [code, setCode] = useState('')
+  // The endpoint has always accepted 'annual' and promo_codes has always stored
+  // it; this form just hardcoded 'monthly', so yearly coupons were unreachable
+  // from the panel and could only be created by hand in SQL.
+  const [planType, setPlanType] = useState<'monthly' | 'annual'>('monthly')
   const [days, setDays] = useState('30')
   const [maxUses, setMaxUses] = useState('')
   const [note, setNote] = useState('')
@@ -101,11 +105,11 @@ export default function CouponsTab() {
         // and each person who redeems it gets this many days of access from
         // their own redemption date.
         codeValidDays: Number(days),
-        planType: 'monthly',
+        planType,
         note,
       })
-      setSuccess(`Coupon ${created.code} created — usable for the next ${days} days, and gives each person ${days} days of access.`)
-      setCode(''); setDays('30'); setMaxUses(''); setNote('')
+      setSuccess(`Coupon ${created.code} created — usable for the next ${days} days, and gives each person ${days} days of ${planType} access.`)
+      setCode(''); setPlanType('monthly'); setDays('30'); setMaxUses(''); setNote('')
       load()
     } catch (e) {
       setFormError((e as Error).message)
@@ -169,6 +173,21 @@ export default function CouponsTab() {
             </p>
           </div>
           <div>
+            <label className="mb-1 block text-xs text-zinc-400">Plan granted</label>
+            <select
+              value={planType}
+              onChange={(e) => setPlanType(e.target.value === 'annual' ? 'annual' : 'monthly')}
+              className="h-11 w-full rounded-xl border border-border-subtle/50 bg-surface-2 px-3 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="annual">Annual</option>
+            </select>
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Which plan the coupon grants. The LENGTH of access is set by the days field —
+              this only decides which plan name the account ends up on.
+            </p>
+          </div>
+          <div>
             <label className="mb-1 block text-xs text-zinc-400">Usage limit (blank = unlimited)</label>
             <Input value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="100" />
           </div>
@@ -222,7 +241,7 @@ export default function CouponsTab() {
                 {codes.map((c) => (
                   <tr key={c.code} className="border-b border-border-subtle/50">
                     <td className="px-4 py-3 font-medium text-zinc-200">{c.code}</td>
-                    <td className="px-4 py-3 text-zinc-400">{c.duration_days} days</td>
+                    <td className="px-4 py-3 text-zinc-400">{c.duration_days} days · {c.plan_type}</td>
                     <td className="px-4 py-3 text-zinc-400">
                       {c.used_count}{c.max_uses !== null ? ` / ${c.max_uses}` : ''}
                     </td>

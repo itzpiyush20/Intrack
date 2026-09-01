@@ -42,11 +42,23 @@ working exactly as it does in production today.
 
 ## Two money edges needing an owner decision before Task 3 ships
 
+**Both decided by the owner on 2026-09-01. Recorded here rather than left open —
+the code had already shipped the behaviour described below without the
+confirmation this section asked for.**
+
 1. **Customer away past their activation date.** A queued plan activates on the calendar
    date the previous one expired, so someone who does not open the app for 10 days after
    expiry loses those 10 days. If they stay away longer than the queued plan's whole
    duration, they get **zero** days for money paid. This plan implements the strict
    calendar rule; flag it to the owner and confirm before Task 3 is applied.
+
+   **DECIDED: keep the strict calendar rule.** Dates run on the calendar, not on
+   attendance. `activate_pending_plan()` in `supabase/035` implements exactly this
+   and is correct as written — the comment there ("a customer who stays away
+   loses that time") is the intended behaviour, not an oversight to be fixed
+   later. Do not change it to "starts on next login" without a new owner
+   decision; that variant would hand a customer who stays away a month of free
+   calendar time.
 2. **Queue occupied when a grant arrives.** `create-order.ts` refuses this before payment,
    so it means a race. Money has been taken, so the function adds the duration to the
    queued plan rather than dropping it (`queue_extended`). Never lose a payment.

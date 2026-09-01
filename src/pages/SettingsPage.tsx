@@ -11,14 +11,14 @@ import {
   getMerchantRules,
   deleteMerchantRule,
   saveMerchantRule,
-  saveMerchantSetting,
   supabase,
-  getMerchantRulesFromDB,
+  fetchMerchantRules,
   saveMerchantRuleToDb,
   migrateLocalStorageRulesToDB
 } from '@/services'
 import { fetchAllTransactions } from '@/services/transactions'
 import { getInsurancePolicies, createInsurancePolicy, deleteInsurancePolicy } from '@/services/insurance'
+import { buildRestoreRow, selectRowsToRestore } from '@/services/backupRestore'
 import { encryptText, decryptText, formatCurrency, formatDate, toISODateLocal } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
@@ -43,6 +43,16 @@ import {
   Mail,
 } from 'lucide-react'
 
+/**
+ * What merchant_rules.auto_approve is written as for a hand-added rule.
+ *
+ * The column's own default, kept only so the row shape does not change. It is
+ * dead data: applyMerchantRulesFromRows returns approval_status 'pending' for
+ * every match regardless of it, which is invariant 1 in CLAUDE.md. Do not
+ * reintroduce a control for it without changing that invariant first.
+ */
+const RULE_AUTO_APPROVE_DEFAULT = true
+
 export default function SettingsPage() {
   const { user, currencySymbol, hasGoogleToken, disconnectGoogle } = useAuth()
   const { showToast } = useToast()
@@ -66,7 +76,6 @@ export default function SettingsPage() {
   const [merchantRules, setMerchantRules] = useState<Record<string, { category: string; autoApprove: boolean; ruleType: string }>>({})
   const [newKeyword, setNewKeyword] = useState('')
   const [newCategory, setNewCategory] = useState('')
-  const [newAutoApprove, setNewAutoApprove] = useState(true)
   const [newRuleType, setNewRuleType] = useState<'income' | 'expense'>('expense')
 
   useEffect(() => {
@@ -240,23 +249,34 @@ export default function SettingsPage() {
     }
   }
 
+  /**
+   * Load the merchant rules, preferring the database.
+   *
+   * The localStorage fallback fires only when the database could not be READ —
+   * never when it simply returned nothing. It used to key off
+   * `data.length > 0`, which cannot tell "this account has no rules" from "the
+   * request failed", so deleting your last rule fell through to the browser
+   * copy and rules you had just removed reappeared. Rules created on another
+   * device made it worse: the local copy is stale by definition, so the list
+   * could repopulate with something the account no longer had anywhere.
+   *
+   * An empty database answer is a real answer. Only a throw is not.
+   */
   const loadRules = async () => {
     if (user) {
-      try {
-        const data = await getMerchantRulesFromDB(user.id)
-        if (data && data.length > 0) {
-          const dbRules: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
-          data.forEach(r => {
-            dbRules[r.merchant_key] = { category: r.preferred_category, autoApprove: r.auto_approve, ruleType: r.rule_type }
-          })
-          setMerchantRules(dbRules)
-          return
-        }
-      } catch (err) {
-        console.warn('Failed to load rules from DB:', err)
+      const { rules, ok } = await fetchMerchantRules(user.id)
+      if (ok) {
+        const dbRules: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
+        rules.forEach(r => {
+          dbRules[r.merchant_key] = { category: r.preferred_category, autoApprove: r.auto_approve, ruleType: r.rule_type }
+        })
+        setMerchantRules(dbRules)
+        return
       }
+      // ok === false: the read failed. Showing the last known rules beats
+      // showing none while the database is unreachable, so fall through.
     }
-    // Fallback to localStorage
+    // Signed out, or the database could not be reached.
     const localRules = getMerchantRules()
     const withType: Record<string, { category: string; autoApprove: boolean; ruleType: string }> = {}
     Object.entries(localRules).forEach(([key, rule]) => {
@@ -339,21 +359,6 @@ export default function SettingsPage() {
     loadRules()
   }
 
-  const handleToggleAutoApprove = async (key: string, currentAutoApprove: boolean) => {
-    saveMerchantSetting(key, { autoApprove: !currentAutoApprove })
-    if (user) {
-      try {
-        await supabase.from('merchant_rules').update({
-          auto_approve: !currentAutoApprove,
-          last_updated: new Date().toISOString()
-        }).eq('user_id', user.id).eq('merchant_key', key)
-      } catch (err) {
-        console.error('Failed to update rule in DB:', err)
-      }
-    }
-    loadRules()
-  }
-
   const handleUpdateRuleCategory = async (key: string, category: string) => {
     const currentRule = merchantRules[key]
     const autoApprove = currentRule ? currentRule.autoApprove : true
@@ -389,10 +394,14 @@ export default function SettingsPage() {
     e.preventDefault()
     if (!newKeyword.trim()) return
 
-    saveMerchantRule(newKeyword, newCategory, newAutoApprove)
+    // auto_approve is written as the column's own default. Nothing reads it —
+    // the scanner returns 'pending' for every rule match (CLAUDE.md invariant
+    // 1) — so this is here to keep the row shape unchanged, not to grant
+    // anything. The control that used to set it is gone.
+    saveMerchantRule(newKeyword, newCategory, RULE_AUTO_APPROVE_DEFAULT)
     if (user) {
       try {
-        await saveMerchantRuleToDb(user.id, newKeyword, newCategory, newAutoApprove, undefined, newRuleType)
+        await saveMerchantRuleToDb(user.id, newKeyword, newCategory, RULE_AUTO_APPROVE_DEFAULT, undefined, newRuleType)
       } catch (err) {
         console.error('Failed to save rule to DB:', err)
       }
@@ -400,7 +409,6 @@ export default function SettingsPage() {
 
     setNewKeyword('')
     setNewCategory(fallbackCategory?.name ?? categories[0]?.name ?? '')
-    setNewAutoApprove(true)
     setNewRuleType('expense')
     loadRules()
   }
@@ -492,29 +500,10 @@ export default function SettingsPage() {
       if (currentErr) {
         throw new Error('Could not read your existing transactions, so the merge was cancelled rather than risk creating duplicates.')
       }
-      const buildDedupKey = (t: { date: string; amount: number | string; merchant?: string | null; description?: string | null }) =>
-        `${t.date}-${Number(t.amount)}-${(t.merchant || '').trim().toLowerCase()}-${(t.description || '').trim().toLowerCase()}`
-
-      const currentKeys = new Set(currentTxns?.map(buildDedupKey))
-
-      const toInsert = pendingRestoreData.filter((t: any) => {
-        return !currentKeys.has(buildDedupKey(t))
-      })
+      const toInsert = selectRowsToRestore(pendingRestoreData, currentTxns ?? [])
 
       if (toInsert.length > 0) {
-        const cleanTxns = toInsert.map((t: any) => ({
-          user_id: user?.id,
-          amount: Number(t.amount),
-          type: t.type,
-          category: t.category,
-          description: t.description || '',
-          notes: t.notes || null,
-          date: t.date,
-          source: t.source || 'manual',
-          approval_status: t.approval_status || 'approved',
-          reference_id: t.reference_id || null,
-          merchant: t.merchant || null
-        }))
+        const cleanTxns = toInsert.map((t) => buildRestoreRow(t, user?.id))
 
         const { error: insertErr } = await supabase.from('transactions').insert(cleanTxns)
         if (insertErr) throw insertErr
@@ -595,8 +584,21 @@ export default function SettingsPage() {
                 <Brain className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Smart Merchant Rules</span>
               </h2>
+              {/* This used to promise that Intrack "auto-approves them when
+                  confidence is high", alongside a per-rule Auto-Approve
+                  checkbox. Neither was true: applyMerchantRulesFromRows returns
+                  approval_status 'pending' for every match regardless of
+                  confidence, auto_approve or times_confirmed, which is
+                  invariant 1 in CLAUDE.md. The checkbox wrote a column nothing
+                  reads, so it was a switch that changed nothing — and it
+                  implied a user could turn OFF a protection that is actually
+                  unconditional. Both are gone; the copy now says what the
+                  scanner does. */}
               <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Rules learned from your manual approvals. Intrack automatically categorizes subsequent transactions and auto-approves them when confidence is high.
+                Rules learned from your manual approvals. Intrack applies the category
+                automatically to matching transactions — but every one still lands in
+                Pending for you to approve. Nothing is ever added to your accounts
+                without you.
               </p>
 
               {/* Inline Rule Creator Form */}
@@ -634,16 +636,7 @@ export default function SettingsPage() {
                     <option value="income">🟢 Income</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-400 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={newAutoApprove}
-                      onChange={(e) => setNewAutoApprove(e.target.checked)}
-                      className="rounded border-zinc-800 bg-surface-2 text-brand-500 focus:ring-brand-500/25 h-3.5 w-3.5"
-                    />
-                    Auto-Approve
-                  </label>
+                <div className="flex items-center justify-end gap-2">
                   <Button size="md" type="submit" className="px-3 text-xs gap-1.5">
                     <Plus className="h-3.5 w-3.5" /> Add Rule
                   </Button>
@@ -664,15 +657,6 @@ export default function SettingsPage() {
                       >
                         <div className="flex flex-col gap-1">
                           <span className="font-semibold text-zinc-200 capitalize truncate max-w-[150px]">{key}</span>
-                          <label className="flex items-center gap-1.5 text-xs text-zinc-500 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={rule.autoApprove}
-                              onChange={() => handleToggleAutoApprove(key, rule.autoApprove)}
-                              className="rounded border-zinc-800 bg-surface-2 text-brand-500 focus:ring-brand-500/25 h-3.5 w-3.5"
-                            />
-                            Auto-Approve Transactions
-                          </label>
                         </div>
                         <div className="flex items-center gap-2 justify-between sm:justify-end">
                           <select
@@ -959,13 +943,26 @@ export default function SettingsPage() {
                 <Globe className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>General Preferences</span>
               </h2>
+              {/* This card said "Configure your currency formatting and locale
+                  structure" above a single fixed line. There is nothing to
+                  configure — Intrack is built for the Indian market and both
+                  values are constants. Saying so is more useful than implying a
+                  control that does not exist and never did. */}
               <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Configure your currency formatting and locale structure.
+                Intrack is built for India, so amounts and dates use Indian conventions.
+                These are fixed and not configurable.
               </p>
-              
-              <div className="space-y-4 text-xs">
 
-                <div className="flex items-center justify-between pt-1">
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Currency</span>
+                  <span className="font-bold text-zinc-300 font-mono">INR ({currencySymbol})</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Date format</span>
+                  <span className="font-bold text-zinc-300 font-mono">dd/mm/yyyy</span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-zinc-400">Language Locale</span>
                   <span className="font-bold text-zinc-300 font-mono">en-IN</span>
                 </div>

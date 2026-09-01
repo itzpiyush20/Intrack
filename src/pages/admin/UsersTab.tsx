@@ -9,7 +9,7 @@
 // than swallowed, because it is a rule the operator needs to see.
 // ============================================
 
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Card, Button, Input, Select } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { useAdminQuery } from './useAdminQuery'
@@ -39,6 +39,12 @@ interface AdminUserOpsResponse {
   success?: boolean
   email?: string
   expiresAt?: string
+  /** True when the account already held unexpired time that this grant added to. */
+  extended?: boolean
+  /** The plan an "end access" just cancelled out of the queue, if there was one. */
+  cancelledQueuedPlan?: string | null
+  /** Its Razorpay order id, so a refund can be traced. */
+  cancelledQueuedOrderId?: string | null
   error?: string
 }
 
@@ -131,9 +137,45 @@ function ScanHistory({ userId }: { userId: string }) {
   )
 }
 
+/**
+ * How long typing must pause before the search actually runs.
+ *
+ * `search` feeds useAdminQuery's args, which are part of its request key, so
+ * without this every keystroke fired admin_user_list — a SECURITY DEFINER
+ * function doing an unanchored ILIKE over `profiles` plus two correlated
+ * subqueries per returned row. Typing an eleven-character address issued
+ * eleven full scans and eleven sets of those subqueries, of which ten were
+ * discarded on arrival.
+ */
+const SEARCH_DEBOUNCE_MS = 300
+
+/**
+ * Escape a search term so LIKE wildcards in it match literally.
+ *
+ * admin_user_list interpolates the term into `email ILIKE '%' || search || '%'`,
+ * so a typed `%` matched anything and `_` matched any single character. Nobody
+ * is attacking anything with this — the term is a bound parameter, not
+ * concatenated SQL — but searching for an address containing an underscore
+ * quietly returned the wrong rows, which is worse than returning none.
+ *
+ * Backslash first, or it would escape the escapes added after it. Postgres
+ * LIKE/ILIKE treats backslash as the escape character by default.
+ */
+function escapeLikeWildcards(term: string): string {
+  return term.replace(/\\/g, '\\\\').replace(/[%_]/g, (char) => `\\${char}`)
+}
+
 export default function UsersTab() {
+  // `search` is what the box shows and must update on every keystroke, or
+  // typing feels broken. `debouncedSearch` is what the RPC actually runs on.
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(escapeLikeWildcards(search)), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const [historyFor, setHistoryFor] = useState<string | null>(null)
   const [grantFor, setGrantFor] = useState<string | null>(null)
@@ -144,7 +186,7 @@ export default function UsersTab() {
   const [opSuccess, setOpSuccess] = useState<string | null>(null)
 
   const { data, loading, error, reload } = useAdminQuery<UserRow[]>('admin_user_list', {
-    search,
+    search: debouncedSearch,
     lim: PAGE_SIZE,
     off: page * PAGE_SIZE,
   })
@@ -171,8 +213,14 @@ export default function UsersTab() {
         days: Number(grantDays),
         planType: grantPlan,
       })
+      // "extended to" rather than "now has ... for N days": the grant adds to
+      // whatever the account already held, so quoting the number of days
+      // granted next to the new expiry would read as a contradiction for
+      // anyone who still had time left.
       setOpSuccess(
-        `${user.email} now has ${grantPlan} access for ${grantDays} days (until ${formatDate(result.expiresAt ?? null)}).`
+        result.extended
+          ? `${user.email} had unexpired access, so ${grantDays} ${grantPlan} days were added — now valid until ${formatDate(result.expiresAt ?? null)}.`
+          : `${user.email} now has ${grantPlan} access for ${grantDays} days (until ${formatDate(result.expiresAt ?? null)}).`
       )
       setGrantFor(null)
       reload()
@@ -185,15 +233,26 @@ export default function UsersTab() {
 
   const expire = async (user: UserRow) => {
     // Taking away paid access is not undoable from here, so make it deliberate.
-    if (!window.confirm(`End paid access for ${user.email}? They lose premium features immediately.`)) {
+    if (!window.confirm(
+      `End paid access for ${user.email}? They lose premium features immediately, ` +
+      `and any plan queued to start later is cancelled too — if they paid for one, ` +
+      `you will need to refund it in Razorpay.`
+    )) {
       return
     }
     setBusyUser(user.id)
     setOpError(null)
     setOpSuccess(null)
     try {
-      await callAdminUserOps({ action: 'expire', userId: user.id })
-      setOpSuccess(`Paid access for ${user.email} has ended.`)
+      const result = await callAdminUserOps({ action: 'expire', userId: user.id })
+      // Ending access also cancels a queued plan, which the customer has
+      // already paid for. Nothing here refunds it, so the operator has to be
+      // told plainly — with the order id, or the refund cannot be traced.
+      setOpSuccess(
+        result.cancelledQueuedPlan
+          ? `Paid access for ${user.email} has ended. A queued ${result.cancelledQueuedPlan} plan was also cancelled — they PAID for it${result.cancelledQueuedOrderId ? ` (order ${result.cancelledQueuedOrderId})` : ''}, so refund it in Razorpay.`
+          : `Paid access for ${user.email} has ended.`
+      )
       setGrantFor(null)
       reload()
     } catch (e) {
@@ -225,7 +284,7 @@ export default function UsersTab() {
 
       {!loading && !error && (data?.length ?? 0) === 0 && (
         <p className="py-8 text-center text-sm text-zinc-500">
-          {search ? 'No accounts match that search.' : 'No accounts yet.'}
+          {debouncedSearch ? 'No accounts match that search.' : 'No accounts yet.'}
         </p>
       )}
 
@@ -317,7 +376,8 @@ export default function UsersTab() {
                           </Button>
                         </div>
                         <p className="mt-2 text-xs text-zinc-500">
-                          Between 1 and 365 days. The grant is recorded in payments as a ₹0 admin payment.
+                          Between 1 and 365 days. Added to any unexpired time the account already
+                          has, never replacing it. Recorded in payments as a ₹0 admin payment.
                         </p>
                       </td>
                     </tr>

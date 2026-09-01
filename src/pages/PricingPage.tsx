@@ -76,7 +76,25 @@ export default function PricingPage() {
 
   const isActive  = isActiveActive
   const isTrial   = isTrialActive
-  const isPro     = isActive && profile?.subscription_plan_type !== 'monthly'
+
+  // WHICH PLAN they hold. Deliberately not the same question as whether they
+  // may buy, which is `canBuy` below.
+  //
+  // These were one flag — `isPro` — and merging them locked annual subscribers
+  // out of paying: it hid the entire checkout section AND disabled the yearly
+  // button, so a customer on the yearly plan had no way to buy another year
+  // until their access lapsed. apply_plan_purchase() has queued renewals since
+  // 035 (buying again returns outcome 'queued' and the new plan starts the day
+  // the current one ends), and monthly subscribers could already reach it.
+  // Only annual subscribers, the ones most worth renewing, could not.
+  const isOnYearly  = isActive && profile?.subscription_plan_type !== 'monthly'
+  const isOnMonthly = isActive && profile?.subscription_plan_type === 'monthly'
+
+  // The one thing that genuinely stops a purchase: the server refuses a second
+  // one while a plan is already queued (create-order.ts returns 409), because
+  // stacking two would take money for time the customer cannot reach for up to
+  // a year.
+  const canBuy = !hasQueuedPlan
 
   const planName  = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
   const planPrice = selectedPlan === 'annual' ? '365' : '31'
@@ -192,7 +210,16 @@ export default function PricingPage() {
               })
             } else {
               await updateSubscriptionStatus('active', selectedPlan)
-              showToast(`👑 Payment Successful! ${planName} features unlocked.`, 'success')
+              // 'already_applied' means this order was credited earlier — the
+              // webhook usually beats the browser here. The plan IS active, so
+              // this is still a success, but announcing a fresh unlock for a
+              // second delivery of the same payment reads as a double charge.
+              showToast(
+                verifyData.outcome === 'already_applied'
+                  ? `Payment already confirmed — your ${planName} plan is active.`
+                  : `👑 Payment Successful! ${planName} features unlocked.`,
+                'success'
+              )
               navigate('/payment-success', { state: { planName, expiresAt: verifyData.expiresAt } })
             }
           } catch (err: any) { showToast(`Verification Failed: ${err.message}`, 'error') }
@@ -477,27 +504,30 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <div className="mt-8">
-                {isActive && profile?.subscription_plan_type === 'monthly' ? (
-                  <button
-                    disabled
-                    className="w-full justify-center rounded-xl py-3 font-semibold text-xs border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 cursor-not-allowed"
-                  >
-                    Current Plan
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => !isPro && !hasQueuedPlan && handleSelectPlan('monthly')}
-                    disabled={isPro || hasQueuedPlan}
-                    className={`w-full justify-center rounded-xl py-3 font-semibold text-xs border ${
-                      isPro || hasQueuedPlan
-                        ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500 cursor-not-allowed'
-                        : 'border-zinc-700 bg-surface-2 hover:bg-zinc-800 text-zinc-300 transition-all active:scale-98 shadow-sm cursor-pointer'
-                    }`}
-                  >
-                    Choose Monthly
-                  </button>
+              <div className="mt-8 space-y-3">
+                {/* Same change as the yearly card: holding this plan is a note,
+                    not a disabled button. A monthly subscriber buying again
+                    queues the next month behind the running one. */}
+                {isOnMonthly && profile?.subscription_expires_at && (
+                  <p className="text-center text-xs font-bold text-emerald-400">
+                    Your current plan · active until {formatDate(profile.subscription_expires_at)}
+                  </p>
                 )}
+                <button
+                  onClick={() => canBuy && handleSelectPlan('monthly')}
+                  disabled={!canBuy}
+                  className={`w-full justify-center rounded-xl py-3 font-semibold text-xs border ${
+                    !canBuy
+                      ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500 cursor-not-allowed'
+                      : 'border-zinc-700 bg-surface-2 hover:bg-zinc-800 text-zinc-300 transition-all active:scale-98 shadow-sm cursor-pointer'
+                  }`}
+                >
+                  {!canBuy
+                    ? 'A plan is already queued'
+                    : isOnMonthly
+                    ? 'Renew for another month'
+                    : 'Choose Monthly'}
+                </button>
               </div>
             </Card>
 
@@ -538,27 +568,32 @@ export default function PricingPage() {
               </ul>
 
               <div className="mt-8 space-y-3">
-                {isPro ? (
-                  <button
-                    onClick={() => {
-                      if (profile?.subscription_expires_at) {
-                        showToast(`Your Pro Plan is active until ${new Date(profile.subscription_expires_at).toLocaleDateString('en-IN')}`, 'info')
-                      }
-                    }}
-                    className="w-full py-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs tracking-wide cursor-pointer hover:bg-emerald-500/20 transition-all select-none"
-                    title="Click to view validity"
-                  >
-                    Current Plan
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleSelectPlan('annual')}
-                    disabled={hasQueuedPlan}
-                    className="sb-btn-primary w-full cursor-pointer border-0"
-                    style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
-                  >
-                    {isActive && profile?.subscription_plan_type === 'monthly' ? 'Upgrade to Yearly' : 'Get Yearly'}
-                  </button>
+                {/* Holding the yearly plan is now a NOTE, not a locked button.
+                    It used to be the button itself, which is what left an
+                    annual subscriber with no way to pay again. */}
+                {isOnYearly && profile?.subscription_expires_at && (
+                  <p className="text-center text-xs font-bold text-emerald-400">
+                    Your current plan · active until {formatDate(profile.subscription_expires_at)}
+                  </p>
+                )}
+                <button
+                  onClick={() => handleSelectPlan('annual')}
+                  disabled={!canBuy}
+                  className="sb-btn-primary w-full cursor-pointer border-0"
+                  style={{ opacity: canBuy ? 1 : 0.5 }}
+                >
+                  {!canBuy
+                    ? 'A plan is already queued'
+                    : isOnYearly
+                    ? 'Renew for another year'
+                    : isActive && profile?.subscription_plan_type === 'monthly'
+                    ? 'Upgrade to Yearly'
+                    : 'Get Yearly'}
+                </button>
+                {isOnYearly && canBuy && (
+                  <p className="text-xs text-center text-zinc-500 font-medium">
+                    Renewing now adds 365 days to the end of your current plan — you lose nothing.
+                  </p>
                 )}
                 <p className="text-xs text-center text-zinc-500 font-medium">Payments handled by Razorpay · encrypted in transit</p>
               </div>
@@ -603,8 +638,14 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* ── CHECKOUT SECTION ────────────────────────────────── */}
-        {!isPro && (
+        {/* ── CHECKOUT SECTION ─────────────────────────────────
+            Rendered for everyone, including subscribers on the yearly plan.
+            This was gated on `!isOnYearly`, which meant the only customers who had
+            already committed to a full year were the only ones with no way to
+            give money again — the checkout simply did not exist on their page.
+            A queued purchase is refused by create-order.ts, not by hiding the
+            form, so `hasQueuedPlan` is the only state that disables buying. */}
+        {(
           <div id="checkout-section" className="max-w-2xl mx-auto pb-12 w-full animate-fade-in">
             {!user ? (
               <Card className="rounded-3xl shadow-md p-8 text-center space-y-6">

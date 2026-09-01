@@ -27,7 +27,22 @@ export type MerchantRuleRow = {
   rule_type: string
 }
 
-export async function getMerchantRulesFromDB(userId: string, db: SupabaseClient = supabase): Promise<MerchantRuleRow[]> {
+/**
+ * The merchant rules, plus whether the read actually succeeded.
+ *
+ * `ok: false` means the request failed; `ok: true` with an empty array means
+ * the account genuinely has no rules. getMerchantRulesFromDB below collapses
+ * those two into `[]`, which is right for the scanner — a rules read that
+ * fails must degrade to "no rules matched", never fail the scan — but wrong
+ * for any caller that has to decide between showing nothing and falling back
+ * to a cached copy. SettingsPage needs that distinction: keyed off the empty
+ * array alone, deleting your last rule looked identical to a failed read and
+ * repopulated the list from stale localStorage.
+ */
+export async function fetchMerchantRules(
+  userId: string,
+  db: SupabaseClient = supabase
+): Promise<{ rules: MerchantRuleRow[]; ok: boolean }> {
   const { data, error } = await db
     .from('merchant_rules')
     .select('*')
@@ -36,9 +51,22 @@ export async function getMerchantRulesFromDB(userId: string, db: SupabaseClient 
 
   if (error) {
     console.warn('[LearningEngine] Failed to fetch merchant rules:', error.message)
-    return []
+    return { rules: [], ok: false }
   }
-  return (data || []) as MerchantRuleRow[]
+  return { rules: (data || []) as MerchantRuleRow[], ok: true }
+}
+
+/**
+ * The merchant rules, or an empty list if they could not be read.
+ *
+ * The swallow is deliberate and load-bearing for the scanner (see
+ * emailScanner.ts): a failed rules read must cost the scan its rules, not the
+ * scan itself. Callers that need to tell empty from failed use
+ * fetchMerchantRules above.
+ */
+export async function getMerchantRulesFromDB(userId: string, db: SupabaseClient = supabase): Promise<MerchantRuleRow[]> {
+  const { rules } = await fetchMerchantRules(userId, db)
+  return rules
 }
 
 export async function saveMerchantRuleToDb(

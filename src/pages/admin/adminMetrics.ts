@@ -13,9 +13,14 @@ const ANNUAL_PRICE_INR = 365
 /**
  * Approximate monthly recurring revenue from the plans people hold RIGHT NOW.
  *
- * This is not historic revenue. No payments table exists, so past receipts were
- * never recorded and cannot be reconstructed. Always label this as approximate
- * in the UI.
+ * This is not historic revenue, and the reason is no longer that receipts are
+ * missing — `public.payments` has recorded them since migration 025. This
+ * function simply answers a different question: what the current book of plans
+ * is worth per month, not what has actually been collected. It values every
+ * active plan at list price, so admin grants and coupon redemptions (both real
+ * rows in `payments`, both worth ₹0) are counted here as if they were sales.
+ *
+ * Always label this as approximate in the UI, and do not present it as takings.
  */
 export function approximateMonthlyRevenue(monthlyCount: number, annualCount: number): number {
   const fromMonthly = monthlyCount * MONTHLY_PRICE_INR

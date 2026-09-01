@@ -11,24 +11,50 @@ export default function PaymentSuccessPage() {
   const [verifying, setVerifying] = useState(true)
   const [attempts, setAttempts] = useState(0)
 
-  const rawState = location.state || {
-    planName: 'Pro',
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  }
+  // This page is a RECEIPT for a purchase that just happened in this tab, and
+  // router state is the only evidence of that. It used to substitute a default
+  // — planName 'Pro', expiry 30 days out — when the state was missing, so
+  // anyone who bookmarked, refreshed, or simply typed /payment-success was
+  // shown "Subscription Activated!" with a fabricated renewal date for a
+  // purchase that never happened. Nothing is invented now; with no state we
+  // send them to the page that shows their real plan.
+  const rawState = location.state as {
+    planName?: string
+    expiresAt?: string
+    queued?: boolean
+    startsAt?: string
+  } | null
+
+  const hasReceipt = !!rawState
+
+  useEffect(() => {
+    if (!hasReceipt) navigate('/pricing', { replace: true })
+  }, [hasReceipt, navigate])
 
   // A queued purchase is paid for but does NOT start until the current plan
   // ends. Nothing about the account changes today, so this page must not
   // announce access the customer does not yet have.
-  const queued = rawState.queued === true
-  const startsAt = rawState.startsAt
-  const shownDate = queued ? startsAt : rawState.expiresAt
-  const planName = (rawState.planName === 'monthly' || rawState.planName === 'Starter Monthly' || rawState.planName === 'Basic')
+  const queued = rawState?.queued === true
+  const startsAt = rawState?.startsAt
+  const shownDate = queued ? startsAt : rawState?.expiresAt
+
+  // PricingPage sends 'Monthly' or 'Yearly' — the labels shown on its own
+  // cards. The test here was against 'monthly', 'Starter Monthly' and 'Basic',
+  // none of which it has ever sent, so capital-M 'Monthly' fell through to the
+  // else branch and every customer who bought the ₹31 monthly plan was handed
+  // a receipt saying "Pro". Matching is case-insensitive now so a label
+  // capitalised differently cannot silently mean the wrong plan again.
+  const planName = /^(monthly|starter monthly|basic)$/i.test(rawState?.planName ?? '')
     ? 'Basic'
     : 'Pro'
 
   // Poll profile to check if backend/webhook has updated status to active
   useEffect(() => {
     let interval: any
+
+    // Nothing to verify without a receipt — the effect above is already
+    // navigating away.
+    if (!hasReceipt) return
 
     // A queued plan never flips the status today — polling for 'active' would
     // spin for ten seconds and then show a "status syncing" warning for
@@ -58,7 +84,12 @@ export default function PaymentSuccessPage() {
     }
 
     return () => clearInterval(interval)
-  }, [profile, attempts, queued])
+  }, [profile, attempts, queued, hasReceipt])
+
+  // Rendered nothing rather than a placeholder receipt: the effect above
+  // redirects, and a frame of "Subscription Activated!" for a purchase that
+  // did not happen is the whole bug.
+  if (!hasReceipt) return null
 
   const formattedDate = shownDate
     ? new Date(shownDate).toLocaleDateString('en-IN', {
@@ -111,7 +142,11 @@ export default function PaymentSuccessPage() {
           </div>
 
           <div className="flex justify-between items-center text-xs">
-            <span className="text-zinc-500">{queued ? 'Starts On' : 'Renewal Date'}</span>
+            {/* Not "Renewal Date". Both plans are one-time payments — no
+                mandate, nothing recurring — which is the promise the pricing
+                page is built around. Calling this a renewal date told the
+                customer to expect a charge that will never arrive. */}
+            <span className="text-zinc-500">{queued ? 'Starts On' : 'Access until'}</span>
             <span className="font-semibold text-zinc-300">{formattedDate}</span>
           </div>
         </div>
