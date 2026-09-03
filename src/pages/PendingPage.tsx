@@ -1046,7 +1046,7 @@ export default function PendingPage() {
                 <>
                   <p className="text-sm font-bold text-brand-400">{formatNextScanTime(nextScanAt)}</p>
                   <p className="text-xs text-zinc-500">
-                    {quotaExhausted ? 'Daily scan allowance used' : 'Scans are at least 4 hours apart'}
+                    {quotaExhausted ? "Today's scans used" : 'Scans are at least 4 hours apart'}
                   </p>
                 </>
               ) : (
@@ -1178,7 +1178,7 @@ export default function PendingPage() {
               <Clock className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-white text-sm">
-                  {quotaExhausted ? 'Daily Scan Limit Reached' : 'Too Soon Since Your Last Scan'}
+                  {quotaExhausted ? "Today's scans are done" : "Next scan isn't ready yet"}
                 </p>
                 <p className="text-xs text-zinc-400 mt-0.5">{scanCooldownMessage}</p>
                 {nextScanAt && (

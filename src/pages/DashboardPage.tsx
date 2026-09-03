@@ -822,7 +822,7 @@ export default function DashboardPage() {
                   <span className="text-xs font-semibold text-brand-300 bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
                     Next scan {formatNextScanTime(nextScanAt)}
                     <span className="text-zinc-500 font-normal">
-                      {quotaExhausted ? '· allowance used' : '· 4-hour gap'}
+                      {quotaExhausted ? "· today's scans used" : '· 4-hour gap'}
                     </span>
                   </span>
                 )}
