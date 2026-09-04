@@ -73,12 +73,32 @@ type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 const RULE_AUTO_APPROVE_DEFAULT = true
 
 export default function SettingsPage() {
-  const { user, hasGoogleToken, disconnectGoogle } = useAuth()
+  const { user, hasGoogleToken, disconnectGoogle, signInWithGoogle } = useAuth()
   const { showToast } = useToast()
   const { categories, fallbackCategory } = useCategories()
 
   const [disconnectLoading, setDisconnectLoading] = useState(false)
+  const [connectLoading, setConnectLoading] = useState(false)
 
+  /**
+   * Same call shape as PendingPage's handleReconnectGoogle — the one OAuth
+   * flow. `true` asks for the Gmail scope; nothing here requests offline
+   * access or forces a consent prompt (see CLAUDE.md). On success the browser
+   * leaves for Google, so the loading state is only cleared on failure.
+   */
+  const handleConnectGmail = async () => {
+    try {
+      setConnectLoading(true)
+      const { error } = await signInWithGoogle('/settings', true)
+      if (error) throw new Error(error)
+    } catch (err) {
+      showToast(
+        err instanceof Error && err.message ? err.message : 'Failed to redirect to Google.',
+        'error'
+      )
+      setConnectLoading(false)
+    }
+  }
 
   const handleDisconnectGmail = async () => {
     setDisconnectLoading(true)
@@ -607,10 +627,22 @@ export default function SettingsPage() {
                   </Button>
                 </>
               ) : (
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Gmail is not connected. Intrack has no access to your inbox. You can connect it
-                  from the Pending Alerts page to import bank transaction emails automatically.
-                </p>
+                <>
+                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                    Gmail is not connected. Intrack has no access to your inbox. Connect it to let
+                    scans read your bank transaction alerts and log them as expenses for you to
+                    approve.
+                  </p>
+                  <Button
+                    onClick={handleConnectGmail}
+                    variant="secondary"
+                    className="w-full text-xs justify-center gap-1.5 cursor-pointer"
+                    disabled={connectLoading}
+                  >
+                    <Key className="h-4 w-4 shrink-0" />
+                    {connectLoading ? 'Redirecting…' : 'Connect Gmail'}
+                  </Button>
+                </>
               )}
             </Card>
             {/* Smart Merchant Rules Card */}

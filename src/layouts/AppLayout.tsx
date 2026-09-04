@@ -42,8 +42,8 @@ interface AppLayoutProps {
 }
 
 const navItems = [
-  { label: 'Dashboard', path: ROUTES.DASHBOARD },
-  { label: 'Expenses', path: ROUTES.EXPENSES },
+  { label: 'Home', path: ROUTES.DASHBOARD },
+  { label: 'Transactions', path: ROUTES.EXPENSES },
   { label: 'Budgets', path: ROUTES.BUDGETS },
   { label: 'Pending', path: ROUTES.PENDING },
   { label: 'Insights', path: ROUTES.INSIGHTS },

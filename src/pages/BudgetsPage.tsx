@@ -175,7 +175,7 @@ export default function BudgetsPage() {
         {/* Header Section */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Budget Limits</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Budgets</h1>
             <p className="mt-1 text-sm text-zinc-400">
               Set per-category monthly limits and get overspend warnings before they happen.
             </p>

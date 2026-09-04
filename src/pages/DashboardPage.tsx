@@ -347,7 +347,7 @@ export default function DashboardPage() {
   }, [user])
 
   useEffect(() => {
-    document.title = `Dashboard | ${APP_CONFIG.APP_NAME}`
+    document.title = `Home | ${APP_CONFIG.APP_NAME}`
     fetchDashboardData(dateFilter)
     // One-time migration of localStorage merchant rules to Supabase DB
     if (user && !sessionStorage.getItem('intrack_ls_migration_done')) {

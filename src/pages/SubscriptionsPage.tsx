@@ -1,5 +1,5 @@
 // ============================================
-// SubscriptionsPage — Smart Subscriptions Tracker
+// SubscriptionsPage — recurring charges detected from transactions
 // Detects, aggregates, and manages recurring payments
 // ============================================
 
@@ -206,7 +206,7 @@ export default function SubscriptionsPage() {
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Smart Subscriptions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Subscriptions</h1>
           <p className="mt-1 text-sm text-zinc-400">
             Auto-detect active streaming, broadband, and billing cycles, and track upcoming renewals.
           </p>

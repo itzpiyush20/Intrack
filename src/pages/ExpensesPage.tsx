@@ -64,7 +64,7 @@ export default function ExpensesPage() {
   }, [dateFilter])
 
   useEffect(() => {
-    document.title = `Expenses | ${APP_CONFIG.APP_NAME}`
+    document.title = `Transactions | ${APP_CONFIG.APP_NAME}`
     fetchTransactions()
   }, [fetchTransactions])
 
@@ -130,7 +130,7 @@ export default function ExpensesPage() {
           {/* Header row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Expenses</h1>
+              <h1 className="text-2xl font-semibold text-white">Transactions</h1>
               <p className="mt-1 text-sm text-zinc-400">Manage your income and expenses</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap shrink-0">

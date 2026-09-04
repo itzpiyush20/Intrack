@@ -1078,7 +1078,7 @@ export default function PendingPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Auto-Detected Alerts</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Pending Alerts</h1>
             <p className="mt-1 text-sm text-zinc-400">
               Bank alerts scanned from email notifications. Review, correct category, and approve them.
             </p>
