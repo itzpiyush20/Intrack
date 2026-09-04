@@ -19,11 +19,12 @@ import {
 import { fetchAllTransactions } from '@/services/transactions'
 import { getInsurancePolicies, createInsurancePolicy, deleteInsurancePolicy } from '@/services/insurance'
 import { buildRestoreRow, selectRowsToRestore } from '@/services/backupRestore'
-import { encryptText, decryptText, formatCurrency, formatDate, toISODateLocal } from '@/utils'
+import { encryptText, decryptText, formatCurrency, formatDate, toISODateLocal, cn } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
 import CategoryManager from '@/components/settings/CategoryManager'
+import CardManager from '@/components/settings/CardManager'
 import {
   Brain,
   Trash2,
@@ -41,7 +42,29 @@ import {
   Check,
   Shield,
   Mail,
+  CreditCard,
+  SlidersHorizontal,
+  Database,
 } from 'lucide-react'
+
+/**
+ * Settings is grouped rather than listed. Nine sections in one column read as
+ * a wall on a phone, and the previous 7/5 grid only helped above md.
+ *
+ * The grouping is by what a person came to do, not by which table the data
+ * lives in: preferences and categories are both "how the app behaves", the
+ * scanner's connection and its learned rules are both "how mail is read", and
+ * backup, export and password are all "my data and my account".
+ */
+const SETTINGS_TABS = [
+  { id: 'general',   label: 'General',    icon: SlidersHorizontal },
+  { id: 'cards',     label: 'Cards',      icon: CreditCard },
+  { id: 'scanning',  label: 'Scanning',   icon: Mail },
+  { id: 'insurance', label: 'Insurance',  icon: Shield },
+  { id: 'data',      label: 'Data',       icon: Database },
+] as const
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 
 /**
  * What merchant_rules.auto_approve is written as for a hand-added rule.
@@ -561,6 +584,8 @@ export default function SettingsPage() {
     }
   }
 
+  const [tab, setTab] = useState<SettingsTab>('general')
+
   return (
     <AppLayout>
       <div className="space-y-8 animate-fade-in">
@@ -568,16 +593,120 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Configuration Settings</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Configure application rules, dynamic merchant patterns, and encrypted transaction backups.
+            Your categories and cards, how your inbox is read, and what happens to your data.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-12">
-          {/* Left panel: Smart Merchant Rules */}
-          <div className="md:col-span-7 space-y-6">
+        {/* Section nav.
+            Nine sections stacked in one column is what made this page unusable
+            on a phone. Only one group renders at a time now; the strip scrolls
+            sideways where it does not fit and wraps where it does. */}
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+          <div
+            role="tablist"
+            aria-label="Settings sections"
+            className="flex gap-1.5 min-w-max sm:min-w-0 sm:flex-wrap pb-1"
+          >
+            {SETTINGS_TABS.map((t) => {
+              const Icon = t.icon
+              const isActive = tab === t.id
+              return (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl px-3.5 h-11 text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer',
+                    isActive
+                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 shadow-sm'
+                      : 'bg-surface-1 border-border-subtle text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* One column throughout. The old 7/5 split only ever applied above
+            md, and below it produced a single very long scroll. */}
+        <div className="space-y-6 max-w-3xl">
+          {tab === 'general' && (
+            <>
+            {/* General Preferences Card */}
+            <Card className="border-border-subtle bg-surface-1 shadow-md">
+              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <Globe className="h-5 w-5 text-brand-400 shrink-0" />
+                <span>General Preferences</span>
+              </h2>
+              {/* This card said "Configure your currency formatting and locale
+                  structure" above a single fixed line. There is nothing to
+                  configure — Intrack is built for the Indian market and both
+                  values are constants. Saying so is more useful than implying a
+                  control that does not exist and never did. */}
+              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                Intrack is built for India, so amounts and dates use Indian conventions.
+                These are fixed and not configurable.
+              </p>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Currency</span>
+                  <span className="font-bold text-zinc-300 font-mono">INR ({currencySymbol})</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Date format</span>
+                  <span className="font-bold text-zinc-300 font-mono">dd/mm/yyyy</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Language Locale</span>
+                  <span className="font-bold text-zinc-300 font-mono">en-IN</span>
+                </div>
+              </div>
+            </Card>
             {/* Manage Categories Card */}
             <CategoryManager />
+            </>
+          )}
 
+          {tab === 'cards' && <CardManager />}
+
+          {tab === 'scanning' && (
+            <>
+            {/* Gmail Connection Card */}
+            <Card className="border-border-subtle bg-surface-1 shadow-md">
+              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-brand-400 shrink-0" />
+                <span>Gmail Inbox Connection</span>
+              </h2>
+              {hasGoogleToken ? (
+                <>
+                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                    Intrack reads bank transaction alerts from your Gmail when you run a scan,
+                    and logs them as expenses for you to approve. Disconnecting revokes our access
+                    at Google immediately, so no further scan can run. Your already-imported
+                    transactions stay untouched.
+                  </p>
+                  <Button
+                    onClick={handleDisconnectGmail}
+                    variant="secondary"
+                    className="w-full text-xs justify-center gap-1.5 cursor-pointer"
+                    disabled={disconnectLoading}
+                  >
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    {disconnectLoading ? 'Disconnecting…' : 'Disconnect Gmail'}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Gmail is not connected. Intrack has no access to your inbox. You can connect it
+                  from the Pending Alerts page to import bank transaction emails automatically.
+                </p>
+              )}
+            </Card>
             {/* Smart Merchant Rules Card */}
             <Card className="border-border-subtle bg-surface-1 shadow-md">
               <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
@@ -692,283 +821,11 @@ export default function SettingsPage() {
                 </div>
               )}
             </Card>
-          </div>
+            </>
+          )}
 
-          {/* Right panel: backups & localisations */}
-          <div className="md:col-span-5 space-y-6">
-            {/* Encrypted Backup & Restore Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Lock className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>Privacy-First Encrypted Backup</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard **AES-256-GCM** before downloading.
-              </p>
-
-              <div className="space-y-6">
-                {/* Export Block */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Download Backup</h3>
-                  <form onSubmit={handleBackup} className="space-y-3">
-                    {backupSuccess && (
-                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
-                        <span>Encrypted backup generated and downloaded successfully.</span>
-                      </div>
-                    )}
-                    <Input
-                      label="Backup Password"
-                      type="password"
-                      placeholder="Enter a strong password"
-                      value={backupPassword}
-                      onChange={(e) => setBackupPassword(e.target.value)}
-                      required
-                    />
-                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5">
-                      <Download className="h-4 w-4" /> Encrypt & Export Backup
-                    </Button>
-                  </form>
-                </div>
-
-                {/* Import Block */}
-                <div className="space-y-4 border-t border-border-subtle/30 pt-6">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Restore Backup</h3>
-                  <form onSubmit={handleRestore} className="space-y-3">
-                    {restoreError && (
-                      <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
-                        <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
-                        <span>{restoreError}</span>
-                      </div>
-                    )}
-                    {restoreSuccess && (
-                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
-                        <span>Backup successfully decrypted and data merged!</span>
-                      </div>
-                    )}
-                    <div>
-                      <label htmlFor="restore-file-input" className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5 cursor-pointer">
-                        Select Backup File (.drbak)
-                      </label>
-                      <input
-                        id="restore-file-input"
-                        type="file"
-                        accept=".drbak"
-                        className="w-full text-xs text-zinc-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-surface-2 file:text-zinc-300 hover:file:bg-surface-3 cursor-pointer"
-                      />
-                    </div>
-                    <Input
-                      label="Decryption Password"
-                      type="password"
-                      placeholder="Enter decryption password"
-                      value={restorePassword}
-                      onChange={(e) => setRestorePassword(e.target.value)}
-                      required
-                    />
-                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5">
-                      <Upload className="h-4 w-4" /> Decrypt & Merge Backup
-                    </Button>
-                  </form>
-                </div>
-              </div>
-            </Card>
-
-            {/* Plain Export Card */}
-            {/* Gmail Connection Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>Gmail Inbox Connection</span>
-              </h2>
-              {hasGoogleToken ? (
-                <>
-                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                    Intrack reads bank transaction alerts from your Gmail when you run a scan,
-                    and logs them as expenses for you to approve. Disconnecting revokes our access
-                    at Google immediately, so no further scan can run. Your already-imported
-                    transactions stay untouched.
-                  </p>
-                  <Button
-                    onClick={handleDisconnectGmail}
-                    variant="secondary"
-                    className="w-full text-xs justify-center gap-1.5 cursor-pointer"
-                    disabled={disconnectLoading}
-                  >
-                    <XCircle className="h-4 w-4 shrink-0" />
-                    {disconnectLoading ? 'Disconnecting…' : 'Disconnect Gmail'}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Gmail is not connected. Intrack has no access to your inbox. You can connect it
-                  from the Pending Alerts page to import bank transaction emails automatically.
-                </p>
-              )}
-            </Card>
-
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Download className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>Data Portability (Plain Export)</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Export your transactions — approved and pending — in standard, human-readable formats for tax filing, spreadsheets, or migrations.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="export-from" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    From
-                  </label>
-                  <input
-                    id="export-from"
-                    type="date"
-                    value={exportFrom}
-                    max={exportTo || undefined}
-                    onChange={(e) => { setExportFrom(e.target.value); setExportRangeError('') }}
-                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="export-to" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    To
-                  </label>
-                  <input
-                    id="export-to"
-                    type="date"
-                    value={exportTo}
-                    min={exportFrom || undefined}
-                    onChange={(e) => { setExportTo(e.target.value); setExportRangeError('') }}
-                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {exportRangeError && (
-                <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 mb-3 text-xs text-[var(--status-danger-text)]">
-                  {exportRangeError}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-zinc-500">
-                  {exportFrom || exportTo
-                    ? `Exporting ${exportFrom ? formatDate(exportFrom) : 'the beginning'} → ${exportTo ? formatDate(exportTo) : 'today'}`
-                    : 'Leave both blank to export everything'}
-                </p>
-                {(exportFrom || exportTo) && (
-                  <button
-                    onClick={() => { setExportFrom(''); setExportTo(''); setExportRangeError('') }}
-                    className="text-xs text-brand-400 underline bg-transparent border-none cursor-pointer shrink-0"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handlePlainExport('csv')}
-                  variant="secondary"
-                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
-                  disabled={exportLoading}
-                >
-                  <FileSpreadsheet className="h-4 w-4 text-zinc-400 shrink-0" /> Export CSV
-                </Button>
-                <Button
-                  onClick={() => handlePlainExport('json')}
-                  variant="secondary"
-                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
-                  disabled={exportLoading}
-                >
-                  <FileJson className="h-4 w-4 text-zinc-400 shrink-0" /> Export JSON
-                </Button>
-              </div>
-            </Card>
-
-            {/* Change Password Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Key className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>Change Account Password</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mb-2 leading-relaxed">
-                Update your account password. Passwords must be at least 6 characters.
-              </p>
-              <p className="text-xs text-zinc-500 mb-4 leading-relaxed italic">
-                Forgotten your password entirely? Use "Reset My Password" on your Profile page
-                instead — it emails you a reset link.
-              </p>
-              <form onSubmit={handleChangePassword} className="space-y-3">
-                {changePasswordError && (
-                  <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
-                    <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
-                    <span>{changePasswordError}</span>
-                  </div>
-                )}
-                {changePasswordSuccess && (
-                  <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
-                    <span>Password updated successfully!</span>
-                  </div>
-                )}
-                <Input
-                  label="New Password"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  disabled={changePasswordLoading}
-                />
-                <Input
-                  label="Confirm New Password"
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={changePasswordLoading}
-                />
-                <Button type="submit" block loading={changePasswordLoading} disabled={changePasswordLoading} className="gap-1.5">
-                  <Check className="h-4 w-4" /> Update Password
-                </Button>
-              </form>
-            </Card>
-
-            {/* General Preferences Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Globe className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>General Preferences</span>
-              </h2>
-              {/* This card said "Configure your currency formatting and locale
-                  structure" above a single fixed line. There is nothing to
-                  configure — Intrack is built for the Indian market and both
-                  values are constants. Saying so is more useful than implying a
-                  control that does not exist and never did. */}
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Intrack is built for India, so amounts and dates use Indian conventions.
-                These are fixed and not configurable.
-              </p>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Currency</span>
-                  <span className="font-bold text-zinc-300 font-mono">INR ({currencySymbol})</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Date format</span>
-                  <span className="font-bold text-zinc-300 font-mono">dd/mm/yyyy</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Language Locale</span>
-                  <span className="font-bold text-zinc-300 font-mono">en-IN</span>
-                </div>
-              </div>
-            </Card>
-
+          {tab === 'insurance' && (
+            <>
             {/* Insurance Policies Card */}
             <Card id="insurance-policies" className="border-border-subtle bg-surface-1 shadow-md">
               <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
@@ -1075,7 +932,218 @@ export default function SettingsPage() {
                 </div>
               )}
             </Card>
-          </div>
+            </>
+          )}
+
+          {tab === 'data' && (
+            <>
+            {/* Encrypted Backup & Restore Card */}
+            <Card className="border-border-subtle bg-surface-1 shadow-md">
+              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-brand-400 shrink-0" />
+                <span>Privacy-First Encrypted Backup</span>
+              </h2>
+              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard **AES-256-GCM** before downloading.
+              </p>
+
+              <div className="space-y-6">
+                {/* Export Block */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Download Backup</h3>
+                  <form onSubmit={handleBackup} className="space-y-3">
+                    {backupSuccess && (
+                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
+                        <span>Encrypted backup generated and downloaded successfully.</span>
+                      </div>
+                    )}
+                    <Input
+                      label="Backup Password"
+                      type="password"
+                      placeholder="Enter a strong password"
+                      value={backupPassword}
+                      onChange={(e) => setBackupPassword(e.target.value)}
+                      required
+                    />
+                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5">
+                      <Download className="h-4 w-4" /> Encrypt & Export Backup
+                    </Button>
+                  </form>
+                </div>
+
+                {/* Import Block */}
+                <div className="space-y-4 border-t border-border-subtle/30 pt-6">
+                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Restore Backup</h3>
+                  <form onSubmit={handleRestore} className="space-y-3">
+                    {restoreError && (
+                      <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
+                        <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
+                        <span>{restoreError}</span>
+                      </div>
+                    )}
+                    {restoreSuccess && (
+                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
+                        <span>Backup successfully decrypted and data merged!</span>
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="restore-file-input" className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5 cursor-pointer">
+                        Select Backup File (.drbak)
+                      </label>
+                      <input
+                        id="restore-file-input"
+                        type="file"
+                        accept=".drbak"
+                        className="w-full text-xs text-zinc-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-surface-2 file:text-zinc-300 hover:file:bg-surface-3 cursor-pointer"
+                      />
+                    </div>
+                    <Input
+                      label="Decryption Password"
+                      type="password"
+                      placeholder="Enter decryption password"
+                      value={restorePassword}
+                      onChange={(e) => setRestorePassword(e.target.value)}
+                      required
+                    />
+                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5">
+                      <Upload className="h-4 w-4" /> Decrypt & Merge Backup
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            </Card>
+            <Card className="border-border-subtle bg-surface-1 shadow-md">
+              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <Download className="h-5 w-5 text-brand-400 shrink-0" />
+                <span>Data Portability (Plain Export)</span>
+              </h2>
+              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                Export your transactions — approved and pending — in standard, human-readable formats for tax filing, spreadsheets, or migrations.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="export-from" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    From
+                  </label>
+                  <input
+                    id="export-from"
+                    type="date"
+                    value={exportFrom}
+                    max={exportTo || undefined}
+                    onChange={(e) => { setExportFrom(e.target.value); setExportRangeError('') }}
+                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="export-to" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    To
+                  </label>
+                  <input
+                    id="export-to"
+                    type="date"
+                    value={exportTo}
+                    min={exportFrom || undefined}
+                    onChange={(e) => { setExportTo(e.target.value); setExportRangeError('') }}
+                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {exportRangeError && (
+                <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 mb-3 text-xs text-[var(--status-danger-text)]">
+                  {exportRangeError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-zinc-500">
+                  {exportFrom || exportTo
+                    ? `Exporting ${exportFrom ? formatDate(exportFrom) : 'the beginning'} → ${exportTo ? formatDate(exportTo) : 'today'}`
+                    : 'Leave both blank to export everything'}
+                </p>
+                {(exportFrom || exportTo) && (
+                  <button
+                    onClick={() => { setExportFrom(''); setExportTo(''); setExportRangeError('') }}
+                    className="text-xs text-brand-400 underline bg-transparent border-none cursor-pointer shrink-0"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => handlePlainExport('csv')}
+                  variant="secondary"
+                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
+                  disabled={exportLoading}
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-zinc-400 shrink-0" /> Export CSV
+                </Button>
+                <Button
+                  onClick={() => handlePlainExport('json')}
+                  variant="secondary"
+                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
+                  disabled={exportLoading}
+                >
+                  <FileJson className="h-4 w-4 text-zinc-400 shrink-0" /> Export JSON
+                </Button>
+              </div>
+            </Card>
+            {/* Change Password Card */}
+            <Card className="border-border-subtle bg-surface-1 shadow-md">
+              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <Key className="h-5 w-5 text-brand-400 shrink-0" />
+                <span>Change Account Password</span>
+              </h2>
+              <p className="text-xs text-zinc-400 mb-2 leading-relaxed">
+                Update your account password. Passwords must be at least 6 characters.
+              </p>
+              <p className="text-xs text-zinc-500 mb-4 leading-relaxed italic">
+                Forgotten your password entirely? Use "Reset My Password" on your Profile page
+                instead — it emails you a reset link.
+              </p>
+              <form onSubmit={handleChangePassword} className="space-y-3">
+                {changePasswordError && (
+                  <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
+                    <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
+                    <span>{changePasswordError}</span>
+                  </div>
+                )}
+                {changePasswordSuccess && (
+                  <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
+                    <span>Password updated successfully!</span>
+                  </div>
+                )}
+                <Input
+                  label="New Password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  disabled={changePasswordLoading}
+                />
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={changePasswordLoading}
+                />
+                <Button type="submit" block loading={changePasswordLoading} disabled={changePasswordLoading} className="gap-1.5">
+                  <Check className="h-4 w-4" /> Update Password
+                </Button>
+              </form>
+            </Card>
+            </>
+          )}
         </div>
       </div>
 

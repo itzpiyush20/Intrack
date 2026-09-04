@@ -38,7 +38,7 @@ export type CategoryType = 'income' | 'expense'
  * calc, and subscription-burn/credit-card-bill tracking on the Insights
  * page, without hardcoding display names there.
  */
-export type AnalyticsTag = 'needs' | 'wants' | 'savings' | 'income' | 'subscription' | 'credit_card_bill'
+export type AnalyticsTag = 'needs' | 'wants' | 'savings' | 'income' | 'subscription' | 'credit_card_bill' | 'loan'
 
 /** A user-defined category row */
 export interface Category {
@@ -76,6 +76,68 @@ export interface Transaction {
   confidence_score?: number
   email_message_id?: string         // Gmail message ID (dedup only, not displayed)
   event_type?: string
+  /** Which card this sits on. Undefined means it came out of available money. */
+  card_id?: string | null
+  /** Only on a credit-card bill payment: the card whose outstanding it settles. */
+  settles_card_id?: string | null
+  /** Set only when the category is Loan. Non-null marks the row as borrowing. */
+  loan_source?: LoanSource | null
+  /** Who lent it — free text, meaningful only when loan_source is 'other'. */
+  loan_source_note?: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Where borrowed money came from. A fixed list the user cannot extend, asked
+ * for whenever the Loan category is chosen.
+ *
+ * This is what separates a cash advance from a refund. Both are money arriving
+ * on a credit card and are otherwise identical rows, but an advance RAISES the
+ * outstanding and a refund LOWERS it.
+ */
+export type LoanSource = 'credit_card' | 'bank' | 'family_friend' | 'other'
+
+/** A credit card the user defined themselves, to track its outstanding. */
+export interface Card {
+  id: string
+  user_id: string
+  name: string
+  issuer?: string | null
+  last4?: string | null
+  brand?: CardBrand | null
+  /** Manual only — nothing in the app archives a card on the user's behalf. */
+  is_archived: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * The user's combined cash-in-hand and bank balance at the start of a month.
+ *
+ * One row per month rather than a single figure, so a correction lands on the
+ * month it was made and never rewrites what earlier months already reported.
+ */
+export interface BalancePeriod {
+  id: string
+  user_id: string
+  month: string              // YYYY-MM-01
+  opening_amount: number
+  /** True when a person typed it; false when carried forward by the app. */
+  is_user_set: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** The same, per credit card. */
+export interface CardPeriod {
+  id: string
+  user_id: string
+  card_id: string
+  month: string              // YYYY-MM-01
+  opening_outstanding: number
+  is_user_set: boolean
   created_at: string
   updated_at: string
 }
