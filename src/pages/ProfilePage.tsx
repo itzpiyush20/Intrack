@@ -72,6 +72,15 @@ export default function ProfilePage() {
     setError(null)
 
     try {
+      // cleanAvatarUrl in profiles.ts stores NULL for anything that is not an
+      // http(s) URL — a data: URI, a bare domain, a typo — and returns no
+      // error, so the page used to show "Changes updated successfully" while
+      // the avatar had been thrown away. Rejecting it here means the user is
+      // told, rather than discovering it on the next reload.
+      const trimmedAvatar = avatarUrl.trim()
+      if (trimmedAvatar && !/^https?:\/\//i.test(trimmedAvatar)) {
+        throw new Error('Avatar image URL must start with http:// or https://')
+      }
       const { error } = await updateProfile({
         fullName,
         avatarUrl,
@@ -88,6 +97,17 @@ export default function ProfilePage() {
     }
   }
 
+  // The one shared error banner lives at the top of the page. On a phone the
+  // layout stacks, so a failure in the danger zone writes its message roughly
+  // two screens above where the user is looking — a failed deletion looked
+  // like nothing happening at all. Scrolling to it is the smallest honest fix.
+  const surfaceError = (message: string) => {
+    setError(message)
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user?.email) return
@@ -97,13 +117,18 @@ export default function ProfilePage() {
     setError(null)
 
     try {
+      // resetPassword resolves to { error: string | null } — a STRING, not an
+      // Error. `throw error` then met `err.message` in the catch, which is
+      // undefined on a string, so every failure showed the generic fallback.
+      // The message that matters most here is Supabase's 60-second rate limit,
+      // which tells the user exactly what to do and was never being shown.
       const { error } = await resetPassword(user.email)
-      if (error) throw error
+      if (error) throw new Error(error)
       setPasswordSuccess(true)
       setTimeout(() => setPasswordSuccess(false), 5000)
     } catch (err: any) {
       console.error('Error resetting password:', err)
-      setError(err.message || 'Failed to trigger password reset.')
+      surfaceError(err.message || 'Failed to trigger password reset.')
     } finally {
       setPasswordLoading(false)
     }
@@ -115,8 +140,16 @@ export default function ProfilePage() {
     setError(null)
 
     try {
+      // Returns a bare PostgrestError, or { error: Error } when unauthenticated.
+      // Throwing either lost the real cause, for the same reason as above.
       const error = await resetAccountData()
-      if (error) throw error
+      if (error) {
+        const message =
+          (error as { message?: string }).message ??
+          ((error as { error?: { message?: string } }).error?.message) ??
+          'Failed to reset account data.'
+        throw new Error(message)
+      }
 
       setResetSuccess(true)
 
@@ -132,7 +165,7 @@ export default function ProfilePage() {
       setTimeout(() => window.location.reload(), 1500)
     } catch (err: any) {
       console.error('Error wiping user data:', err)
-      setError(err.message || 'Failed to clear account databases.')
+      surfaceError(err.message || 'Failed to clear account databases.')
     } finally {
       setResetLoading(false)
     }
@@ -180,7 +213,7 @@ export default function ProfilePage() {
       await signOut()
     } catch (err: any) {
       console.error('Error deleting account:', err)
-      setError(err.message || 'Failed to execute account deletion.')
+      surfaceError(err.message || 'Failed to execute account deletion.')
       setDeleteLoading(false)
     }
   }
@@ -197,7 +230,7 @@ export default function ProfilePage() {
         </div>
 
         {error && (
-          <div className="rounded-2xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-sm text-[var(--status-danger-text)]">
+          <div role="alert" className="rounded-2xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-sm text-[var(--status-danger-text)]">
             {error}
           </div>
         )}
@@ -313,8 +346,8 @@ export default function ProfilePage() {
                   <h2 className="text-base font-bold text-[var(--status-danger-text)] mb-2">Danger Zone: Data Reset</h2>
                   <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
                     Permanently deletes all your transaction entries, custom budgets, and inbox
-                    scan logs. Your learned merchant rules, saved cards and insurance policies
-                    are kept — use Delete Account below to remove everything. This is irreversible!
+                    scan logs. Your learned merchant rules and saved cards are kept — use Delete
+                    Account below to remove everything. This is irreversible!
                   </p>
 
                   <div className="space-y-4">
@@ -341,7 +374,7 @@ export default function ProfilePage() {
                     <span>⚠️</span> Danger Zone: Delete Account
                   </h2>
                   <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
-                    Permanently deletes your secure auth login credentials, account logs, learned rules, and database allocations. <strong>This action is absolute and irreversible.</strong>
+                    Permanently deletes your login, your transactions, budgets, learned rules, saved cards and scan logs. <strong>This cannot be undone.</strong> One thing survives, and only without your name on it: any feedback or support message you sent is kept with your name and email replaced, so a problem you reported does not vanish. The Privacy Policy explains this in full.
                   </p>
 
                   <form onSubmit={handleDeleteAccount} className="space-y-4">
