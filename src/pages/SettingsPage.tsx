@@ -17,9 +17,8 @@ import {
   migrateLocalStorageRulesToDB
 } from '@/services'
 import { fetchAllTransactions } from '@/services/transactions'
-import { getInsurancePolicies, createInsurancePolicy, deleteInsurancePolicy } from '@/services/insurance'
 import { buildRestoreRow, selectRowsToRestore } from '@/services/backupRestore'
-import { encryptText, decryptText, formatCurrency, formatDate, toISODateLocal, cn } from '@/utils'
+import { encryptText, decryptText, formatDate, toISODateLocal, cn } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
@@ -34,16 +33,14 @@ import {
   FileSpreadsheet,
   FileJson,
   Key,
-  Globe,
   CheckCircle2,
   XCircle,
   HelpCircle,
   Plus,
   Check,
-  Shield,
   Mail,
   CreditCard,
-  SlidersHorizontal,
+  Layers,
   Database,
 } from 'lucide-react'
 
@@ -57,10 +54,9 @@ import {
  * backup, export and password are all "my data and my account".
  */
 const SETTINGS_TABS = [
-  { id: 'general',   label: 'General',    icon: SlidersHorizontal },
+  { id: 'general',   label: 'Categories', icon: Layers },
   { id: 'cards',     label: 'Cards',      icon: CreditCard },
   { id: 'scanning',  label: 'Scanning',   icon: Mail },
-  { id: 'insurance', label: 'Insurance',  icon: Shield },
   { id: 'data',      label: 'Data',       icon: Database },
 ] as const
 
@@ -77,7 +73,7 @@ type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 const RULE_AUTO_APPROVE_DEFAULT = true
 
 export default function SettingsPage() {
-  const { user, currencySymbol, hasGoogleToken, disconnectGoogle } = useAuth()
+  const { user, hasGoogleToken, disconnectGoogle } = useAuth()
   const { showToast } = useToast()
   const { categories, fallbackCategory } = useCategories()
 
@@ -106,16 +102,6 @@ export default function SettingsPage() {
       setNewCategory(fallbackCategory?.name ?? categories[0].name)
     }
   }, [categories, fallbackCategory, newCategory])
-
-  // Insurance Policies State
-  const [policies, setPolicies] = useState<Array<{ id: string; policy_name: string; policy_type: string; premium_amount: number; frequency: string; next_due_date: string; remarks: string | null }>>([])
-  const [newPolicyName, setNewPolicyName] = useState('')
-  const [newPolicyType, setNewPolicyType] = useState<'life' | 'health'>('life')
-  const [newPremium, setNewPremium] = useState('')
-  const [newFrequency, setNewFrequency] = useState<'monthly' | 'quarterly' | 'half_yearly' | 'annual'>('annual')
-  const [newDueDate, setNewDueDate] = useState('')
-  const [newRemarks, setNewRemarks] = useState('')
-  const [policyError, setPolicyError] = useState('')
 
   // Encryption Backup / Restore States
   const [backupPassword, setBackupPassword] = useState('')
@@ -320,55 +306,6 @@ export default function SettingsPage() {
     }
   }, [user])
 
-  useEffect(() => {
-    getInsurancePolicies().then(({ data }) => {
-      if (data) setPolicies(data)
-    })
-  }, [])
-
-  const handleAddPolicy = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setPolicyError('')
-
-    const premiumNum = Number(newPremium)
-    if (!newPolicyName.trim()) {
-      setPolicyError('Enter a policy name')
-      return
-    }
-    if (isNaN(premiumNum) || premiumNum <= 0) {
-      setPolicyError('Enter a valid premium amount')
-      return
-    }
-    if (!newDueDate) {
-      setPolicyError('Pick a due date')
-      return
-    }
-
-    const { data, error } = await createInsurancePolicy({
-      policy_name: newPolicyName.trim(),
-      policy_type: newPolicyType,
-      premium_amount: premiumNum,
-      frequency: newFrequency,
-      next_due_date: newDueDate,
-      remarks: newRemarks || null,
-    })
-
-    if (error) {
-      setPolicyError(error.message)
-      return
-    }
-
-    if (data) setPolicies((prev) => [...prev, data].sort((a, b) => a.next_due_date.localeCompare(b.next_due_date)))
-    setNewPolicyName('')
-    setNewPremium('')
-    setNewDueDate('')
-    setNewRemarks('')
-  }
-
-  const handleDeletePolicy = async (id: string) => {
-    await deleteInsurancePolicy(id)
-    setPolicies((prev) => prev.filter((p) => p.id !== id))
-  }
 
   const handleDeleteRule = async (key: string) => {
     deleteMerchantRule(key)
@@ -636,37 +573,6 @@ export default function SettingsPage() {
         <div className="space-y-6 max-w-3xl">
           {tab === 'general' && (
             <>
-            {/* General Preferences Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Globe className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>General Preferences</span>
-              </h2>
-              {/* This card said "Configure your currency formatting and locale
-                  structure" above a single fixed line. There is nothing to
-                  configure — Intrack is built for the Indian market and both
-                  values are constants. Saying so is more useful than implying a
-                  control that does not exist and never did. */}
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Intrack is built for India, so amounts and dates use Indian conventions.
-                These are fixed and not configurable.
-              </p>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Currency</span>
-                  <span className="font-bold text-zinc-300 font-mono">INR ({currencySymbol})</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Date format</span>
-                  <span className="font-bold text-zinc-300 font-mono">dd/mm/yyyy</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Language Locale</span>
-                  <span className="font-bold text-zinc-300 font-mono">en-IN</span>
-                </div>
-              </div>
-            </Card>
             {/* Manage Categories Card */}
             <CategoryManager />
             </>
@@ -824,116 +730,6 @@ export default function SettingsPage() {
             </>
           )}
 
-          {tab === 'insurance' && (
-            <>
-            {/* Insurance Policies Card */}
-            <Card id="insurance-policies" className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-brand-400 shrink-0" />
-                <span>Insurance Policies</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Track life and health insurance premiums. You'll get a reminder before each is due.
-              </p>
-
-              {policyError && (
-                <div className="text-xs p-2.5 mb-3 bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] text-[var(--status-danger-text)] rounded-xl">
-                  {policyError}
-                </div>
-              )}
-
-              <form onSubmit={handleAddPolicy} className="grid gap-3 sm:grid-cols-2 mb-4">
-                <input
-                  type="text"
-                  placeholder="Policy name (e.g. LIC Term Plan)"
-                  value={newPolicyName}
-                  onChange={(e) => setNewPolicyName(e.target.value)}
-                  aria-label="Policy name"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 sm:col-span-2"
-                />
-                <select
-                  value={newPolicyType}
-                  onChange={(e) => setNewPolicyType(e.target.value as 'life' | 'health')}
-                  aria-label="Policy type"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                >
-                  <option value="life">🧬 Life</option>
-                  <option value="health">🏥 Health</option>
-                </select>
-                <select
-                  value={newFrequency}
-                  onChange={(e) => setNewFrequency(e.target.value as typeof newFrequency)}
-                  aria-label="Premium frequency"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                >
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="half_yearly">Half-yearly</option>
-                  <option value="annual">Annual</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder={`Premium (${currencySymbol})`}
-                  value={newPremium}
-                  onChange={(e) => setNewPremium(e.target.value)}
-                  min="1"
-                  step="0.01"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-                <input
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  aria-label="Next due date"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Remarks (optional)"
-                  value={newRemarks}
-                  onChange={(e) => setNewRemarks(e.target.value)}
-                  aria-label="Remarks"
-                  className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 sm:col-span-2"
-                />
-                <Button size="sm" type="submit" className="sm:col-span-2 justify-center">
-                  Add Policy
-                </Button>
-              </form>
-
-              {policies.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-xs text-zinc-500">
-                  No policies added yet.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {policies.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-2/60 border border-border-subtle/30 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <span className="font-semibold text-zinc-200 truncate block">
-                          {p.policy_type === 'life' ? '🧬' : '🏥'} {p.policy_name}
-                        </span>
-                        <span className="text-xs text-zinc-500">
-                          {formatCurrency(p.premium_amount)} · {p.frequency.replace('_', '-')} · due {formatDate(p.next_due_date)}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleDeletePolicy(p.id)}
-                        className="h-10 w-10 rounded text-zinc-500 hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] transition-colors flex items-center justify-center shrink-0"
-                        title="Delete policy"
-                        aria-label={`Delete ${p.policy_name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-            </>
-          )}
 
           {tab === 'data' && (
             <>
@@ -944,7 +740,7 @@ export default function SettingsPage() {
                 <span>Privacy-First Encrypted Backup</span>
               </h2>
               <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard **AES-256-GCM** before downloading.
+                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-zinc-300">AES-256-GCM</strong> before downloading.
               </p>
 
               <div className="space-y-6">

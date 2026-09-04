@@ -12,7 +12,6 @@ import { Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity 
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
 import QuickAddWidget from '@/components/dashboard/QuickAddWidget'
 import ReceivablesCard from '@/components/dashboard/ReceivablesCard'
-import InsurancePremiumCard from '@/components/dashboard/InsurancePremiumCard'
 import {
   AlertTriangle,
   RefreshCw,
@@ -875,7 +874,6 @@ export default function DashboardPage() {
             )}
 
             <ReceivablesCard onSettled={() => fetchDashboardData(dateFilter)} />
-            <InsurancePremiumCard onPaid={() => fetchDashboardData(dateFilter)} />
           </>
         )}
 

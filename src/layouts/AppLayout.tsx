@@ -14,7 +14,6 @@ import Modal from '@/components/ui/Modal'
 import SiteFooter from '@/components/ui/SiteFooter'
 import { submitFeedback, supabase } from '@/services'
 import { getActiveReceivables } from '@/services/transactions'
-import { getInsurancePolicies } from '@/services/insurance'
 import {
   Bell,
   User,
@@ -33,7 +32,6 @@ import {
   Sparkles,
   Wallet,
   HandCoins,
-  ShieldAlert,
   ShieldCheck,
 } from 'lucide-react'
 import { canAccessAdmin } from '@/services/adminAccess'
@@ -196,12 +194,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         })
       }
 
-      // 3 & 4. Receivables and insurance premiums due within 7 days or overdue
+      // 3. Receivables due within 7 days or overdue
       const todayStr = new Date().toISOString().split('T')[0]
-      const [{ data: receivables }, { data: policies }] = await Promise.all([
-        getActiveReceivables(),
-        getInsurancePolicies()
-      ])
+      const { data: receivables } = await getActiveReceivables()
 
       if (receivables) {
         receivables.forEach((r) => {
@@ -227,28 +222,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
         })
       }
 
-      if (policies) {
-        policies.forEach((p) => {
-          const dueDate = new Date(p.next_due_date)
-          const isOverdue = p.next_due_date < todayStr
-          const daysOut = Math.ceil((dueDate.getTime() - new Date(todayStr).getTime()) / (24 * 60 * 60 * 1000))
-          if (isOverdue) {
-            items.push({
-              key: `insurance_overdue_${p.id}`,
-              message: `${p.policy_name} premium is overdue.`,
-              type: 'danger',
-              href: '/dashboard',
-            })
-          } else if (daysOut <= 7) {
-            items.push({
-              key: `insurance_soon_${p.id}`,
-              message: `${p.policy_name} premium due in ${daysOut} day(s).`,
-              type: 'warning',
-              href: '/dashboard',
-            })
-          }
-        })
-      }
     } catch (e) {
       console.error('Error fetching notifications:', e)
     }
@@ -438,7 +411,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const getNotificationIcon = (key: string) => {
     if (key.startsWith('budget_')) return Wallet
     if (key.startsWith('receivable_')) return HandCoins
-    if (key.startsWith('insurance_')) return ShieldAlert
     return Bell
   }
 
