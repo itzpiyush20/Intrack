@@ -504,26 +504,33 @@ CREATE POLICY "Creators can view all signin logs"
   USING (public.is_admin());
 
 -- ==========================================
--- 11. CARDS TABLE
--- Card profile management per user
+-- 11. CARDS, BALANCE PERIODS AND CARD PERIODS
+-- Credit cards the user defines themselves, plus the monthly opening figures
+-- the balance maths is built on. See plans/accounts-and-balances.md.
+--
+-- The previous public.cards described any card seen in an email and was never
+-- written to by any UI. 042 replaced it with this: cards a user deliberately
+-- set up and wants an outstanding balance for.
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.cards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  last4 TEXT NOT NULL,
-  issuer TEXT NOT NULL DEFAULT 'Unknown',
-  card_type TEXT NOT NULL DEFAULT 'debit' CHECK (card_type IN ('credit', 'debit')),
-  card_name TEXT DEFAULT NULL,
-  is_primary BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, last4, card_type)
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  issuer      TEXT,
+  last4       TEXT,
+  brand       TEXT CHECK (brand IN ('Visa','Mastercard','RuPay','American Express','Diners')),
+  is_archived BOOLEAN NOT NULL DEFAULT false,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_cards_user ON public.cards(user_id);
 
 ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own cards" ON public.cards;
 CREATE POLICY "Users can manage own cards"
   ON public.cards FOR ALL
   USING (auth.uid() = user_id)
@@ -532,6 +539,64 @@ CREATE POLICY "Users can manage own cards"
 DROP TRIGGER IF EXISTS set_updated_at_cards ON public.cards;
 CREATE TRIGGER set_updated_at_cards
   BEFORE UPDATE ON public.cards
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- One combined "cash in hand and bank balances" figure per user per month.
+-- Per month rather than once, so a correction lands on the month it was made
+-- and the months before it keep the figures they already reported.
+CREATE TABLE IF NOT EXISTS public.balance_periods (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  month          DATE NOT NULL CHECK (date_trunc('month', month) = month),
+  opening_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+  is_user_set    BOOLEAN NOT NULL DEFAULT false,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_balance_periods_user_month
+  ON public.balance_periods(user_id, month DESC);
+
+ALTER TABLE public.balance_periods ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own balance periods" ON public.balance_periods;
+CREATE POLICY "Users can manage own balance periods"
+  ON public.balance_periods FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS set_updated_at_balance_periods ON public.balance_periods;
+CREATE TRIGGER set_updated_at_balance_periods
+  BEFORE UPDATE ON public.balance_periods
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TABLE IF NOT EXISTS public.card_periods (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  card_id             UUID NOT NULL REFERENCES public.cards(id) ON DELETE CASCADE,
+  month               DATE NOT NULL CHECK (date_trunc('month', month) = month),
+  opening_outstanding NUMERIC(14,2) NOT NULL DEFAULT 0,
+  is_user_set         BOOLEAN NOT NULL DEFAULT false,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (card_id, month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_periods_user_month
+  ON public.card_periods(user_id, month DESC);
+
+ALTER TABLE public.card_periods ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own card periods" ON public.card_periods;
+CREATE POLICY "Users can manage own card periods"
+  ON public.card_periods FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS set_updated_at_card_periods ON public.card_periods;
+CREATE TRIGGER set_updated_at_card_periods
+  BEFORE UPDATE ON public.card_periods
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ==========================================
@@ -628,6 +693,38 @@ END$$;
 CREATE INDEX IF NOT EXISTS idx_transactions_currency
   ON public.transactions (user_id, currency, date DESC);
 
+-- 042 — which card a transaction sits on, which card a bill payment settles,
+-- and where borrowed money came from. All nullable: the balances feature is
+-- optional and every existing row stays valid without them.
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS card_id UUID REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS settles_card_id UUID REFERENCES public.cards(id) ON DELETE SET NULL;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS loan_source TEXT;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS loan_source_note TEXT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'transactions_loan_source_check'
+  ) THEN
+    ALTER TABLE public.transactions
+      ADD CONSTRAINT transactions_loan_source_check
+      CHECK (loan_source IS NULL OR loan_source IN ('credit_card','bank','family_friend','other'));
+  END IF;
+END$$;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_card
+  ON public.transactions(card_id) WHERE card_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_settles_card
+  ON public.transactions(settles_card_id) WHERE settles_card_id IS NOT NULL;
+
 -- 017 — rejected emails are remembered so a later scan never re-fetches them.
 ALTER TABLE public.email_scan_rejections
   ADD COLUMN IF NOT EXISTS email_message_id TEXT;
@@ -700,4 +797,11 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --                              the published refund policy covers, so it is
 --                              reported to the operator instead of silently
 --                              becoming extra days
+--   042_balances_cards_and_loans.sql  cards replaced with user-defined credit
+--                              cards, balance_periods and card_periods (one
+--                              opening figure per month, so a correction never
+--                              rewrites the months before it), the four
+--                              transactions columns above, and the Loan
+--                              category — borrowing that is not income, whose
+--                              source separates a cash advance from a refund
 -- ==========================================
