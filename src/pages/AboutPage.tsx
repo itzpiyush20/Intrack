@@ -153,7 +153,7 @@ export default function AboutPage() {
             className="sb-btn-primary no-underline"
             style={{ padding: '13px 24px' }}
           >
-            Open Dashboard →
+            Open app →
           </Link>
         ) : (
           <button

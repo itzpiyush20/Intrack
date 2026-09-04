@@ -579,7 +579,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     to="/dashboard"
                     className="sb-btn-primary rounded-[6px] text-xs font-semibold border-0 cursor-pointer whitespace-nowrap shadow-sm"
                   >
-                    Dashboard
+                    Open app
                   </Link>
                 ) : profile?.subscription_status === 'active' ? (
                   activePlan === 'monthly' ? (
@@ -812,7 +812,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3 text-center no-underline"
                   >
-                    <BarChart3 className="h-4 w-4 shrink-0" /> Go to Dashboard
+                    <BarChart3 className="h-4 w-4 shrink-0" /> Open app
                   </Link>
                 )}
                 {/* Mirrors the desktop nav above. "Daily Life" used to point at
@@ -1080,7 +1080,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           aria-label="Mobile navigation"
         >
           <div className="flex items-center justify-around h-16 px-1">
-            {/* Dashboard */}
+            {/* Home */}
             <Link
               to={ROUTES.DASHBOARD}
               className={cn(
@@ -1089,13 +1089,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   ? 'text-brand-400'
                   : 'text-zinc-500 hover:text-zinc-300'
               )}
-              aria-label="Dashboard"
+              aria-label="Home"
             >
               <Home className="h-5 w-5" />
               <span className="text-xs font-semibold tracking-wide">Home</span>
             </Link>
 
-            {/* Expenses */}
+            {/* Transactions */}
             <Link
               to={ROUTES.EXPENSES}
               className={cn(
@@ -1104,10 +1104,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   ? 'text-brand-400'
                   : 'text-zinc-500 hover:text-zinc-300'
               )}
-              aria-label="Expenses"
+              aria-label="Transactions"
             >
               <CreditCard className="h-5 w-5" />
-              <span className="text-xs font-semibold tracking-wide">Expenses</span>
+              <span className="text-xs font-semibold tracking-wide">Transactions</span>
             </Link>
 
             {/* Quick Add FAB — centre button */}

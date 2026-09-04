@@ -85,7 +85,7 @@ export default function UserMenu({ className }: UserMenuProps) {
             className="absolute right-0 mt-2 w-48 rounded-xl border border-sb-hairline bg-sb-canvas p-2 shadow-[var(--shadow-md)] z-50 animate-scale-up"
           >
             <Link to={ROUTES.DASHBOARD} onClick={() => setOpen(false)} className={menuLink} role="menuitem">
-              📊 Dashboard
+              📊 Home
             </Link>
             <Link to="/profile" onClick={() => setOpen(false)} className={menuLink} role="menuitem">
               👤 Profile Section
