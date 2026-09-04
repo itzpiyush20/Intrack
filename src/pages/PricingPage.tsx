@@ -24,16 +24,22 @@ import { APP_CONFIG } from '@/constants'
 // a badge label or an upsell button, and ProtectedRoute gates on
 // isSubscriptionActive alone. A monthly subscriber already has all of it, so
 // the yearly card was selling features the monthly plan silently included.
-const FREE_FEATURES = [
+// There is no free tier. The owner settled this on 2026-09-04: after the
+// 7-day trial, access stops unless the user pays. This list used to promise
+// that manual entry, budgets and one daily scan stayed free afterwards, which
+// ProtectedRoute has never allowed — it sends every user without an active
+// subscription to this page. The card now describes the trial, which is the
+// only thing here that costs nothing.
+const TRIAL_FEATURES = [
+  'Every feature, for 7 days',
   'Manual expense & income entry',
-  'Basic budgets & category tracking',
-  '7-day full trial — no card required',
-  'After the trial: one manual inbox scan a day',
+  'Budgets, categories and insights',
+  'No card required to start',
 ]
 
 const MONTHLY_FEATURES = [
   'Two inbox scans a day, at least 4 hours apart',
-  'Double the free plan, which gets one a day',
+  'Everything the trial had, without the 7-day limit',
   'Real-time category learning engine',
   'Subscription renewal tracking & calendar',
   'Encrypted CSV & JSON data export',
@@ -431,25 +437,25 @@ export default function PricingPage() {
         <div className="py-6 animate-fade-in">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 md:auto-rows-fr gap-6 items-stretch">
 
-            {/* ── Free tier: 7-day trial ────────────────────────── */}
+            {/* ── Trial: 7 days, then pay ───────────────────────── */}
             <Card
               hoverable
               className="p-8 flex flex-col relative group"
             >
               <div className="mb-6">
-                <span className="inline-flex items-center bg-surface-2 border border-border-subtle px-2.5 py-0.5 rounded-full text-xs font-semibold text-zinc-400">Free Tier</span>
-                <h2 className="text-lg font-bold text-sb-ink mt-4">Free</h2>
+                <span className="inline-flex items-center bg-surface-2 border border-border-subtle px-2.5 py-0.5 rounded-full text-xs font-semibold text-zinc-400">Free Trial</span>
+                <h2 className="text-lg font-bold text-sb-ink mt-4">Trial</h2>
               </div>
 
               <div className="mb-6">
                 <div className="flex items-baseline gap-1">
                   <span className="font-extrabold text-4xl text-sb-ink tracking-tight">₹0</span>
                 </div>
-                <p className="text-xs text-zinc-400 mt-1 font-medium">7-day full trial, then manual entry stays free</p>
+                <p className="text-xs text-zinc-400 mt-1 font-medium">7 days of full access · no card required</p>
               </div>
 
               <ul className="space-y-3.5 flex-1 border-t border-border-subtle pt-5">
-                {FREE_FEATURES.map((f) => (
+                {TRIAL_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-3">
                     <span className="text-emerald-400 shrink-0 text-sm font-bold">✓</span>
                     <span className="text-xs text-zinc-400 font-medium">{f}</span>

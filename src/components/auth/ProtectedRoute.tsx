@@ -4,6 +4,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import AccessEnded from './AccessEnded'
 
 export default function ProtectedRoute() {
   const { user, loading, isSubscriptionActive } = useAuth()
@@ -33,13 +34,29 @@ export default function ProtectedRoute() {
   // Exemptions list for expired accounts: /settings, /profile, /support, and /pricing itself
   // /admin is exempt so an owner or buyer can always reach operational tooling,
   // even if their own subscription has lapsed. AdminRoute still gates it.
-  const isExempted = ['/settings', '/profile', '/support', '/pricing', '/admin'].includes(location.pathname)
+  //
+  // `/payment-success` is exempt for a different reason than the rest: it is
+  // the receipt for a purchase that has just been made, and it polls the
+  // profile itself while the webhook catches up. Entitlement is legitimately
+  // still false for those few seconds, so gating it showed the customer who
+  // just paid either a redirect to /pricing (before) or, worse, a screen
+  // telling them their access had ended. The page has its own guard — with no
+  // receipt in router state it sends the visitor to /pricing — so exempting it
+  // opens nothing.
+  const isExempted = ['/settings', '/profile', '/support', '/pricing', '/payment-success', '/admin'].includes(location.pathname)
 
   // isSubscriptionActive is derived from the profiles row alone, never from the
   // intrack_sub_* localStorage cache that paints the header. Editing those
   // keys changes what the plan badge says and nothing about what this gate does.
+  //
+  // The gate itself is unchanged — a lapsed account still reaches nothing but
+  // the exempted routes, because there is no free tier (owner, 2026-09-04).
+  // What changed is the answer: a redirect to /pricing gave no reason and said
+  // nothing about the user's data, so it read as a fault rather than a lapse.
+  // AccessEnded says what happened and that nothing was deleted, and links on
+  // to the same pricing page.
   if (!isSubscriptionActive && !isExempted) {
-    return <Navigate to="/pricing" replace />
+    return <AccessEnded />
   }
 
   return <Outlet />

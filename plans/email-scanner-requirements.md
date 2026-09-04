@@ -23,7 +23,7 @@
 | R3 | Scan window | **Strict rolling 7 days**, always — first scan and every scan thereafter. Never reach further back, even after an outage |
 | R4 | Reprocessing | **Never** reconsider an email already considered in an earlier scan |
 | R5 | Cadence | **No automatic scanning of any kind.** Every scan is started by the user |
-| R6 | Free tier | 1 manual scan per **rolling 24 hours** |
+| R6 | ~~Free tier~~ | **Retired 2026-09-04 — there is no free tier.** Access stops when the trial or plan ends, so no unpaid account can reach a scan. `resolveManualScanLimit` still answers `1` for a non-premium profile; that branch is now unreachable and is left in place deliberately |
 | R7 | Premium / trial | 2 manual scans per rolling 24 hours, and consecutive scans must be **at least 4 hours apart** |
 | R8 | Owner | **Unlimited** manual scans, no minimum gap |
 | R9 | Approval | **Nothing auto-approves.** Every detected transaction waits in Pending for explicit approval |
@@ -77,11 +77,19 @@ removed entirely** and premium gains a **minimum 4-hour gap**.
 
 | Tier | Automatic scan | Manual scans | Minimum gap |
 |---|---|---|---|
-| Free | **None** | 1 per rolling 24h | n/a — the 24h rule is always longer |
+| ~~Free~~ | — | **n/a — retired 2026-09-04** | — |
 | Premium / trial | **None** | 2 per rolling 24h | **4 hours** |
 | Owner | **None** | Unlimited | none |
 
 Trial is treated as premium throughout (it already is, in `isEligible`).
+
+**The free tier was retired on 2026-09-04.** The owner settled that Intrack has no free
+version: the 7-day trial ends and access stops unless the user pays. `ProtectedRoute` has
+always enforced exactly that — it was the pricing page that advertised a free tier, and
+that card has been replaced with a trial card. Nothing in the quota code changed, because
+a tier nobody can reach costs nothing to leave in: `resolveManualScanLimit` keeps its
+`free -> 1` branch and the tests that assert it. Do not rebuild the free tier from the
+rows above.
 
 **The window is a rolling 24 hours, not a calendar day.** The owner chose this on
 2026-08-27 over a midnight reset, having been shown that a midnight reset combined with
@@ -94,7 +102,8 @@ midnight, two after). Rolling also keeps the limit itself free of any timezone l
   already filters `status = 'success' AND scan_mode = 'manual'` over the trailing 24
   hours, and `computeManualQuotaState` is a pure function returning
   `{ used, limit, remaining, nextAvailableAt }`.
-- `resolveManualScanLimit`: owner `Infinity`, premium/trial `2`, free `1` — unchanged.
+- `resolveManualScanLimit`: owner `Infinity`, premium/trial `2`, free `1` — unchanged. The
+  free branch is unreachable since 2026-09-04 and is kept on purpose.
 - The 16 historical `scan_mode = 'scheduled'` rows. They are real history and the quota
   maths must keep ignoring them; the value simply stops being written.
 
