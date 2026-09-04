@@ -140,8 +140,11 @@ deploy-order rule in CLAUDE.md.
 `balance_periods` and `card_periods`, add the four `transactions` columns, seed the `Loan`
 category for existing and new users, all with RLS matching the existing per-user pattern.
 Mirror everything into `schema.sql` including `ADD COLUMN IF NOT EXISTS` safety-net
-entries. Repoint the scanner's `from('cards')` lookup in the same phase or the first scan
-after the drop fails.
+entries.
+
+The scanner needs **no change**: `emailScanner.ts:1693` selects `last4, issuer` and both
+columns exist in the new table, so its lookup keeps working. It returns an empty map today
+and will keep doing so until Phase 2 gives the user a way to create a card.
 
 **Phase 2 — Cards in Settings.** Add, rename, archive, delete-if-unused, opening
 outstanding per card.
