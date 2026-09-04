@@ -656,6 +656,124 @@ export default function PendingPage() {
     })
   }
 
+  // ── Bulk actions on a selection the user makes ───────────
+  // handleApproveAllHighConfidence above is a fixed sweep: it decides which
+  // rows qualify and the user only gets to fire it. This is the other half —
+  // tick the rows you mean, then act on them.
+  //
+  // Both paths funnel into the same 5-second delayed commit with a single
+  // Undo, so a bulk action is exactly as reversible as a single one, and
+  // nothing is written without an explicit press. R9 ("nothing auto-approves")
+  // is untouched: a press on twelve chosen rows is still a press.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Derived, never stored. Rows leave `pendingTxns` as they are approved or
+  // rejected; ids left behind in the selection simply stop matching, so there
+  // is no stale-selection state to keep in sync.
+  const selectedTxns = pendingTxns.filter((t) => selectedIds.has(t.id))
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  /**
+   * Shared body of bulk approve and bulk reject: clear the rows from view at
+   * once, schedule one timer that commits them all, and offer one Undo for the
+   * whole batch. Twelve separate toasts for twelve rows would bury the Undo
+   * that matters.
+   */
+  const runBulk = (
+    txns: TransactionRow[],
+    commit: (txn: TransactionRow) => void,
+    message: (n: number) => string
+  ) => {
+    if (txns.length === 0) return
+    const snapshot = txns.slice()
+    const ids = new Set(snapshot.map((t) => t.id))
+
+    setPendingTxns((prev) => prev.filter((t) => !ids.has(t.id)))
+    setTotalPendingCount((prev) => Math.max(0, prev - snapshot.length))
+    adjustPendingTotals(snapshot, -1)
+    clearSelection()
+
+    const timer = setTimeout(() => {
+      snapshot.forEach((txn) => pendingCommitTimers.delete(txn.id))
+      snapshot.forEach(commit)
+    }, 5000)
+    snapshot.forEach((txn) => pendingCommitTimers.set(txn.id, timer))
+
+    showToast(message(snapshot.length), 'success', {
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          snapshot.forEach((txn) => {
+            const pending = pendingCommitTimers.get(txn.id)
+            if (pending) {
+              clearTimeout(pending)
+              pendingCommitTimers.delete(txn.id)
+            }
+          })
+          setPendingTxns((prev) => [...snapshot, ...prev])
+          setTotalPendingCount((prev) => prev + snapshot.length)
+          adjustPendingTotals(snapshot, 1)
+        },
+      },
+    })
+  }
+
+  const handleBulkApprove = () => {
+    runBulk(
+      selectedTxns,
+      (txn) =>
+        commitApproval(
+          txn,
+          editingFields[txn.id] || { category: txn.category, description: txn.description || '' }
+        ),
+      (n) => `Approved ${n} transaction${n === 1 ? '' : 's'}.`
+    )
+  }
+
+  const handleBulkReject = () => {
+    runBulk(
+      selectedTxns,
+      (txn) => { void handleReject(txn) },
+      (n) => `Rejected ${n} alert${n === 1 ? '' : 's'}.`
+    )
+  }
+
+  /**
+   * Recategorising in bulk deliberately writes nothing. It fills the same
+   * per-row edit buffer the category dropdown fills, so the choice reaches the
+   * database on approval and by exactly the same path. Mutating an unapproved
+   * row directly would change a transaction the user has not accepted yet.
+   */
+  const handleBulkCategory = (category: string) => {
+    if (!category || selectedTxns.length === 0) return
+    const count = selectedTxns.length
+    setEditingFields((prev) => {
+      const next = { ...prev }
+      selectedTxns.forEach((txn) => {
+        next[txn.id] = {
+          category,
+          description: prev[txn.id]?.description ?? txn.description ?? '',
+        }
+      })
+      return next
+    })
+    showToast(
+      `${count} transaction${count === 1 ? '' : 's'} set to ${category}. Approve to save.`,
+      'success'
+    )
+  }
+
   // ── Possible-duplicate resolution ────────────────────────
   // The scanner flags a row it could not PROVE is the same payment as another
   // (see src/services/paymentMerge.ts). Both rows are inserted and the newer
@@ -1378,6 +1496,54 @@ export default function PendingPage() {
             })()}
           </div>
 
+          {/* Selection bar — only present once something is ticked, so the
+              page is unchanged for anyone reviewing one row at a time. */}
+          {selectedTxns.length > 0 && (
+            <Card className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-brand-500/30 bg-brand-500/5">
+              <p className="text-sm font-bold text-sb-ink shrink-0">
+                {selectedTxns.length} selected
+              </p>
+
+              <div className="flex-1 min-w-0">
+                <label htmlFor="bulk-category" className="sr-only">
+                  Set category for selected transactions
+                </label>
+                <Select
+                  id="bulk-category"
+                  value=""
+                  onChange={(e) => { handleBulkCategory(e.target.value); e.target.value = '' }}
+                >
+                  <option value="">Set category…</option>
+                  {categories.map((cat) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.emoji} {cat.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="text-[var(--status-danger-text)] border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] hover:bg-[var(--status-danger-border)] justify-center gap-1.5"
+                  onClick={handleBulkReject}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Reject
+                </Button>
+                <Button size="sm" className="justify-center gap-1.5" onClick={handleBulkApprove}>
+                  <Check className="h-3.5 w-3.5" /> Approve
+                </Button>
+                <button
+                  onClick={clearSelection}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer px-2 py-2"
+                >
+                  Clear
+                </button>
+              </div>
+            </Card>
+          )}
+
           {loading ? (
             [1, 2].map((i) => (
               <Card key={i} className="h-60 relative overflow-hidden">
@@ -1570,8 +1736,20 @@ export default function PendingPage() {
                     </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-border-subtle/30">
+                  {/* Action buttons. The select box lives here rather than in
+                      the header so the three ways to deal with a row — approve
+                      it, reject it, or batch it — sit together. */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-border-subtle/30">
+                    <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer select-none py-1">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-zinc-600 accent-[#3ecf8e] cursor-pointer"
+                        checked={selectedIds.has(txn.id)}
+                        onChange={() => toggleSelected(txn.id)}
+                      />
+                      Select
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -1587,6 +1765,7 @@ export default function PendingPage() {
                     >
                       <Check className="h-4 w-4" /> Approve
                     </Button>
+                    </div>
                   </div>
                 </Card>
               )
