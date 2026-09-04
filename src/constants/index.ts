@@ -126,7 +126,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: 'What happens after the 7-day free trial ends?',
-    a: 'During the 7-day free trial you get two inbox scans a day, budgets, and smart insights. After the trial ends you keep one scan a day, and upgrading restores the second. Manual logging remains free forever.',
+    a: 'During the 7-day free trial you get everything: two inbox scans a day, budgets, and smart insights. When the trial ends, access stops unless you subscribe — there is no free version of Intrack. Nothing you logged is deleted, so paying puts everything back exactly as you left it.',
     category: 'pricing',
   },
   {

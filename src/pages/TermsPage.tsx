@@ -12,7 +12,7 @@ export default function TermsPage() {
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Terms of Service</h1>
-        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: August 20, 2026 · Effective immediately</p>
+        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 5, 2026 · Effective immediately</p>
       </div>
 
       <div className="prose max-w-none space-y-10">
@@ -48,8 +48,8 @@ export default function TermsPage() {
 
         {section("4. Subscriptions, Trials & Billing", `
           Intrack offers subscription plans to access advanced automated tracking features:
-          - 7-Day Free Trial: New users receive 7 days of free trial access starting from registration. During the trial period, the service gives full Pro access, including automated Gmail scanning and manual entries. Access will be limited or locked after the trial period ends unless upgraded to a subscription plan.
-          - Paid Plans: Users can choose the Monthly plan (₹31 for 30 days) or the Yearly plan (₹365 for 365 days) to unlock full background and manual Gmail inbox synchronization.
+          - 7-Day Free Trial: New users receive 7 days of free trial access starting from registration. During the trial period, the service gives full access, including the Gmail scans you run yourself and manual entries. There is no free tier: when the trial ends, access stops unless you upgrade to a subscription plan. Data you have already entered is retained, not deleted.
+          - Paid Plans: Users can choose the Monthly plan (₹31 for 30 days) or the Yearly plan (₹365 for 365 days) to continue using manual entry and Gmail inbox scanning. Every scan is started by you: Intrack performs no background, scheduled or automatic scanning of any kind.
           - Billing: All payments are processed securely via Razorpay, a licensed payment gateway. Every plan is a ONE-TIME payment for a fixed period. Nothing renews automatically, no mandate is placed on your card, and you are never charged again without making a new purchase.
           - Cancellation: Because nothing recurs, there is no cancellation step and no cancellation fee. Access runs to the end of the period you paid for and then stops. Intrack does not offer refunds for unused portions of a period; see the Refund Policy for the limited cases in which a refund is available.
         `)}

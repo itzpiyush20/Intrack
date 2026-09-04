@@ -91,7 +91,7 @@ export default function LandingPage() {
   }, [])
 
   const features = [
-    { icon: Zap, title: 'Automatic detection', desc: 'Connect Gmail once and bank alert emails are parsed into transactions for you to approve — no typing amounts.' },
+    { icon: Zap, title: 'No typing amounts', desc: 'Connect Gmail once, then run a scan whenever you like. Bank alert emails come back as transactions for you to approve.' },
     // Kept accurate, but trimmed: at ~3x the length of its neighbours this
     // single card set the height of the whole first row.
     { icon: Shield, title: 'Privacy-respecting', desc: 'Read-only Gmail access, never your whole mailbox. Alert text passes through our server to Google’s Gemini in real time — never stored, never sold, never used to train a model.' },
@@ -103,7 +103,7 @@ export default function LandingPage() {
 
   const steps = [
     { num: '01', title: 'Connect Gmail, or add manually', desc: 'Link your Gmail inbox once, or just add an expense yourself in seconds — whichever you prefer, whenever you prefer.' },
-    { num: '02', title: 'Alerts detected automatically', desc: 'When your bank emails a transaction alert, our AI parser extracts the merchant, amount, and category for you.' },
+    { num: '02', title: 'You run a scan, we read the alerts', desc: 'Start a scan whenever it suits you and our AI parser pulls the merchant, amount and category out of your bank’s alert emails.' },
     { num: '03', title: 'You approve, budgets update', desc: 'Detected transactions land in Pending for a quick review — approve them and the matching budget updates instantly.' },
   ]
 
@@ -532,7 +532,7 @@ export default function LandingPage() {
               Take control of<br /><span className="text-sb-primary">your finances today.</span>
             </h2>
             <p data-reveal data-delay="100" className="text-lg text-sb-ink-secondary max-w-md mx-auto leading-relaxed">
-              Free account. 7-day full trial. No credit card required. Delete your data anytime.
+              No credit card required. 7-day full trial. Delete your data anytime.
             </p>
             <motion.div
               className="flex flex-wrap items-center justify-center gap-4 pt-2"

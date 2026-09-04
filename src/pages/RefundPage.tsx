@@ -14,7 +14,7 @@ export default function RefundPage() {
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Cancellation & Refund Policy</h1>
-        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: August 20, 2026 · Effective immediately</p>
+        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 5, 2026 · Effective immediately</p>
       </div>
 
       <div className="prose max-w-none space-y-10">
@@ -29,10 +29,10 @@ export default function RefundPage() {
 
         {/* Section 1: Subscriptions & Trials */}
         {section("1. Free Trial and Billing Cycles", `
-          Intrack offers a 7-Day Free Trial to new users upon registration, allowing access to all premium features, including automated Gmail scanning and budget insights.
+          Intrack offers a 7-Day Free Trial to new users upon registration, allowing access to every feature, including the Gmail scans you run yourself and budget insights.
           
           - You will not be charged during the trial period.
-          - Once the trial expires, you must manually upgrade and select a paid subscription (Monthly at ₹31/month or Yearly at ₹365/year) to keep two inbox scans a day. Without a paid plan you keep one scan a day.
+          - Once the trial expires, you must upgrade to a paid subscription (Monthly at ₹31 for 30 days, or Yearly at ₹365 for 365 days) to carry on using Intrack. There is no free tier: without a plan, access stops. Your data is retained, so paying later restores it as you left it.
           - Every plan is a ONE-TIME payment for a fixed period of access. Nothing renews automatically, no mandate is set up on your card, and you are never charged a second time. When the period ends, access simply stops until you choose to pay again.
         `)}
 
