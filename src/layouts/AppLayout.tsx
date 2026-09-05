@@ -14,6 +14,7 @@ import { useAuth, useToast } from '@/context'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import SiteFooter from '@/components/ui/SiteFooter'
+import BrandMark from '@/components/ui/BrandMark'
 import { submitFeedback, supabase } from '@/services'
 import { getActiveReceivables } from '@/services/transactions'
 import {
@@ -82,7 +83,7 @@ function resolveActivePlan(planType: unknown): 'monthly' | 'yearly' | 'unknown' 
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { user, signOut, profile, daysLeft, openAuthModal, currencySymbol } = useAuth()
+  const { user, signOut, profile, daysLeft, openAuthModal } = useAuth()
   const { showToast } = useToast()
   const location = useLocation()
 
@@ -436,7 +437,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       )}>
         <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-6">
           <Link to="/" className="flex items-center gap-3 shrink-0 group">
-            <span className="text-sm font-black flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-static-white shadow-[var(--shadow-sm)] border-0 group-hover:scale-115 group-hover:rotate-12 transition-all duration-300" aria-hidden="true">{currencySymbol}</span>
+            <BrandMark size={32} className="text-brand-500 shrink-0" />
             <div className="flex items-center gap-2.5">
               <div className="text-base tracking-tight leading-none">
                 <span className={cn(
@@ -1115,7 +1116,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 aria-hidden="true"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 shadow-[var(--shadow-sm)] text-base font-bold text-static-white"
               >
-                {currencySymbol}
+                <BrandMark size={22} className="text-static-white" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-100 leading-tight">Add Intrack to your home screen</p>
