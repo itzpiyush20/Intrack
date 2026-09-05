@@ -114,6 +114,31 @@ On `transactions`:
 
 - **Opening figures are stored per month**, for the money figure and for each card. Each
   month opens at the previous month's close.
+- **The user is never asked for a figure as of a past date** (owner, 2026-09-05). Nobody
+  can look up what a card owed on the 1st; what they can read off their banking app is
+  what it owes *today*. So the UI asks for today's outstanding and the service converts
+  it — `opening = today − everything the card did since the 1st` — leaving the stored
+  column and all downstream maths anchored to the month opening as above. Until Phase 3
+  lets a transaction name a card that delta is always zero. `sumCardMovements` in
+  `src/services/cards.ts` owns the signs and is unit-tested.
+- **A card requires a name, its last four digits, and today's outstanding.** Bank and
+  network are optional; the bank becomes required only when a second card shares the same
+  last four, since that pair is the only thing that can tell them apart. Settled with the
+  owner 2026-09-05 after considering making the *name* the fixed identity instead: the
+  last four win because `issuer + last4` is what the email scanner already records on
+  every alert, so Phase 3's bulk-tag pass can only auto-match a card that has them. A card
+  with no digits would need every transaction tagged by hand forever.
+- **The name is always editable; `last4` and `issuer` freeze at the card's first
+  transaction.** Nothing traces by name — rows point at `card_id`, a uuid no user sees —
+  so renaming a card to something clearer is free and never touches history. The two match
+  fields stay correctable while the card has no history, which is when a typo is noticed,
+  and stop moving once history exists. Enforced in `updateCard`, not only in the form, so
+  a future caller cannot break the promise; `movesCardIdentity` is unit-tested and treats
+  *filling in a blank* as allowed, so a card added before the digits were required can
+  still be completed. The UI warns twice — inline while typing, and in a confirmation
+  dialog naming the digits before the card is created.
+- **Digits may be reused** after a card is deleted. Deletion is already refused whenever
+  anything points at the card, so no history can be confused by it.
 - **Always editable, never retrospective.** Only the *current* month's opening can be
   edited; past months are read-only. An edit takes effect from that month forward, so a
   report read in September still matches in December. The owner's words: "there would be a

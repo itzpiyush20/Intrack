@@ -77,5 +77,9 @@ export {
   deleteCard,
   getCardPeriods,
   setCardOpening,
+  getCardUsageCounts,
+  getCardMovementsSince,
+  sumCardMovements,
   monthKey,
+  todayKey,
 } from './cards'
