@@ -429,7 +429,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       )}>
         <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-6">
           <Link to="/" className="flex items-center gap-3 shrink-0 group">
-            <span className="text-sm font-black flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[var(--shadow-sm)] border-0 group-hover:scale-115 group-hover:rotate-12 transition-all duration-300" aria-hidden="true">{currencySymbol}</span>
+            <span className="text-sm font-black flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-static-white shadow-[var(--shadow-sm)] border-0 group-hover:scale-115 group-hover:rotate-12 transition-all duration-300" aria-hidden="true">{currencySymbol}</span>
             <div className="flex items-center gap-2.5">
               <div className="text-base tracking-tight leading-none">
                 <span className={cn(
@@ -474,7 +474,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   })}
               </ScrollHint>
             ) : (
-              <nav className="hidden md:flex items-center gap-8" aria-label="Desktop navigation">
+              <nav className="hidden lg:flex items-center gap-8" aria-label="Desktop navigation">
                 {[
                   { label: 'How it works', href: '/#how-it-works' },
                   { label: 'Features', href: '/#features' },
@@ -865,7 +865,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         setMobileMenuOpen(false)
                         openAuthModal(undefined, 'signup')
                       }}
-                      className="w-full block rounded-lg px-3 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 text-center rounded-[6px] mt-1.5 border-0 cursor-pointer"
+                      className="w-full block rounded-lg px-3 py-2.5 text-sm font-medium text-static-white bg-brand-500 hover:bg-brand-600 text-center rounded-[6px] mt-1.5 border-0 cursor-pointer"
                     >
                       Get Started
                     </button>

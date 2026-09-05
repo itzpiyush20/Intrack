@@ -94,7 +94,7 @@ export default function ResetPasswordPage() {
           <div className="pt-2 flex flex-col gap-3">
             <Link
               to="/forgot-password"
-              className="sb-btn-primary py-3.5 px-4 text-xs font-bold rounded-xl no-underline inline-block text-white"
+              className="sb-btn-primary py-3.5 px-4 text-sm font-bold rounded-xl no-underline inline-block"
             >
               Request New Link
             </Link>

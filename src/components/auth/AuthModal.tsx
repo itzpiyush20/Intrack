@@ -224,14 +224,19 @@ export default function AuthModal() {
 
           {isSignUp && (
             <div className="flex items-start gap-2.5 my-3">
-              <input
-                type="checkbox"
-                id="agree_terms"
-                checked={agreeToTerms}
-                onChange={(e) => setAgreeToTerms(e.target.checked)}
-                className="mt-0.5 h-3.5 w-3.5 rounded border-zinc-700 bg-surface-2 accent-emerald-500 cursor-pointer"
-              />
-              <label htmlFor="agree_terms" className="text-[11px] text-zinc-400 leading-normal select-none cursor-pointer">
+              {/* 44px touch target without a 44px hole in the layout: the
+                  -m-3 collapses the box back to ~20px of flow, the same trick
+                  ExpenseList.tsx:183 uses for its row checkbox. */}
+              <label htmlFor="agree_terms" className="flex h-11 w-11 -m-3 shrink-0 items-center justify-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="agree_terms"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="h-4 w-4 shrink-0 rounded border-zinc-700 bg-surface-2 accent-emerald-500 cursor-pointer"
+                />
+              </label>
+              <label htmlFor="agree_terms" className="text-xs text-zinc-400 leading-normal select-none cursor-pointer">
                 I agree to the <Link to="/terms" onClick={closeAuthModal} className="text-brand-400 hover:text-brand-300 font-medium transition-colors">Terms of Service</Link>, <Link to="/privacy" onClick={closeAuthModal} className="text-brand-400 hover:text-brand-300 font-medium transition-colors">Privacy Policy</Link>, and <Link to="/refund-policy" onClick={closeAuthModal} className="text-brand-400 hover:text-brand-300 font-medium transition-colors">Refund Policy</Link>, and consent to my bank alert emails being read to extract transactions, including by Google's Gemini as described in the Privacy Policy.
               </label>
             </div>

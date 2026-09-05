@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* Floating Toast Container */}
-      <div className="fixed bottom-6 right-6 z-toast flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      <div className="fixed bottom-6 left-4 right-4 w-auto sm:left-auto sm:right-6 sm:w-full z-toast flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((toast) => {
           let bgColor = 'bg-[var(--surface-1)] border-border-subtle'
           let textColor = 'text-zinc-200'

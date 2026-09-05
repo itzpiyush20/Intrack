@@ -409,7 +409,7 @@ html { scroll-behavior: smooth; }
    Fixed here rather than with `overflow-x: clip` on a wrapper: clipping would
    also swallow anything else that overhangs at wider widths, turning a page
    the user can scroll to into content they cannot reach at all. */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   [data-reveal="from-left"],
   [data-reveal="from-right"] {
     transform: translateY(28px);
@@ -678,115 +678,126 @@ html { scroll-behavior: smooth; }
 .border-sb-primary         { border-color: var(--sb-primary) !important; }
 .divide-sb-hairline-cool > :not([hidden]) ~ :not([hidden]) { border-color: var(--sb-hairline-cool) !important; }
 
-/* ── Marketing typography — fixed scale, one family ── */
-.sb-display-xxl { font-family: var(--font-display); font-size: clamp(40px, 6vw, 60px); font-weight: 680; line-height: 1.05; letter-spacing: -0.03em; }
-.sb-display-xl  { font-family: var(--font-display); font-size: clamp(34px, 5vw, 48px); font-weight: 680; line-height: 1.07; letter-spacing: -0.028em; }
-.sb-display-lg  { font-family: var(--font-display); font-size: clamp(28px, 4vw, 36px); font-weight: 660; line-height: 1.12; letter-spacing: -0.022em; }
-.sb-display-md  { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); font-weight: 640; line-height: 1.2; letter-spacing: -0.018em; }
-.sb-heading-lg  { font-family: var(--font-display); font-size: 22px; font-weight: 620; line-height: 1.25; letter-spacing: -0.01em; }
-.sb-heading-md  { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.4; }
-.sb-body-lg     { font-family: var(--font-sans); font-size: 18px; font-weight: 400; line-height: 1.6; }
-.sb-body-md     { font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.55; }
-.sb-button-md   { font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0; }
-.sb-caption     { font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.45; }
-.sb-micro       { font-family: var(--font-sans); font-size: 12px; font-weight: 400; line-height: 1.45; }
-.sb-code        { font-family: var(--font-mono); font-size: 14px; font-weight: 400; line-height: 1.5; }
+/* These are COMPONENT classes, not theme tokens. They live in @layer components
+   so that Tailwind utilities written beside them in JSX (px-7, p-8, text-base,
+   rounded-3xl, …) can override them. Unlayered CSS beats every @layer in
+   Tailwind v4 regardless of specificity, so before this wrapper existed every
+   such utility was silently discarded and these buttons were locked at 40px.
+   Keep the :root / .light token blocks above OUTSIDE this layer — they are
+   custom-property declarations, and the light-only override layer depends on
+   their cascade position. See plans/responsive-audit.md, finding P2-1. */
+@layer components {
 
-/* ── Marketing buttons ── */
-.sb-btn-primary {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--sb-primary-deep); color: var(--sb-on-primary);
-  padding: 13px 18px; border-radius: 10px;
-  font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
-  border: none; cursor: pointer;
-  transition: background 0.18s ease, transform 0.12s ease;
-  white-space: nowrap; text-decoration: none; gap: 6px;
-}
-.sb-btn-primary:hover  { background: var(--brand-700); }
-.light .sb-btn-primary:hover { background: var(--brand-600); }
-.sb-btn-primary:active { transform: scale(0.98); }
+  /* ── Marketing typography — fixed scale, one family ── */
+  .sb-display-xxl { font-family: var(--font-display); font-size: clamp(40px, 6vw, 60px); font-weight: 680; line-height: 1.05; letter-spacing: -0.03em; }
+  .sb-display-xl  { font-family: var(--font-display); font-size: clamp(34px, 5vw, 48px); font-weight: 680; line-height: 1.07; letter-spacing: -0.028em; }
+  .sb-display-lg  { font-family: var(--font-display); font-size: clamp(28px, 4vw, 36px); font-weight: 660; line-height: 1.12; letter-spacing: -0.022em; }
+  .sb-display-md  { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); font-weight: 640; line-height: 1.2; letter-spacing: -0.018em; }
+  .sb-heading-lg  { font-family: var(--font-display); font-size: 22px; font-weight: 620; line-height: 1.25; letter-spacing: -0.01em; }
+  .sb-heading-md  { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.4; }
+  .sb-body-lg     { font-family: var(--font-sans); font-size: 18px; font-weight: 400; line-height: 1.6; }
+  .sb-body-md     { font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.55; }
+  .sb-button-md   { font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0; }
+  .sb-caption     { font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.45; }
+  .sb-micro       { font-family: var(--font-sans); font-size: 12px; font-weight: 400; line-height: 1.45; }
+  .sb-code        { font-family: var(--font-mono); font-size: 14px; font-weight: 400; line-height: 1.5; }
 
-.sb-btn-secondary {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--sb-canvas-soft); color: var(--sb-ink);
-  padding: 13px 18px; border-radius: 10px;
-  font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
-  border: 1px solid var(--sb-hairline-strong); cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-  white-space: nowrap; text-decoration: none; gap: 6px;
-}
-.sb-btn-secondary:hover  { background: var(--surface-2); border-color: var(--sb-primary); }
-.sb-btn-secondary:active { transform: scale(0.98); }
+  /* ── Marketing buttons ── */
+  .sb-btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--sb-primary-deep); color: var(--sb-on-primary);
+    padding: 13px 18px; border-radius: 10px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
+    border: none; cursor: pointer;
+    transition: background 0.18s ease, transform 0.12s ease;
+    white-space: nowrap; text-decoration: none; gap: 6px;
+  }
+  .sb-btn-primary:hover  { background: var(--brand-700); }
+  .light .sb-btn-primary:hover { background: var(--brand-600); }
+  .sb-btn-primary:active { transform: scale(0.98); }
 
-.sb-btn-on-dark {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.10); color: #fff;
-  padding: 10px 18px; border-radius: 10px;
-  font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
-  border: 1px solid rgba(255, 255, 255, 0.20); cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-  white-space: nowrap; text-decoration: none;
-}
-.sb-btn-on-dark:hover  { background: rgba(255, 255, 255, 0.16); }
-.sb-btn-on-dark:active { transform: scale(0.98); }
+  .sb-btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--sb-canvas-soft); color: var(--sb-ink);
+    padding: 13px 18px; border-radius: 10px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
+    border: 1px solid var(--sb-hairline-strong); cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    white-space: nowrap; text-decoration: none; gap: 6px;
+  }
+  .sb-btn-secondary:hover  { background: var(--surface-2); border-color: var(--sb-primary); }
+  .sb-btn-secondary:active { transform: scale(0.98); }
 
-.sb-btn-link {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; color: var(--sb-ink);
-  font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
-  border: none; cursor: pointer;
-  white-space: nowrap; text-decoration: none; gap: 4px;
-}
-.sb-btn-link:hover { color: var(--sb-primary-deep); }
+  .sb-btn-on-dark {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.10); color: #fff;
+    padding: 10px 18px; border-radius: 10px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
+    border: 1px solid rgba(255, 255, 255, 0.20); cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    white-space: nowrap; text-decoration: none;
+  }
+  .sb-btn-on-dark:hover  { background: rgba(255, 255, 255, 0.16); }
+  .sb-btn-on-dark:active { transform: scale(0.98); }
 
-.sb-pill-tag-green {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--status-positive-subtle); color: var(--sb-primary-deep);
-  padding: 4px 10px; border-radius: 9999px;
-  font-size: 12px; font-weight: 560;
-  border: 1px solid var(--status-positive-border);
-}
-.sb-pill-tag-soft {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--surface-2); color: var(--sb-ink-secondary);
-  padding: 4px 10px; border-radius: 9999px;
-  font-size: 12px; font-weight: 500;
-  border: 1px solid var(--sb-hairline);
-}
+  .sb-btn-link {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--sb-ink);
+    font-family: var(--font-sans); font-size: 14px; font-weight: 560; line-height: 1.0;
+    border: none; cursor: pointer;
+    white-space: nowrap; text-decoration: none; gap: 4px;
+  }
+  .sb-btn-link:hover { color: var(--sb-primary-deep); }
 
-.sb-card-light {
-  background: var(--sb-canvas-soft);
-  border: 1px solid var(--sb-hairline);
-  border-radius: 16px; padding: 28px;
-  box-shadow: var(--shadow-sm);
-}
-.sb-card-dark {
-  background: var(--sb-canvas-night);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px; padding: 28px;
-  color: var(--sb-on-dark);
-}
+  .sb-pill-tag-green {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--status-positive-subtle); color: var(--sb-primary-deep);
+    padding: 4px 10px; border-radius: 9999px;
+    font-size: 12px; font-weight: 560;
+    border: 1px solid var(--status-positive-border);
+  }
+  .sb-pill-tag-soft {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-2); color: var(--sb-ink-secondary);
+    padding: 4px 10px; border-radius: 9999px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--sb-hairline);
+  }
 
-.sb-code-block {
-  background: var(--sb-canvas-night);
-  color: var(--sb-on-dark);
-  padding: 16px; border-radius: 10px;
-  font-family: var(--font-mono); font-size: 14px;
-}
+  .sb-card-light {
+    background: var(--sb-canvas-soft);
+    border: 1px solid var(--sb-hairline);
+    border-radius: 16px; padding: 28px;
+    box-shadow: var(--shadow-sm);
+  }
+  .sb-card-dark {
+    background: var(--sb-canvas-night);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px; padding: 28px;
+    color: var(--sb-on-dark);
+  }
 
-.sb-text-input {
-  background: var(--surface-1); color: var(--sb-ink);
-  font-size: 16px; font-weight: 400; font-family: var(--font-sans);
-  padding: 10px 14px; border-radius: 10px;
-  border: 1px solid var(--sb-hairline);
-  outline: none; width: 100%;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  .sb-code-block {
+    background: var(--sb-canvas-night);
+    color: var(--sb-on-dark);
+    padding: 16px; border-radius: 10px;
+    font-family: var(--font-mono); font-size: 14px;
+  }
+
+  .sb-text-input {
+    background: var(--surface-1); color: var(--sb-ink);
+    font-size: 16px; font-weight: 400; font-family: var(--font-sans);
+    padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--sb-hairline);
+    outline: none; width: 100%;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .sb-text-input:focus {
+    border-color: var(--sb-primary);
+    box-shadow: 0 0 0 3px var(--status-positive-subtle);
+  }
+  .sb-text-input::placeholder { color: var(--zinc-500); }
 }
-.sb-text-input:focus {
-  border-color: var(--sb-primary);
-  box-shadow: 0 0 0 3px var(--status-positive-subtle);
-}
-.sb-text-input::placeholder { color: var(--zinc-500); }
 
 /* ============================================
    Modern Animation Additions

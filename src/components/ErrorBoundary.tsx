@@ -91,7 +91,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 onClick={this.handleReset}
-                className="rounded-xl bg-brand-500 hover:bg-brand-400 text-white text-sm font-semibold px-5 py-2.5 transition-colors"
+                className="rounded-xl bg-brand-500 hover:bg-brand-400 text-static-white text-sm font-semibold px-5 py-2.5 transition-colors"
               >
                 Back to Home
               </button>

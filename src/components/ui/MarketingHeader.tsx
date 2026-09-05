@@ -48,12 +48,12 @@ export default function MarketingHeader() {
           <span className="text-base font-extrabold tracking-tight">
             <span className="text-brand-400">In</span><span>track</span>
           </span>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400">
+          <span className="hidden lg:inline-flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />Automated Tracker
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-7">
+        <div className="hidden lg:flex items-center gap-7">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.label}
@@ -90,7 +90,7 @@ export default function MarketingHeader() {
       {/* Below md the links above are hidden, which previously left mobile
           visitors with no navigation at all. A single scrollable row keeps
           them reachable without building a second menu system. */}
-      <div className="md:hidden border-t border-sb-hairline overflow-x-auto scrollbar-none">
+      <div className="lg:hidden border-t border-sb-hairline overflow-x-auto scrollbar-none">
         <div className="flex items-center gap-5 px-4 py-2.5 w-max">
           {NAV_ITEMS.map((item) => (
             <Link

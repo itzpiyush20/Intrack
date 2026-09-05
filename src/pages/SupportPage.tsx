@@ -135,7 +135,7 @@ export default function SupportPage() {
         <div className="grid gap-6 md:grid-cols-12">
           
           {/* Navigation Tabs Bar / Sidebar */}
-          <div className="md:col-span-3 space-y-2">
+          <div className="min-w-0 md:col-span-3 space-y-2">
             {/* Desktop vertical sidebar navigation */}
             <div role="tablist" aria-label="Support navigation topics" className="hidden md:flex flex-col space-y-1.5 p-2 rounded-[20px] bg-surface-1 border border-border-subtle shadow-md">
               {tabs.map((tab) => {
@@ -184,7 +184,7 @@ export default function SupportPage() {
           </div>
 
           {/* Active Tab Panel Details */}
-          <div className="md:col-span-9">
+          <div className="min-w-0 md:col-span-9">
             
             {/* Tab 1: Privacy Policy */}
             {activeTab === 'privacy' && (
@@ -449,7 +449,7 @@ export default function SupportPage() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full justify-center py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs tracking-wide transition-all active:scale-98 shadow-md cursor-pointer border-0"
+                      className="w-full justify-center py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-static-white font-bold text-xs tracking-wide transition-all active:scale-98 shadow-md cursor-pointer border-0"
                     >
                       {submitting ? 'Sending ticket…' : 'Submit Ticket'}
                     </button>
