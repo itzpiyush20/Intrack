@@ -8,7 +8,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
-import { Card, Button, Input, Select, Badge, EmptyState, Modal, TransactionIdentity } from '@/components/ui'
+import {
+  Card, Button, Input, Select, Badge, EmptyState, Modal, TransactionIdentity,
+  Skeleton, SECTION_LABEL, transition, rowVariants,
+} from '@/components/ui'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   getTransactions,
   updateTransaction,
@@ -23,7 +27,7 @@ import { fetchAllTransactions } from '@/services/transactions'
 import { saveMerchantRuleToDb } from '@/services/learningEngine'
 import { mergePayments } from '@/services/paymentMerge'
 import { useAuth } from '@/context/AuthContext'
-import { formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime, HOME_CURRENCY } from '@/utils'
+import { cn, formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime, HOME_CURRENCY } from '@/utils'
 import type { Database } from '@/types/database'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
@@ -42,17 +46,33 @@ import {
   Key,
   Shield,
   Lightbulb,
-  Store,
   CreditCard,
   Building2,
-  FileText,
-  Trash2,
   Check,
   AlertCircle,
   Sparkles,
   CheckCircle2,
   CopyCheck,
+  Mail,
+  X,
 } from 'lucide-react'
+
+/**
+ * How a confidence score is shown: an icon, a word and a colour.
+ *
+ * Presentation only — the 80 / 50 bands are the ones this page has always
+ * used, and nothing here decides what happens to a transaction. Every band
+ * carries an icon and a word so the meaning never rests on colour alone.
+ */
+function confidenceTone(confidence: number): { icon: typeof CheckCircle2; className: string; label: string } {
+  if (confidence >= 80) {
+    return { icon: CheckCircle2, className: 'text-[var(--status-positive-text)]', label: 'High confidence' }
+  }
+  if (confidence >= 50) {
+    return { icon: AlertCircle, className: 'text-[var(--status-warning-text)]', label: 'Worth a look' }
+  }
+  return { icon: AlertTriangle, className: 'text-zinc-400', label: 'Low confidence' }
+}
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 
@@ -173,6 +193,9 @@ export default function PendingPage() {
   const { user, signInWithGoogle, hasGoogleToken, notifyGoogleTokenCleared, profile } = useAuth()
   const { categories, getStyle } = useCategories()
   const [pendingTxns, setPendingTxns] = useState<TransactionRow[]>([])
+  // Motion reports that a row arrived or left the review list. Nothing here
+  // decorates, and all of it collapses under a reduced-motion preference.
+  const reduceMotion = useReducedMotion()
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
   const [scanSuccessMessage, setScanSuccessMessage] = useState<{
@@ -1256,33 +1279,45 @@ export default function PendingPage() {
 
         {/* Success message */}
         {activeBanner === 'success' && scanSuccessMessage && (
-          <div role="status" className="rounded-2xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-4 text-sm text-[var(--status-positive-text)] flex items-start justify-between gap-3 animate-fade-in shadow-md">
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="h-5 w-5 text-[var(--status-positive-text)] shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">
+          <div
+            role="status"
+            className="rounded-2xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-4 sm:p-5
+                       flex items-start justify-between gap-3 animate-fade-in"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <CheckCircle2 className="h-5 w-5 text-[var(--status-positive-text)] shrink-0 mt-px" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--status-positive-text)]">
                   {scanSuccessMessage.total === 0
                     ? scanSuccessMessage.merged > 0
                       // Every email matched a transaction already on file. Say so
                       // — "no new transactions" alone reads like the scan failed.
-                      ? `Sync complete — ${scanSuccessMessage.merged} receipt${scanSuccessMessage.merged === 1 ? '' : 's'} matched transactions you already have.`
-                      : 'Sync complete — no new transactions found.'
-                    : `${scanSuccessMessage.total} new transaction${scanSuccessMessage.total === 1 ? '' : 's'} found.`}
+                      ? `Scan complete — ${scanSuccessMessage.merged} receipt${scanSuccessMessage.merged === 1 ? '' : 's'} matched transactions you already have.`
+                      : 'Scan complete — nothing new in your inbox.'
+                    : `Scan complete — ${scanSuccessMessage.total} new transaction${scanSuccessMessage.total === 1 ? '' : 's'} found.`}
                 </p>
+                {/* Deliberately does not print an "auto-approved" figure. Every
+                    scanned transaction lands in Pending for an explicit yes
+                    (CLAUDE.md invariant 1), so a line implying otherwise would
+                    describe behaviour this app does not have. */}
                 {scanSuccessMessage.total > 0 && (
-                  <p className="text-xs opacity-80 mt-1">
-                    {scanSuccessMessage.autoApproved} auto-approved
-                    {scanSuccessMessage.pendingReview > 0 ? `, ${scanSuccessMessage.pendingReview} waiting below for your review` : ''}
-                    {scanSuccessMessage.lowConfidence > 0 ? ` · ${scanSuccessMessage.lowConfidence} flagged low-confidence (please review)` : ''}
+                  <p className="mt-1 text-sm text-zinc-300 leading-relaxed">
+                    {scanSuccessMessage.pendingReview > 0
+                      ? `${scanSuccessMessage.pendingReview} waiting below for your approval`
+                      : 'Everything found is waiting below for your approval'}
+                    {scanSuccessMessage.lowConfidence > 0 ? ` · ${scanSuccessMessage.lowConfidence} worth a closer look` : ''}
                     {scanSuccessMessage.merged > 0 ? ` · ${scanSuccessMessage.merged} duplicate receipt${scanSuccessMessage.merged === 1 ? '' : 's'} merged` : ''}
                   </p>
                 )}
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setScanSuccessMessage(null)}
-              className="text-[var(--status-positive-text)] hover:opacity-85 font-bold ml-2 text-xs transition-colors shrink-0 py-2 px-2 -my-2 -mr-2 min-h-[40px] flex items-center"
-              aria-label="Dismiss success message"
+              className="shrink-0 -my-2 -mr-2 min-h-11 min-w-11 px-3 rounded-lg flex items-center justify-center cursor-pointer
+                         text-xs font-semibold text-[var(--status-positive-text)] transition-colors hover:bg-[var(--status-positive-border)]/30
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              aria-label="Dismiss scan summary"
             >
               Dismiss
             </button>
@@ -1291,24 +1326,31 @@ export default function PendingPage() {
 
         {/* Cooldown banner with live countdown */}
         {activeBanner === 'cooldown' && (
-          <div role="status" className="rounded-2xl bg-brand-500/10 border border-brand-500/20 p-4 text-sm text-brand-500 flex items-start justify-between gap-3 animate-fade-in shadow-md">
-            <div className="flex items-start gap-2.5">
-              <Clock className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-white text-sm">
-                  {quotaExhausted ? "Today's scans are done" : "Next scan isn't ready yet"}
+          <div
+            role="status"
+            className="rounded-2xl border border-border-default bg-surface-2/60 p-4 sm:p-5
+                       flex items-start justify-between gap-3 animate-fade-in"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <Clock className="h-5 w-5 text-zinc-400 shrink-0 mt-px" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-zinc-50">
+                  {quotaExhausted ? "Today's scans are used up" : 'The next scan is not ready yet'}
                 </p>
-                <p className="text-xs text-zinc-400 mt-0.5">{scanCooldownMessage}</p>
+                <p className="mt-1 text-sm text-zinc-400 leading-relaxed">{scanCooldownMessage}</p>
                 {nextScanAt && (
-                  <p className="text-brand-400 font-bold text-base mt-1.5">
+                  <p className="mt-2 text-sm font-semibold text-brand-700 tnum">
                     Next scan {formatNextScanTime(nextScanAt)}
                   </p>
                 )}
               </div>
             </div>
             <button
+              type="button"
               onClick={() => { setScanCooldownMessage(null) }}
-              className="text-brand-500 hover:text-brand-600 font-bold ml-2 text-xs transition-colors shrink-0 py-2 px-2 -my-2 -mr-2 min-h-[40px] flex items-center"
+              className="shrink-0 -my-2 -mr-2 min-h-11 min-w-11 px-3 rounded-lg flex items-center justify-center cursor-pointer
+                         text-xs font-semibold text-zinc-400 transition-colors hover:bg-surface-3 hover:text-zinc-100
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
               aria-label="Dismiss scan limit message"
             >
               Dismiss
@@ -1318,13 +1360,17 @@ export default function PendingPage() {
 
         {/* Gmail connect prompt */}
         {activeBanner === 'connect' && (
-          <div role="status" className="rounded-2xl bg-brand-500/10 border border-brand-500/20 p-4 text-sm text-brand-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in shadow-md">
-            <div className="flex items-start gap-2.5">
-              <Link2 className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-white">Connect Gmail to Enable Live Scanning</p>
-                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                  Link your Gmail inbox to allow Intrack to read your bank alert emails and auto-detect transactions.{' '}
+          <div
+            role="status"
+            className="rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 sm:p-5
+                       flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-in"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <Link2 className="h-5 w-5 text-brand-500 shrink-0 mt-px" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-zinc-50">Connect Gmail to start finding transactions</p>
+                <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                  Intrack reads your bank alert emails only when you press Scan — never on its own.{' '}
                   {profile?.subscription_status === 'trial'
                     ? '(Trial account active)'
                     : profile?.subscription_plan_type === 'monthly'
@@ -1333,27 +1379,21 @@ export default function PendingPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
               <Button
-                size="sm"
-                variant="secondary"
-                className="text-brand-500 border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 hover:border-brand-500/35 transition-all text-xs justify-center animate-fade-in gap-1.5"
+                className="h-11 justify-center gap-1.5"
                 onClick={handleReconnectGoogle}
                 loading={scanning}
                 disabled={scanning}
               >
-                <Key className="h-3.5 w-3.5" /> Connect Gmail Inbox
+                <Key className="h-4 w-4" aria-hidden="true" /> Connect Gmail
               </Button>
               {(profile?.subscription_status === 'trial' ||
                 (profile?.subscription_status === 'active' &&
                   profile?.subscription_plan_type === 'monthly')) && (
                 <Link to="/pricing" className="shrink-0">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="text-brand-300 border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 hover:border-brand-500/35 transition-all text-xs justify-center font-bold gap-1.5"
-                  >
-                    <Crown className="h-3.5 w-3.5" /> Upgrade to Yearly
+                  <Button variant="secondary" block className="h-11 justify-center gap-1.5">
+                    <Crown className="h-4 w-4" aria-hidden="true" /> Upgrade to yearly
                   </Button>
                 </Link>
               )}
@@ -1364,123 +1404,143 @@ export default function PendingPage() {
         {/* NOT gated by activeBanner — this explainer should always show
             alongside the connect banner above, regardless of banner priority. */}
         {!isGoogleConnected && (
-          <div className="animate-fade-in">
-            <Card className="bg-surface-1 border-border-subtle p-6 space-y-4 shadow-md">
-              <div className="flex items-center gap-3">
-                <Shield className="h-6 w-6 text-brand-400 shrink-0" />
-                <h3 className="font-bold text-white text-base">How Your Mail Is Handled</h3>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                Your inbox is read <em>straight from Gmail</em> over a read-only connection — no server here keeps a copy of your mailbox. To tell a real transaction from a newsletter, an alert's subject and the start of its body pass through our server to Google's Gemini for a moment, and are discarded immediately after.
+          <Card className="animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <Shield className="h-5 w-5 text-brand-500 shrink-0" aria-hidden="true" />
+              <h2 className="text-base font-semibold tracking-tight text-zinc-50">
+                What happens to your mail
+              </h2>
+            </div>
+            <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+              Your inbox is read <em>straight from Gmail</em> over a read-only connection — no server
+              here keeps a copy of your mailbox. To tell a real transaction from a newsletter, an
+              alert's subject and the start of its body pass through our server to Google's Gemini
+              for a moment, and are discarded immediately after.
+            </p>
+            <div className="mt-4 rounded-xl border border-border-subtle bg-surface-2/60 p-3.5 flex items-start gap-2.5">
+              <Lightbulb className="h-4 w-4 text-[var(--status-warning-icon)] shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                <strong className="font-semibold text-zinc-100">What is kept:</strong> the transaction
+                itself — merchant, amount, date, category — saved to a database row only your account
+                can read.{' '}
+                <strong className="font-semibold text-zinc-100">What we never see:</strong> your Gmail
+                password, your net-banking credentials, PINs, or OTPs.
               </p>
-              <div className="rounded-xl bg-surface-2 p-3 text-[11px] text-zinc-500 font-medium flex items-start gap-2">
-                <Lightbulb className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>What is kept:</strong> the transaction itself — merchant, amount, date, category — saved to a database row only your account can read. <strong>What we never see:</strong> your Gmail password, your net-banking credentials, PINs, or OTPs.
-                </span>
-              </div>
-              {/* This warning used to sit in the sign-up modal, back when
-                  logging in with Google also requested the inbox scope. Sign-in
-                  now asks only for name and email, which Google shows without
-                  any warning, so the note belongs here — at the one button that
-                  really does trigger the unverified-app screen. Delete it once
-                  Google's verification review completes. */}
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Because {APP_CONFIG.APP_NAME} is still completing Google's formal app verification, the next screen may warn that the app is unverified and show a developer key instead of our name. That is expected — choose <span className="font-mono text-zinc-400">Advanced → Go to {APP_CONFIG.APP_NAME}</span> to continue. You can revoke this access at any time from your Google Account, or from Settings here.
-              </p>
-            </Card>
-
-          </div>
+            </div>
+            {/* This warning used to sit in the sign-up modal, back when
+                logging in with Google also requested the inbox scope. Sign-in
+                now asks only for name and email, which Google shows without
+                any warning, so the note belongs here — at the one button that
+                really does trigger the unverified-app screen. Delete it once
+                Google's verification review completes. */}
+            <p className="mt-4 text-xs text-zinc-400 leading-relaxed">
+              Because {APP_CONFIG.APP_NAME} is still completing Google's formal app verification, the
+              next screen may warn that the app is unverified and show a developer key instead of our
+              name. That is expected — choose{' '}
+              <span className="font-mono text-zinc-300">Advanced → Go to {APP_CONFIG.APP_NAME}</span>{' '}
+              to continue. You can revoke this access at any time from your Google Account, or from
+              Settings here.
+            </p>
+          </Card>
         )}
 
         {/* Quick summary stats */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="shadow-md">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Alerts</p>
-            <p className="mt-1.5 text-2xl font-bold text-text-primary">{totalPendingCount}</p>
-            <p className="text-xs text-zinc-500 mt-1">Awaiting your approval</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card className="p-4 sm:p-5">
+            <p className={SECTION_LABEL}>Waiting for you</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 tnum">
+              {totalPendingCount}
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              {totalPendingCount === 1 ? 'transaction to review' : 'transactions to review'}
+            </p>
             {/* The list below is capped; the count above is not. Say so, rather
                 than letting the headline disagree with what is on screen. */}
             {totalPendingCount > pendingTxns.length && !loading && (
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
                 Showing {pendingTxns.length} of {totalPendingCount} — approve or reject to see the rest
               </p>
             )}
           </Card>
-          <Card className="shadow-md">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Value</p>
+          <Card className="p-4 sm:p-5">
+            <p className={SECTION_LABEL}>Value on hold</p>
             {/* Both directions, side by side and never netted. A single figure
                 cannot describe this card honestly: summing them hides that the
                 amounts move opposite ways, and netting them lets one large
                 salary credit mask a large pending spend behind a healthy
                 positive number. When nothing incoming is waiting — the common
                 case — only the outgoing figure renders. */}
-            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-5 gap-y-1">
-              <span className="text-2xl font-bold text-brand-400 flex items-baseline gap-1.5">
-                <ArrowDown className="h-4 w-4 shrink-0 self-center" aria-hidden="true" />
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+              <span className="flex items-baseline gap-1.5 text-2xl font-semibold tracking-tight text-zinc-50 tnum">
+                <ArrowDown className="h-4 w-4 shrink-0 self-center text-zinc-400" aria-hidden="true" />
                 {formatCurrency(totalPendingValue)}
-                <span className="text-xs font-medium text-zinc-500">out</span>
+                <span className="text-xs font-medium text-zinc-400">out</span>
               </span>
               {totalPendingCredits > 0 && (
-                <span className="text-2xl font-bold text-[var(--status-positive-text)] flex items-baseline gap-1.5">
+                <span className="flex items-baseline gap-1.5 text-2xl font-semibold tracking-tight text-[var(--status-positive-text)] tnum">
                   <ArrowUp className="h-4 w-4 shrink-0 self-center" aria-hidden="true" />
                   {formatCurrency(totalPendingCredits)}
-                  <span className="text-xs font-medium text-zinc-500">in</span>
+                  <span className="text-xs font-medium text-zinc-400">in</span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500 mt-1">Awaiting your approval (₹ only)</p>
+            <p className="mt-1 text-xs text-zinc-400">Nothing counted until you approve it (₹ only)</p>
           </Card>
         </div>
 
         {/* Opt-in merchant rule suggestion — rule creation is explicit-only */}
         {ruleSuggestion && (
-          <div className="flex items-center gap-3 rounded-xl border border-brand-500/25 bg-brand-500/10 p-3 text-sm">
-            <span className="flex-1 text-zinc-300">
-              Always categorize <strong className="text-white">{ruleSuggestion.merchant}</strong> as{' '}
-              <strong className="text-white">{getStyle(ruleSuggestion.category).label}</strong>?
-            </span>
-            <Button
-              size="sm"
-              loading={creatingRule}
-              disabled={creatingRule}
-              onClick={async () => {
-                if (creatingRule) return
-                setCreatingRule(true)
-                try {
-                  if (user?.id) {
-                    await saveMerchantRuleToDb(user.id, ruleSuggestion.merchant, ruleSuggestion.category, true)
-                    saveMerchantRule(ruleSuggestion.merchant, ruleSuggestion.category, true)
+          <div className="flex flex-col gap-3 rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 sm:flex-row sm:items-center">
+            <p className="flex-1 min-w-0 text-sm text-zinc-300 leading-relaxed">
+              Always file <strong className="font-semibold text-zinc-50">{ruleSuggestion.merchant}</strong> under{' '}
+              <strong className="font-semibold text-zinc-50">{getStyle(ruleSuggestion.category).label}</strong> in
+              future? Each one will still wait here for your approval.
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                loading={creatingRule}
+                disabled={creatingRule}
+                onClick={async () => {
+                  if (creatingRule) return
+                  setCreatingRule(true)
+                  try {
+                    if (user?.id) {
+                      await saveMerchantRuleToDb(user.id, ruleSuggestion.merchant, ruleSuggestion.category, true)
+                      saveMerchantRule(ruleSuggestion.merchant, ruleSuggestion.category, true)
+                    }
+                    showToast(`Rule saved: ${ruleSuggestion.merchant} → ${getStyle(ruleSuggestion.category).label}`, 'success')
+                    setRuleSuggestion(null)
+                  } finally {
+                    setCreatingRule(false)
                   }
-                  showToast(`Rule saved: ${ruleSuggestion.merchant} → ${getStyle(ruleSuggestion.category).label}`, 'success')
-                  setRuleSuggestion(null)
-                } finally {
-                  setCreatingRule(false)
-                }
-              }}
-              className="shrink-0"
-            >
-              Create rule
-            </Button>
-            <button
-              aria-label="Dismiss rule suggestion"
-              onClick={() => setRuleSuggestion(null)}
-              className="text-zinc-400 hover:text-zinc-200 shrink-0 py-2 px-2 -my-2 -mr-2 min-h-[40px] flex items-center"
-            >
-              ✕
-            </button>
+                }}
+                className="h-11 flex-1 sm:flex-none justify-center"
+              >
+                Create rule
+              </Button>
+              <button
+                type="button"
+                aria-label="Dismiss rule suggestion"
+                onClick={() => setRuleSuggestion(null)}
+                className="h-11 w-11 shrink-0 rounded-lg flex items-center justify-center cursor-pointer
+                           text-zinc-400 transition-colors hover:bg-surface-2 hover:text-zinc-100
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Transaction review list */}
-        <div className="w-full space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-bold text-white">Review Required</h2>
+        <div className="w-full space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div className="max-w-xl">
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-50">Your review queue</h2>
               {/* The 7 days is the SCAN window, not the display window: this
                   list is every unreviewed alert, however old. */}
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Every alert still awaiting your review. Each scan looks back 7 days, and anything you have not acted on stays here.
+              <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+                Each scan looks back 7 days. Anything you have not acted on stays here until you do.
               </p>
             </div>
             {(() => {
@@ -1489,18 +1549,25 @@ export default function PendingPage() {
               ).length
               if (highConfidenceCount === 0) return null
               return (
-                <Button size="sm" variant="secondary" onClick={handleApproveAllHighConfidence} className="gap-1.5 shrink-0">
-                  <Check className="h-3.5 w-3.5" /> Approve all {highConfidenceCount} high-confidence
+                <Button
+                  variant="secondary"
+                  onClick={handleApproveAllHighConfidence}
+                  className="h-11 gap-1.5 shrink-0 justify-center"
+                >
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  Approve {highConfidenceCount} confident {highConfidenceCount === 1 ? 'match' : 'matches'}
                 </Button>
               )
             })()}
           </div>
 
           {/* Selection bar — only present once something is ticked, so the
-              page is unchanged for anyone reviewing one row at a time. */}
+              page is unchanged for anyone reviewing one row at a time. It
+              sticks below the 64px app header so a long selection can still be
+              acted on without scrolling back up. */}
           {selectedTxns.length > 0 && (
-            <Card className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-brand-500/30 bg-brand-500/5">
-              <p className="text-sm font-bold text-sb-ink shrink-0">
+            <Card className="sticky top-[72px] z-10 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-brand-500/35 bg-brand-500/[0.06] shadow-[var(--shadow-md)]">
+              <p className="text-sm font-semibold text-zinc-50 shrink-0 tnum">
                 {selectedTxns.length} selected
               </p>
 
@@ -1524,19 +1591,21 @@ export default function PendingPage() {
 
               <div className="flex items-center gap-2 shrink-0">
                 <Button
-                  size="sm"
                   variant="secondary"
-                  className="text-[var(--status-danger-text)] border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] hover:bg-[var(--status-danger-border)] justify-center gap-1.5"
+                  className="h-11 flex-1 sm:flex-none justify-center gap-1.5 text-[var(--status-danger-text)] border-[var(--status-danger-border)] hover:bg-[var(--status-danger-subtle)] hover:border-[var(--status-danger-text)]/40"
                   onClick={handleBulkReject}
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> Reject
+                  <X className="h-4 w-4" aria-hidden="true" /> Reject
                 </Button>
-                <Button size="sm" className="justify-center gap-1.5" onClick={handleBulkApprove}>
-                  <Check className="h-3.5 w-3.5" /> Approve
+                <Button className="h-11 flex-1 sm:flex-none justify-center gap-1.5" onClick={handleBulkApprove}>
+                  <Check className="h-4 w-4" aria-hidden="true" /> Approve
                 </Button>
                 <button
+                  type="button"
                   onClick={clearSelection}
-                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer px-2 py-2"
+                  className="h-11 px-3 shrink-0 rounded-lg text-xs font-medium text-zinc-400 cursor-pointer transition-colors
+                             hover:bg-surface-2 hover:text-zinc-100
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   Clear
                 </button>
@@ -1545,21 +1614,48 @@ export default function PendingPage() {
           )}
 
           {loading ? (
-            [1, 2].map((i) => (
-              <Card key={i} className="h-60 relative overflow-hidden">
-                <div className="skeleton absolute inset-0 opacity-70" />
-              </Card>
-            ))
+            /* Skeletons in the shape of the rows that are coming, so nothing
+               jumps when they arrive. A centred spinner told the user only
+               that something was happening. */
+            <ul role="status" aria-label="Loading your review queue" className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <li key={i}>
+                  <Card className="p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <Skeleton shape="block" className="h-5 w-5 shrink-0 rounded-md" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <Skeleton className="h-4 w-40 max-w-full" />
+                        <Skeleton className="h-3 w-56 max-w-full" />
+                      </div>
+                      <div className="shrink-0 space-y-2 flex flex-col items-end">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-3 w-14" />
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <Skeleton shape="block" className="h-11" />
+                      <Skeleton shape="block" className="h-11" />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <Skeleton shape="block" className="h-11 w-28" />
+                      <Skeleton shape="block" className="h-11 w-32" />
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
           ) : pendingTxns.length === 0 ? (
             <Card>
               <EmptyState
-                icon="🎉"
-                title="All caught up!"
-                description="No pending transactions require review. Use the scanner above to import new alerts."
+                icon={<CheckCircle2 className="h-7 w-7 text-[var(--status-positive-text)]" aria-hidden="true" />}
+                title="Nothing to review"
+                description="Every transaction Intrack has found is dealt with. Anything the next scan turns up will wait for you here."
               />
             </Card>
           ) : (
-            pendingTxns.map((txn, idx) => {
+            <ul className="space-y-3">
+            <AnimatePresence initial={false}>
+            {pendingTxns.map((txn) => {
               const localFields = editingFields[txn.id] || {
                 category: txn.category,
                 description: txn.description || '',
@@ -1581,95 +1677,139 @@ export default function PendingPage() {
                 ? pendingTxns.find((t) => t.id === txn.possible_duplicate_of) ?? null
                 : null
 
-              const confidenceColor =
-                suggestion.confidence >= 80
-                  ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] border-[var(--status-positive-border)]'
-                  : suggestion.confidence >= 50
-                  ? 'bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] border-[var(--status-warning-border)]'
-                  : 'bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)] border-[var(--status-danger-border)]'
+              // Presentation of the same 80 / 50 bands the page has always
+              // used. Icon plus word, so the band never depends on colour.
+              const tone = confidenceTone(suggestion.confidence)
+              const ToneIcon = tone.icon
+              const identity = resolveTransactionIdentity(txn)
+              const isSelected = selectedIds.has(txn.id)
+              const paidWith = cardDetails ? cardDetails : formatPaymentSource(txn)
+              const isCard =
+                (txn as any).payment_mode === 'credit_card' ||
+                (txn as any).payment_mode === 'debit_card' ||
+                isCardPayment((txn as any).notes)
 
               return (
-                <Card
+                <motion.li
                   key={txn.id}
-                  className="border-dashed border-zinc-700/60 bg-surface-1/90 group hover:border-zinc-500/80 transition-all flex flex-col gap-4 animate-slide-up"
-                  style={{ animationDelay: `${idx * 0.05}s` }}
+                  layout={!reduceMotion}
+                  variants={rowVariants(reduceMotion)}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={transition(reduceMotion)}
                 >
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <div className="flex items-center gap-2 overflow-hidden flex-nowrap">
-                        <Badge variant="info" className="shrink-0 whitespace-nowrap">Detected Alert</Badge>
-                        <Badge variant="warning" className="truncate max-w-[150px] whitespace-nowrap font-bold flex items-center gap-1" title={resolveTransactionIdentity(txn).title}>
-                          <Store className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                          <span>{resolveTransactionIdentity(txn).title}</span>
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-zinc-500 font-semibold">{formatDate(txn.date)}</span>
-                    </div>
-                    <span
-                      className={`text-base font-extrabold shrink-0 px-3 py-1 rounded-xl border transition-all ${
-                        isDebit
-                          ? 'text-[var(--status-danger-text)] bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)] shadow-sm shadow-[var(--status-danger-text)]/5'
-                          : 'text-[var(--status-positive-text)] bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)] shadow-sm shadow-[var(--status-positive-text)]/5'
-                      }`}
+                <Card
+                  className={cn(
+                    'p-4 sm:p-5 flex flex-col gap-4 transition-colors',
+                    isSelected ? 'border-brand-500/40 bg-brand-500/[0.03]' : 'hover:border-border-hover'
+                  )}
+                >
+                  {/* The four facts, in one glance: what it was, how much, and
+                      when. The amount sits hard against the right edge of every
+                      card, so the figures line up as a column down the list. */}
+                  <div className="flex items-start gap-3">
+                    <label
+                      className="shrink-0 -ml-1.5 -mt-1.5 h-11 w-11 rounded-lg flex items-center justify-center cursor-pointer
+                                 transition-colors hover:bg-surface-2
+                                 focus-within:ring-2 focus-within:ring-brand-500/40"
                     >
-                      {formatCurrency(Number(txn.amount), txn.currency)}
-                    </span>
+                      <input
+                        type="checkbox"
+                        className="h-[18px] w-[18px] rounded border-border-hover accent-[var(--brand-500)] cursor-pointer focus:outline-none"
+                        checked={isSelected}
+                        onChange={() => toggleSelected(txn.id)}
+                        aria-label={`Select ${identity.title} for a bulk action`}
+                      />
+                    </label>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-zinc-50 truncate" title={identity.title}>
+                        {identity.title}
+                      </p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
+                        <span className="tnum">{formatDate(txn.date)}</span>
+                        <span aria-hidden="true" className="text-zinc-500">·</span>
+                        <span className="tnum">{parseTransactionTime(txn)}</span>
+                        <span aria-hidden="true" className="text-zinc-500">·</span>
+                        <span className="inline-flex items-center gap-1 min-w-0">
+                          {isCard ? (
+                            <CreditCard className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          ) : (
+                            <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          )}
+                          <span className="truncate" title={paidWith}>{paidWith}</span>
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p
+                        className={cn(
+                          'text-base sm:text-lg font-semibold tracking-tight tnum',
+                          isDebit ? 'text-zinc-50' : 'text-[var(--status-positive-text)]'
+                        )}
+                      >
+                        {formatCurrency(Number(txn.amount), txn.currency)}
+                      </p>
+                      {/* Direction is carried by an arrow and a word, never by
+                          the colour of the figure alone. */}
+                      <p className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-zinc-400">
+                        {isDebit ? (
+                          <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        ) : (
+                          <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        )}
+                        {isDebit ? 'out' : 'in'}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Transaction detail chips */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 bg-surface-0/40 border border-border-subtle/20 rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-inner">
-                    <span className="flex items-center gap-1 bg-surface-2/60 border border-border-subtle/20 rounded-lg px-2 py-1 text-zinc-300 shrink-0">
-                      <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                      <strong>{parseTransactionTime(txn)}</strong>
+                  {/* Where it came from and how sure Intrack is — supporting
+                      detail, deliberately quieter than the four facts above. */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 border-t border-border-subtle pt-3">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      Found in your inbox
                     </span>
-                    <span className="flex items-center gap-1 bg-surface-2/60 border border-border-subtle/20 rounded-lg px-2 py-1 text-zinc-300 shrink-0">
-                      {(txn as any).payment_mode === 'credit_card' ||
-                      (txn as any).payment_mode === 'debit_card' ||
-                      isCardPayment((txn as any).notes) ? (
-                        <CreditCard className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                      ) : (
-                        <Building2 className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                      )}
-                      <strong>
-                        {cardDetails
-                          ? cardDetails
-                          : formatPaymentSource(txn)}
-                      </strong>
-                    </span>
-                    <span className="flex items-center gap-1 bg-surface-2/60 border border-border-subtle/20 rounded-lg px-2 py-1 text-brand-300 min-w-0 max-w-full">
-                      <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                      <strong className="truncate">
-                        {localFields.description ||
-                          parseShortDescription(txn.description || '', (txn as any).notes || '', txn.merchant || '')}
-                      </strong>
+                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                      <ToneIcon className={cn('h-3.5 w-3.5 shrink-0', tone.className)} aria-hidden="true" />
+                      <span className={tone.className}>
+                        {tone.label}
+                        {suggestion.confidence > 0 ? ` (${suggestion.confidence}%)` : ''}
+                      </span>
+                      <span className="truncate" title={suggestion.matchReason}>
+                        · {suggestion.matchReason}
+                      </span>
                     </span>
                   </div>
 
                   {/* Possible-duplicate hint — user decides, nothing auto-merges */}
                   {duplicatePartner && (
-                    <div className="flex flex-col gap-3 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-start gap-2 min-w-0">
-                        <CopyCheck className="h-4 w-4 text-[var(--status-warning-text)] shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-3 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] p-3.5">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <CopyCheck className="h-4 w-4 text-[var(--status-warning-text)] shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="min-w-0">
-                          <Badge variant="warning" className="whitespace-nowrap">Possible duplicate</Badge>
-                          <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                            This may be the same payment as{' '}
-                            <strong className="text-zinc-200">
+                          <p className="text-sm font-semibold text-[var(--status-warning-text)]">
+                            This might be a duplicate
+                          </p>
+                          <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                            It could be the same payment as{' '}
+                            <strong className="font-semibold text-zinc-100">
                               {resolveTransactionIdentity(duplicatePartner).title}
                             </strong>{' '}
-                            <strong className="text-zinc-200">
+                            <strong className="font-semibold text-zinc-100 tnum">
                               {formatCurrency(Number(duplicatePartner.amount), duplicatePartner.currency)}
                             </strong>{' '}
-                            on {formatDate(duplicatePartner.date)} — a bank alert and a receipt for one purchase.
+                            on {formatDate(duplicatePartner.date)} — a bank alert and a receipt for one
+                            purchase. Merging keeps it here, still waiting for your approval.
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 sm:justify-end">
                         <Button
                           variant="secondary"
-                          size="sm"
-                          className="justify-center"
+                          className="h-11 flex-1 sm:flex-none justify-center"
                           onClick={() => handleKeepBothDuplicates(txn)}
                           disabled={duplicateActionId === txn.id}
                         >
@@ -1677,8 +1817,7 @@ export default function PendingPage() {
                         </Button>
                         <Button
                           variant="secondary"
-                          size="sm"
-                          className="justify-center"
+                          className="h-11 flex-1 sm:flex-none justify-center"
                           onClick={() => handleMergeDuplicates(txn, duplicatePartner)}
                           loading={duplicateActionId === txn.id}
                           disabled={duplicateActionId === txn.id}
@@ -1689,14 +1828,15 @@ export default function PendingPage() {
                     </div>
                   )}
 
-                  {/* Form controls */}
+                  {/* Corrections. Whatever is chosen here is what gets saved
+                      when the row is approved — never before. */}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label
                         htmlFor={`cat-select-${txn.id}`}
-                        className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5"
+                        className="block text-xs font-medium text-zinc-300 mb-1.5"
                       >
-                        Category Classification
+                        Category
                       </label>
                       <Select
                         id={`cat-select-${txn.id}`}
@@ -1709,67 +1849,51 @@ export default function PendingPage() {
                           </option>
                         ))}
                       </Select>
-                      <div className="flex flex-wrap items-center gap-2.5 mt-3 px-3 py-2 rounded-xl bg-surface-2/45 border border-border-subtle/30 shadow-inner">
-                        <span className={`text-xs font-bold px-2.5 py-0.5 border rounded-full ${confidenceColor}`}>
-                          {suggestion.confidence > 0 ? `${suggestion.confidence}% Confidence` : 'Low Confidence'}
-                        </span>
-                        <span className="text-xs text-zinc-300 font-semibold flex items-center gap-1">
-                          <Brain className="h-3.5 w-3.5 text-brand-400 shrink-0" />
-                          <span className="text-zinc-400">{suggestion.matchReason}</span>
-                        </span>
-                      </div>
                     </div>
 
                     <div>
                       <label
                         htmlFor={`desc-input-${txn.id}`}
-                        className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5"
+                        className="block text-xs font-medium text-zinc-300 mb-1.5"
                       >
-                        Edit Label / Description
+                        Description
                       </label>
                       <Input
                         id={`desc-input-${txn.id}`}
                         value={localFields.description}
                         onChange={(e) => handleFieldChange(txn.id, 'description', e.target.value)}
-                        placeholder="e.g. Swiggy Lunch"
+                        placeholder="e.g. Swiggy lunch"
                       />
                     </div>
                   </div>
 
-                  {/* Action buttons. The select box lives here rather than in
-                      the header so the three ways to deal with a row — approve
-                      it, reject it, or batch it — sit together. */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-border-subtle/30">
-                    <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer select-none py-1">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-zinc-600 accent-[#3ecf8e] cursor-pointer"
-                        checked={selectedIds.has(txn.id)}
-                        onChange={() => toggleSelected(txn.id)}
-                      />
-                      Select
-                    </label>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  {/* The two decisions, pushed to opposite ends of the row and
+                      given different weight, so the destructive one is never
+                      the neighbour of the confirming one under a thumb. Both
+                      are reversible for five seconds via the Undo in the toast. */}
+                  <div className="flex items-center justify-between gap-3 pt-1">
                     <Button
                       variant="secondary"
-                      size="sm"
-                      className="text-[var(--status-danger-text)] border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] hover:bg-[var(--status-danger-border)] hover:border-[var(--status-danger-text)]/40 w-full sm:w-auto justify-center gap-1.5"
+                      className="h-11 justify-center gap-1.5 text-[var(--status-danger-text)] border-[var(--status-danger-border)] hover:bg-[var(--status-danger-subtle)] hover:border-[var(--status-danger-text)]/40"
                       onClick={() => handleRejectWithUndo(txn)}
+                      aria-label={`Reject ${identity.title}`}
                     >
-                      <Trash2 className="h-4 w-4" /> Reject Alert
+                      <X className="h-4 w-4" aria-hidden="true" /> Reject
                     </Button>
                     <Button
-                      size="sm"
-                      className="w-full sm:w-auto justify-center gap-1.5"
+                      className="h-11 min-w-[9rem] justify-center gap-1.5"
                       onClick={() => handleApproveWithUndo(txn)}
+                      aria-label={`Approve ${identity.title}`}
                     >
-                      <Check className="h-4 w-4" /> Approve
+                      <Check className="h-4 w-4" aria-hidden="true" /> Approve
                     </Button>
-                    </div>
                   </div>
                 </Card>
+                </motion.li>
               )
-            })
+            })}
+            </AnimatePresence>
+            </ul>
           )}
         </div>
       </div>

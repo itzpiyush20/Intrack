@@ -23,17 +23,17 @@ export default function AboutPage() {
       <div className="text-center mb-16">
         <motion.div
           className="inline-flex items-center justify-center h-20 w-20 rounded-[12px] bg-brand-500/10 border border-brand-500/20 mb-6"
-          initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          <Shield className="w-8 h-8 text-emerald-400" />
+          <Shield className="w-8 h-8 text-brand-400" />
         </motion.div>
         <motion.h1
-          className="text-4xl font-extrabold tracking-tight text-sb-ink"
+          className="sb-display-xl text-sb-ink"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
         >
           Built for Financial Clarity
         </motion.h1>
@@ -49,15 +49,15 @@ export default function AboutPage() {
 
       {/* Mission */}
       <div data-reveal className="sb-card-light border-t-4 border-t-brand-500 p-5 sm:p-8 mb-12">
-        <h2 className="text-xl font-bold text-sb-ink">Our Mission</h2>
+        <h2 className="sb-display-md text-sb-ink">Our Mission</h2>
         <p className="text-sm mt-3 leading-relaxed text-sb-ink-secondary">
           To give every Indian professional the financial intelligence of a personal CFO — without the ₹5,000/hour consulting fees.
         </p>
         <div className="grid sm:grid-cols-3 sm:auto-rows-fr gap-4 mt-8">
           {[
-            { icon: <Brain className="w-8 h-8 text-emerald-400" />, title: 'Intelligent', body: 'Reads and categorizes your spending from bank emails with human-like accuracy, every time you run a scan.' },
-            { icon: <Lock className="w-8 h-8 text-emerald-400" />, title: 'Private', body: 'Read-only Gmail access, limited to what a bank-alert search returns. Nothing is kept but the transaction — plus a 30-day diagnostic note on mail we rejected, so a missing expense can be traced. No ads, no data sold, ever.' },
-            { icon: <TrendingUp className="w-8 h-8 text-emerald-400" />, title: 'Actionable', body: 'Turns raw transaction data into insights that help you actually improve your financial behavior.' },
+            { icon: <Brain className="w-8 h-8 text-brand-400" />, title: 'Intelligent', body: 'Reads and categorizes your spending from bank emails with human-like accuracy, every time you run a scan.' },
+            { icon: <Lock className="w-8 h-8 text-brand-400" />, title: 'Private', body: 'Read-only Gmail access, limited to what a bank-alert search returns. Nothing is kept but the transaction — plus a 30-day diagnostic note on mail we rejected, so a missing expense can be traced. No ads, no data sold, ever.' },
+            { icon: <TrendingUp className="w-8 h-8 text-brand-400" />, title: 'Actionable', body: 'Turns raw transaction data into insights that help you actually improve your financial behavior.' },
           ].map((item, i) => (
             <div key={item.title} data-reveal data-delay={String(i * 100)} className="h-full flex flex-col">
               <div className="rounded-xl p-5 bg-sb-canvas border border-sb-hairline h-full flex flex-col justify-start">
@@ -72,7 +72,7 @@ export default function AboutPage() {
 
       {/* The Problem */}
       <section className="mb-12 space-y-6">
-        <h2 data-reveal className="text-xl font-bold text-sb-ink">Why Intrack Exists</h2>
+        <h2 data-reveal className="sb-display-md text-sb-ink">Why Intrack Exists</h2>
         <div className="space-y-4">
           {[
             { q: 'Existing apps require too much manual input', a: 'Most people abandon expense trackers within 2 weeks because manually entering every transaction is tedious. Intrack automates this via Gmail bank alerts — the most reliable financial data source you already have.' },
@@ -81,7 +81,7 @@ export default function AboutPage() {
           ].map((item, i) => (
             <div key={item.q} data-reveal data-delay={String(i * 100)} className="sb-card-light p-6">
               <p className="text-sm font-semibold flex items-start gap-2 text-sb-ink">
-                <span className="text-emerald-400 font-bold shrink-0 mt-0.5">✦</span>
+                <span className="text-brand-400 font-bold shrink-0 mt-0.5">✦</span>
                 {item.q}
               </p>
               <p className="text-sm leading-relaxed pl-5 mt-2 text-sb-ink-secondary">{item.a}</p>
@@ -92,7 +92,7 @@ export default function AboutPage() {
 
       {/* Technology */}
       <section className="mb-12 space-y-6">
-        <h2 data-reveal className="text-xl font-bold text-sb-ink">Technology & Architecture</h2>
+        <h2 data-reveal className="sb-display-md text-sb-ink">Technology & Architecture</h2>
         <div className="grid sm:grid-cols-2 sm:auto-rows-fr gap-4">
           {[
             { label: 'Email Intelligence Engine', value: '5-layer AI pipeline with 50+ bank patterns, confidence scoring, and self-learning rules' },
@@ -104,7 +104,7 @@ export default function AboutPage() {
           ].map((item, i) => (
             <div key={item.label} data-reveal data-delay={String(i * 70)} className="h-full flex flex-col">
               <div className="sb-card-light p-4 h-full flex flex-col justify-start">
-                <p className="text-xs font-bold uppercase tracking-wider mb-1 text-emerald-400">{item.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1 text-brand-400">{item.label}</p>
                 <p className="text-sm leading-relaxed text-sb-ink-secondary flex-1">{item.value}</p>
               </div>
             </div>
@@ -114,7 +114,7 @@ export default function AboutPage() {
 
       {/* Trust Signals */}
       <section className="mb-12 space-y-6">
-        <h2 data-reveal className="text-xl font-bold text-sb-ink">Our Commitments to You</h2>
+        <h2 data-reveal className="sb-display-md text-sb-ink">Our Commitments to You</h2>
         <div className="grid sm:grid-cols-2 sm:auto-rows-fr gap-3">
           {[
             'We never store your banking passwords',
@@ -134,7 +134,7 @@ export default function AboutPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.05 }}
             >
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" /> {commitment}
+              <Check className="w-4 h-4 text-brand-400 shrink-0" /> {commitment}
             </motion.div>
           ))}
         </div>
@@ -142,7 +142,7 @@ export default function AboutPage() {
 
       {/* CTA */}
       <div className="text-center sb-card-light p-6 sm:p-10 space-y-6">
-        <h2 className="text-xl font-bold text-sb-ink">Start Taking Control of Your Finances</h2>
+        <h2 className="sb-display-md text-sb-ink">Start Taking Control of Your Finances</h2>
         <p className="text-sm leading-relaxed text-sb-ink-secondary" style={{ maxWidth: 480, margin: '0 auto' }}>Connect your Gmail and let Intrack handle the tracking while you focus on the decisions.</p>
         {/* This used to link to /dashboard unconditionally, so the only call to
             action on the page bounced a signed-out visitor straight back to the

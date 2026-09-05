@@ -29,7 +29,7 @@ export const DURATION = { fast: 0.14, base: 0.18, slow: 0.24 } as const
 export const INDICATOR_SPRING: Transition = { type: 'spring', stiffness: 420, damping: 36 }
 
 /** Base transition, collapsed to nothing when reduced motion is requested. */
-export const transition = (reduce: boolean | null, duration = DURATION.base): Transition =>
+export const transition = (reduce: boolean | null, duration: number = DURATION.base): Transition =>
   reduce ? { duration: 0 } : { duration, ease: EASE_OUT }
 
 /**

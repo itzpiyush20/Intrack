@@ -1,7 +1,8 @@
-import { Card, Badge, EmptyState } from '@/components/ui'
+import { Card, Badge, EmptyState, Skeleton } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
-import { Gauge } from 'lucide-react'
+import { Gauge, AlertTriangle, Eye, Check } from 'lucide-react'
+import { NEUTRAL_MARK, CARD_TITLE, CARD_SUBTITLE } from './chartTokens'
 
 export interface BudgetBurndownItem {
   category: string
@@ -38,139 +39,175 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
   const HEIGHT = 40
 
   return (
-    <Card className="flex flex-col min-h-[260px] p-5">
+    <Card className="flex flex-col">
       <div>
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Gauge className="w-5 h-5 text-brand-400 shrink-0" />
-          Budget Burn-down
+        <h2 className={CARD_TITLE}>
+          <Gauge className="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
+          Are your budgets on pace?
         </h2>
-        <p className="text-xs text-zinc-500 mt-0.5">
-          Actual spend vs. an even daily pace, with a projected month-end outcome
+        <p className={CARD_SUBTITLE}>
+          Each line is what you have actually spent so far this month against an
+          even daily pace, carried forward at your current rate.
         </p>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[1, 2].map((i) => (
-              <div key={i} className="space-y-2">
-                <div className="skeleton h-4 w-1/3" />
-                <div className="skeleton h-24 w-full" />
+          <div role="status" aria-label="Loading budgets" className="grid gap-4 sm:grid-cols-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="space-y-3 rounded-xl border border-border-subtle p-3.5">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton shape="block" className="h-20 w-full" />
+                <Skeleton className="h-3 w-2/3" />
               </div>
             ))}
           </div>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Gauge className="w-8 h-8 text-zinc-500" />}
-            title="No budgets to track"
-            description="Set a monthly limit on the Budgets page to see a burn-down projection here."
+            icon={<Gauge className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            title="No budgets set"
+            description="Set a monthly limit on the Budgets page and this shows whether you are ahead of it or behind it."
           />
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2">
-            {data.map((item) => {
-              const cat = getStyle(item.category)
-              const maxY = Math.max(item.budgetAmount, item.projectedTotal, ...item.cumulative, 1)
-              const actualPoints = buildPoints(
-                item.cumulative.slice(0, item.daysElapsed),
-                maxY,
-                WIDTH,
-                HEIGHT,
-                item.daysInMonth - 1
-              )
-              // Day 1 of the ideal line is one day's allowance, not zero. The
-              // actual line's first point is day 1's spend (money already out),
-              // so anchoring the ideal at zero offset the two by a day.
-              const idealPoints = buildPoints(
-                [item.daysInMonth > 0 ? item.budgetAmount / item.daysInMonth : 0, item.budgetAmount],
-                maxY,
-                WIDTH,
-                HEIGHT,
-                1
-              )
-              const lastActualX = item.daysInMonth > 1 ? ((item.daysElapsed - 1) / (item.daysInMonth - 1)) * WIDTH : 0
-              const lastActualY = HEIGHT - (item.spentSoFar / maxY) * HEIGHT
-              const projectedEndY = HEIGHT - (item.projectedTotal / maxY) * HEIGHT
+          <>
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {data.map((item) => {
+                const cat = getStyle(item.category)
+                const maxY = Math.max(item.budgetAmount, item.projectedTotal, ...item.cumulative, 1)
+                const actualPoints = buildPoints(
+                  item.cumulative.slice(0, item.daysElapsed),
+                  maxY,
+                  WIDTH,
+                  HEIGHT,
+                  item.daysInMonth - 1
+                )
+                // Day 1 of the ideal line is one day's allowance, not zero. The
+                // actual line's first point is day 1's spend (money already out),
+                // so anchoring the ideal at zero offset the two by a day.
+                const idealPoints = buildPoints(
+                  [item.daysInMonth > 0 ? item.budgetAmount / item.daysInMonth : 0, item.budgetAmount],
+                  maxY,
+                  WIDTH,
+                  HEIGHT,
+                  1
+                )
+                const lastActualX = item.daysInMonth > 1 ? ((item.daysElapsed - 1) / (item.daysInMonth - 1)) * WIDTH : 0
+                const lastActualY = HEIGHT - (item.spentSoFar / maxY) * HEIGHT
+                const projectedEndY = HEIGHT - (item.projectedTotal / maxY) * HEIGHT
 
-              const isOver = item.projectedOverBy > 0
-              const pctUsed = item.budgetAmount > 0 ? (item.spentSoFar / item.budgetAmount) * 100 : 0
+                const isOver = item.projectedOverBy > 0
+                const pctUsed = item.budgetAmount > 0 ? (item.spentSoFar / item.budgetAmount) * 100 : 0
+                // Status is a word and an icon first; the badge colour only
+                // repeats what they already say.
+                const status = isOver
+                  ? { variant: 'danger' as const, label: 'Over pace', Icon: AlertTriangle }
+                  : pctUsed >= 70
+                    ? { variant: 'warning' as const, label: 'Watch', Icon: Eye }
+                    : { variant: 'success' as const, label: 'On track', Icon: Check }
 
-              return (
-                <div
-                  key={item.category}
-                  className={`rounded-xl border border-border-subtle/40 bg-surface-2/30 p-3.5 ${onCategoryClick ? 'cursor-pointer hover:opacity-75' : ''}`}
-                  onClick={onCategoryClick ? () => onCategoryClick(item.category) : undefined}
-                  role={onCategoryClick ? 'button' : undefined}
-                  tabIndex={onCategoryClick ? 0 : undefined}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 truncate">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      <span className="truncate">{cat.label}</span>
+                const body = (
+                  <>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-zinc-100">
+                        <span
+                          aria-hidden="true"
+                          className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-inset ring-black/10"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="truncate">{cat.label}</span>
+                      </span>
+                      <Badge variant={status.variant} className="shrink-0 gap-1">
+                        <status.Icon className="h-3 w-3" aria-hidden="true" />
+                        {status.label}
+                      </Badge>
                     </div>
-                    <Badge variant={isOver ? 'danger' : pctUsed >= 70 ? 'warning' : 'success'}>
-                      {isOver ? 'Over pace' : pctUsed >= 70 ? 'Watch' : 'On track'}
-                    </Badge>
-                  </div>
 
-                  <svg
-                    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                    className="w-full h-20"
-                    preserveAspectRatio="none"
-                  >
-                    {/* Ideal even-pace line */}
-                    <polyline
-                      points={idealPoints}
-                      fill="none"
-                      stroke="var(--zinc-600)"
-                      strokeWidth="1"
-                      strokeDasharray="3,2"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    {/* Actual cumulative spend so far */}
-                    <polyline
-                      points={actualPoints}
-                      fill="none"
-                      stroke={cat.color}
-                      strokeWidth="1.75"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    {/* Projected trajectory to month end */}
-                    {item.daysElapsed < item.daysInMonth && (
-                      <line
-                        x1={lastActualX}
-                        y1={lastActualY}
-                        x2={WIDTH}
-                        y2={projectedEndY}
-                        stroke={cat.color}
-                        strokeWidth="1.25"
-                        strokeDasharray="2,2"
-                        opacity="0.6"
+                    <svg
+                      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                      className="h-20 w-full"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      {/* Ideal even-pace line. This used to be stroked in
+                          `var(--zinc-600)`, which the light theme resolves to
+                          #dde1e8 — the reference line was invisible against the
+                          card, so the actual line had nothing to be read
+                          against. */}
+                      <polyline
+                        points={idealPoints}
+                        fill="none"
+                        stroke={NEUTRAL_MARK}
+                        strokeWidth="1"
+                        strokeDasharray="3,2"
                         vectorEffect="non-scaling-stroke"
                       />
+                      {/* Actual cumulative spend so far */}
+                      <polyline
+                        points={actualPoints}
+                        fill="none"
+                        stroke={cat.color}
+                        strokeWidth="1.75"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {/* Projected trajectory to month end */}
+                      {item.daysElapsed < item.daysInMonth && (
+                        <line
+                          x1={lastActualX}
+                          y1={lastActualY}
+                          x2={WIDTH}
+                          y2={projectedEndY}
+                          stroke={cat.color}
+                          strokeWidth="1.25"
+                          strokeDasharray="2,2"
+                          opacity="0.6"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      )}
+                    </svg>
+
+                    <div className="mt-2 flex items-baseline justify-between gap-2 text-sm">
+                      <span className="text-zinc-300 tnum">
+                        {formatCurrencyCompact(item.spentSoFar)}
+                        <span className="text-zinc-400"> of {formatCurrencyCompact(item.budgetAmount)}</span>
+                      </span>
+                      <span className="font-semibold text-zinc-50 tnum">{Math.round(pctUsed)}%</span>
+                    </div>
+
+                    {isOver && item.projectedOverDate && (
+                      <p className="mt-1.5 text-xs font-medium text-[var(--status-warning-text)]">
+                        {item.isPastOvershoot ? 'Crossed' : 'At this pace, crosses'} the limit around{' '}
+                        {item.projectedOverDate} — about {formatCurrency(item.projectedOverBy)} over by month end.
+                      </p>
                     )}
-                  </svg>
+                  </>
+                )
 
-                  <div className="flex items-center justify-between text-xs mt-2">
-                    <span className="text-zinc-400">
-                      {formatCurrencyCompact(item.spentSoFar)}{' '}
-                      <span className="text-zinc-600">of {formatCurrencyCompact(item.budgetAmount)}</span>
-                    </span>
-                    <span className="font-semibold text-zinc-300">{Math.round(pctUsed)}%</span>
-                  </div>
+                return (
+                  <li key={item.category}>
+                    {onCategoryClick ? (
+                      <button
+                        type="button"
+                        onClick={() => onCategoryClick(item.category)}
+                        aria-label={`${cat.label}: ${formatCurrency(item.spentSoFar)} of ${formatCurrency(item.budgetAmount)} spent, ${status.label}. Open its transactions.`}
+                        className="w-full rounded-xl border border-border-subtle bg-surface-2/40 p-3.5 text-left transition-colors hover:border-border-hover hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                      >
+                        {body}
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-border-subtle bg-surface-2/40 p-3.5">{body}</div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
 
-                  {isOver && item.projectedOverDate && (
-                    <p className="text-[11px] text-[var(--status-warning-text)] font-medium mt-1.5">
-                      {item.isPastOvershoot ? 'Crossed' : 'At this pace, crosses'} the limit around {item.projectedOverDate} — projected{' '}
-                      {formatCurrency(item.projectedOverBy)} over by month end.
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+            <p className="mt-4 text-xs text-zinc-400">
+              Dashed grey is an even daily pace; the solid line is what you have
+              actually spent, and the faded dashes ahead of it are where that
+              pace lands by month end.
+            </p>
+          </>
         )}
       </div>
     </Card>

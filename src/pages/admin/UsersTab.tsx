@@ -10,9 +10,15 @@
 // ============================================
 
 import { Fragment, useEffect, useState } from 'react'
-import { Card, Button, Input, Select } from '@/components/ui'
+import { Card, Button, Input, Select, ConfirmDialog, EmptyState } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { useAdminQuery } from './useAdminQuery'
+import {
+  AdminError, TableSkeleton, Pager,
+  TABLE_WRAP, TABLE, TABLE_HEAD, TABLE_HEAD_CELL, TABLE_HEAD_CELL_NUM,
+  TABLE_ROW, TABLE_CELL, TABLE_CELL_NUM, TABLE_CELL_STRONG,
+} from './adminUi'
+import { Gift, CircleSlash, History, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface UserRow {
   id: string
@@ -92,15 +98,10 @@ function ScanHistory({ userId }: { userId: string }) {
     lim: HISTORY_LIMIT,
   })
 
-  if (loading) return <p className="text-sm text-zinc-400">Loading scan history…</p>
+  if (loading) return <TableSkeleton rows={3} cols={6} />
 
   if (error) {
-    return (
-      <div>
-        <p className="text-sm text-red-400">Could not load scan history: {error}</p>
-        <button onClick={reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
-      </div>
-    )
+    return <AdminError message={`Could not load scan history: ${error}`} onRetry={reload} />
   }
 
   if ((data?.length ?? 0) === 0) {
@@ -108,27 +109,27 @@ function ScanHistory({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs">
-        <thead className="text-zinc-500">
+    <div className={TABLE_WRAP}>
+      <table className={TABLE}>
+        <thead className={TABLE_HEAD}>
           <tr>
-            <th className="py-1 pr-4 font-medium">Scanned</th>
-            <th className="py-1 pr-4 font-medium">Mode</th>
-            <th className="py-1 pr-4 font-medium">Status</th>
-            <th className="py-1 pr-4 font-medium">Emails</th>
-            <th className="py-1 pr-4 font-medium">Transactions</th>
-            <th className="py-1 font-medium">Error</th>
+            <th className={TABLE_HEAD_CELL}>Scanned</th>
+            <th className={TABLE_HEAD_CELL}>Mode</th>
+            <th className={TABLE_HEAD_CELL}>Status</th>
+            <th className={TABLE_HEAD_CELL_NUM}>Emails</th>
+            <th className={TABLE_HEAD_CELL_NUM}>Transactions</th>
+            <th className={TABLE_HEAD_CELL}>Error</th>
           </tr>
         </thead>
         <tbody>
           {data!.map((log, index) => (
-            <tr key={`${log.scanned_at}-${index}`} className="text-zinc-400">
-              <td className="py-1 pr-4 whitespace-nowrap">{formatDateTime(log.scanned_at)}</td>
-              <td className="py-1 pr-4">{log.scan_mode ?? '—'}</td>
-              <td className="py-1 pr-4">{log.status}</td>
-              <td className="py-1 pr-4">{log.emails_processed}</td>
-              <td className="py-1 pr-4">{log.transactions_found}</td>
-              <td className="py-1 text-red-400">{log.error_message ?? '—'}</td>
+            <tr key={`${log.scanned_at}-${index}`} className={TABLE_ROW}>
+              <td className={`${TABLE_CELL} whitespace-nowrap`}>{formatDateTime(log.scanned_at)}</td>
+              <td className={TABLE_CELL}>{log.scan_mode ?? '—'}</td>
+              <td className={TABLE_CELL}>{log.status}</td>
+              <td className={TABLE_CELL_NUM}>{log.emails_processed}</td>
+              <td className={TABLE_CELL_NUM}>{log.transactions_found}</td>
+              <td className="px-4 py-3 text-[var(--status-danger-text)]">{log.error_message ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -184,6 +185,10 @@ export default function UsersTab() {
   const [busyUser, setBusyUser] = useState<string | null>(null)
   const [opError, setOpError] = useState<string | null>(null)
   const [opSuccess, setOpSuccess] = useState<string | null>(null)
+  // The account a destructive "End access" is pending confirmation for.
+  // Nothing here fires until the operator confirms in the dialog — same gate
+  // window.confirm used to provide, just in the app's own shared component.
+  const [expireTarget, setExpireTarget] = useState<UserRow | null>(null)
 
   const { data, loading, error, reload } = useAdminQuery<UserRow[]>('admin_user_list', {
     search: debouncedSearch,
@@ -231,15 +236,9 @@ export default function UsersTab() {
     }
   }
 
-  const expire = async (user: UserRow) => {
-    // Taking away paid access is not undoable from here, so make it deliberate.
-    if (!window.confirm(
-      `End paid access for ${user.email}? They lose premium features immediately, ` +
-      `and any plan queued to start later is cancelled too — if they paid for one, ` +
-      `you will need to refund it in Razorpay.`
-    )) {
-      return
-    }
+  const confirmExpire = async () => {
+    const user = expireTarget
+    if (!user) return
     setBusyUser(user.id)
     setOpError(null)
     setOpSuccess(null)
@@ -259,6 +258,7 @@ export default function UsersTab() {
       setOpError((e as Error).message)
     } finally {
       setBusyUser(null)
+      setExpireTarget(null)
     }
   }
 
@@ -270,91 +270,110 @@ export default function UsersTab() {
         placeholder="Search by email"
       />
 
-      {opError && <p className="text-sm text-red-400">{opError}</p>}
-      {opSuccess && <p className="text-sm text-emerald-400">{opSuccess}</p>}
-
-      {loading && <p className="py-8 text-sm text-zinc-400">Loading…</p>}
-
-      {error && (
-        <div className="py-8">
-          <p className="text-sm text-red-400">Could not load users: {error}</p>
-          <button onClick={reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
-        </div>
+      {opError && (
+        <p className="rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
+          {opError}
+        </p>
       )}
-
-      {!loading && !error && (data?.length ?? 0) === 0 && (
-        <p className="py-8 text-center text-sm text-zinc-500">
-          {debouncedSearch ? 'No accounts match that search.' : 'No accounts yet.'}
+      {opSuccess && (
+        <p className="rounded-lg border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] px-3 py-2 text-sm text-[var(--status-positive-text)]">
+          {opSuccess}
         </p>
       )}
 
+      {loading && (
+        <Card noPadding>
+          <TableSkeleton rows={6} cols={COLUMN_COUNT} />
+        </Card>
+      )}
+
+      {error && <AdminError message={`Could not load users: ${error}`} onRetry={reload} />}
+
+      {!loading && !error && (data?.length ?? 0) === 0 && (
+        <EmptyState
+          icon="👤"
+          title={debouncedSearch ? 'No matches' : 'No accounts yet'}
+          description={debouncedSearch ? 'No accounts match that search.' : 'Accounts will appear here as people sign up.'}
+        />
+      )}
+
       {!loading && !error && (data?.length ?? 0) > 0 && (
-        <Card className="overflow-x-auto p-0">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border-subtle text-xs uppercase tracking-wider text-zinc-500">
+        <Card noPadding className={TABLE_WRAP}>
+          <table className={TABLE}>
+            <thead className={TABLE_HEAD}>
               <tr>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Expires</th>
-                <th className="px-4 py-3">Joined</th>
-                <th className="px-4 py-3">Last seen</th>
-                <th className="px-4 py-3">Scans 30d</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className={TABLE_HEAD_CELL}>Email</th>
+                <th className={TABLE_HEAD_CELL}>Status</th>
+                <th className={TABLE_HEAD_CELL}>Plan</th>
+                <th className={TABLE_HEAD_CELL}>Expires</th>
+                <th className={TABLE_HEAD_CELL}>Joined</th>
+                <th className={TABLE_HEAD_CELL}>Last seen</th>
+                <th className={TABLE_HEAD_CELL_NUM}>Scans 30d</th>
+                <th className={TABLE_HEAD_CELL}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data!.map((u) => (
                 <Fragment key={u.id}>
-                  <tr className="border-b border-border-subtle/50">
-                    <td className="px-4 py-3 text-zinc-200">{u.email}</td>
-                    <td className="px-4 py-3 text-zinc-400">{u.subscription_status ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-400">{u.subscription_plan_type ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-400">{formatDate(u.subscription_expires_at)}</td>
-                    <td className="px-4 py-3 text-zinc-400">{formatDate(u.created_at)}</td>
-                    <td className="px-4 py-3 text-zinc-400">{formatDate(u.last_signin_at)}</td>
-                    <td className="px-4 py-3 text-zinc-400">{u.scans_30d}</td>
+                  <tr className={TABLE_ROW}>
+                    <td className={TABLE_CELL_STRONG}>{u.email}</td>
+                    <td className={TABLE_CELL}>{u.subscription_status ?? '—'}</td>
+                    <td className={TABLE_CELL}>{u.subscription_plan_type ?? '—'}</td>
+                    <td className={TABLE_CELL}>{formatDate(u.subscription_expires_at)}</td>
+                    <td className={TABLE_CELL}>{formatDate(u.created_at)}</td>
+                    <td className={TABLE_CELL}>{formatDate(u.last_signin_at)}</td>
+                    <td className={TABLE_CELL_NUM}>{u.scans_30d}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 whitespace-nowrap">
-                        <button
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => openGrant(u.id)}
                           disabled={busyUser === u.id}
-                          className="text-xs text-brand-400 underline disabled:opacity-40"
+                          className="gap-1.5 px-2"
                         >
-                          Grant
-                        </button>
-                        <button
-                          onClick={() => expire(u)}
+                          <Gift className="h-3.5 w-3.5" /> Grant
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setExpireTarget(u)}
                           disabled={busyUser === u.id}
-                          className="text-xs text-red-400 underline disabled:opacity-40"
+                          className="gap-1.5 px-2 text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]"
                         >
-                          End access
-                        </button>
-                        <button
+                          <CircleSlash className="h-3.5 w-3.5" /> End access
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setHistoryFor((current) => (current === u.id ? null : u.id))}
-                          className="text-xs text-zinc-400 underline"
+                          className="gap-1.5 px-2"
+                          aria-expanded={historyFor === u.id}
                         >
-                          {historyFor === u.id ? 'Hide history' : 'History'}
-                        </button>
+                          <History className="h-3.5 w-3.5" />
+                          History
+                          {historyFor === u.id ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </Button>
                       </div>
                     </td>
                   </tr>
 
                   {grantFor === u.id && (
-                    <tr className="border-b border-border-subtle/50 bg-surface-1/40">
-                      <td colSpan={COLUMN_COUNT} className="px-4 py-3">
+                    <tr className="border-b border-border-subtle/50 bg-surface-2/40">
+                      <td colSpan={COLUMN_COUNT} className="px-4 py-4">
                         <div className="flex flex-wrap items-end gap-3">
                           <div className="w-28">
-                            <label className="mb-1 block text-xs text-zinc-400">Days</label>
                             <Input
+                              label="Days"
                               value={grantDays}
                               onChange={(e) => setGrantDays(e.target.value)}
                               placeholder="30"
+                              className="tnum"
                             />
                           </div>
                           <div className="w-40">
-                            <label className="mb-1 block text-xs text-zinc-400">Plan</label>
                             <Select
+                              label="Plan"
                               value={grantPlan}
                               onChange={(e) => setGrantPlan(e.target.value === 'annual' ? 'annual' : 'monthly')}
                               options={[
@@ -384,8 +403,8 @@ export default function UsersTab() {
                   )}
 
                   {historyFor === u.id && (
-                    <tr className="border-b border-border-subtle/50 bg-surface-1/40">
-                      <td colSpan={COLUMN_COUNT} className="px-4 py-3">
+                    <tr className="border-b border-border-subtle/50 bg-surface-2/40">
+                      <td colSpan={COLUMN_COUNT} className="px-4 py-4">
                         <ScanHistory userId={u.id} />
                       </td>
                     </tr>
@@ -397,25 +416,27 @@ export default function UsersTab() {
         </Card>
       )}
 
-      {pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-400">
-          <button
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-            className="disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span>Page {page + 1} of {pages} · {total} accounts</span>
-          <button
-            disabled={page + 1 >= pages}
-            onClick={() => setPage((p) => p + 1)}
-            className="disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pager
+        page={page}
+        pages={pages}
+        total={total}
+        noun="accounts"
+        onPrev={() => setPage((p) => p - 1)}
+        onNext={() => setPage((p) => p + 1)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!expireTarget}
+        onClose={() => setExpireTarget(null)}
+        onConfirm={confirmExpire}
+        title={`End access for ${expireTarget?.email}?`}
+        message={
+          `They lose premium features immediately, and any plan queued to start later is ` +
+          `cancelled too — if they paid for one, you will need to refund it in Razorpay.`
+        }
+        confirmLabel="End access"
+        danger
+      />
     </div>
   )
 }

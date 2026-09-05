@@ -120,37 +120,49 @@ export default function LandingPage() {
       <MarketingHeader />
 
       <main id="main-content">
-        {/* ── HERO ─────────────────────────────────────────── */}
-        <section className="pt-12 pb-10 md:pt-24 md:pb-20 border-b border-sb-hairline overflow-hidden relative">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center relative z-10">
-            <div className="space-y-8">
-              {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-brand-400"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
-                Read-only, always · Zero bank access required
-              </motion.div>
+        {/* ── HERO ─────────────────────────────────────────────
+            Deliberately not the mirrored "headline left, screenshot right"
+            shape every SaaS hero uses. The copy runs wide across the top on
+            a 7fr/5fr split, and the demo sits low and offset on lg — pinned
+            to the baseline of the text rather than vertically centred
+            against it, with a slight rotation so it reads as a detail, not a
+            second column competing for attention. */}
+        <section className="pt-14 pb-12 md:pt-20 md:pb-24 border-b border-sb-hairline overflow-hidden relative">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid lg:grid-cols-[7fr_5fr] gap-x-12 gap-y-14 items-start">
+              <div className="max-w-2xl">
+                {/* Badge */}
+                <motion.div
+                  initial={{ opacity: 0, y: -12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-brand-400"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
+                  Read-only, always · Zero bank access required
+                </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              >
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-sb-ink mb-4">
-                  One tap.<br />Every expense, sorted.
-                </h1>
+                <motion.h1
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                  className="sb-display-xxl text-sb-ink mt-5"
+                >
+                  Your bank already
+                  <br />
+                  writes it down.
+                  <br />
+                  <span className="text-brand-500">We just read it.</span>
+                </motion.h1>
+
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                  className="text-lg text-sb-ink-secondary leading-relaxed max-w-md min-h-[3.5rem]"
+                  transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-lg text-sb-ink-secondary leading-relaxed max-w-md mt-6 min-h-[3.5rem]"
                 >
-                  Your bank emails you every time money moves. Intrack reads those alerts and keeps your{" "}
-                  <span className="inline-flex relative min-w-[135px] overflow-hidden align-baseline font-semibold text-brand-400">
+                  Connect Gmail once. Run a scan whenever you like, and Intrack turns your bank's alert emails into{" "}
+                  <span className="inline-flex relative min-w-[135px] overflow-hidden align-baseline font-semibold text-brand-500">
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={rotatingWord}
@@ -164,70 +176,62 @@ export default function LandingPage() {
                       </motion.span>
                     </AnimatePresence>
                   </span>{" "}
-                  up to date — merchant, amount and category already filled in. Add anything else by hand in seconds.
+                  — merchant, amount and category already filled in, waiting for your approval.
                 </motion.p>
-              </motion.div>
 
-              {/* CTAs */}
+                {/* CTAs */}
+                <motion.div
+                  className="flex flex-wrap gap-3 mt-8"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {user ? (
+                    <Link to={ROUTES.DASHBOARD} className="sb-btn-primary no-underline">
+                      Go to Dashboard →
+                    </Link>
+                  ) : (
+                    // One signup CTA, not two. This sat beside a second button,
+                    // "See your first week free", which opened the same signup
+                    // modal — two primary-weight buttons competing to do one
+                    // thing, next to a third that scrolls. Its `/dashboard`
+                    // redirect was dead anyway: signup ends on a "check your
+                    // email" toast and never redirects.
+                    <button onClick={() => openAuthModal(undefined, 'signup')} className="sb-btn-primary border-0 cursor-pointer">
+                      Start free — 7 days, no card →
+                    </button>
+                  )}
+                  <a href="#how-it-works" className="sb-btn-secondary no-underline">
+                    See how it works
+                  </a>
+                </motion.div>
+
+                {/* Facts, not stats-with-bounce. Plain text carries more
+                    trust here than numbers dressed up as metrics we don't
+                    have. */}
+                <motion.div
+                  className="flex flex-wrap gap-x-8 gap-y-2 pt-6 mt-8 border-t border-sb-hairline text-sm text-sb-ink-muted"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.45 }}
+                >
+                  <span><span className="font-semibold text-sb-ink">Read-only</span> Gmail access, always</span>
+                  <span><span className="font-semibold text-sb-ink">Every</span> Indian bank &amp; UPI app</span>
+                  <span><span className="font-semibold text-sb-ink">Zero</span> manual typing, if you don't want it</span>
+                </motion.div>
+              </div>
+
               <motion.div
-                className="flex flex-wrap gap-3"
-                initial={{ opacity: 0, y: 12 }}
+                className="lg:mt-16 lg:-mr-4 flex justify-center lg:justify-end"
+                initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
-                {user ? (
-                  <Link to={ROUTES.DASHBOARD} className="sb-btn-primary no-underline">
-                    Go to Dashboard →
-                  </Link>
-                ) : (
-                  // One signup CTA, not two. This sat beside a second button,
-                  // "See your first week free", which opened the same signup
-                  // modal — two primary-weight buttons competing to do one
-                  // thing, next to a third that scrolls. Its `/dashboard`
-                  // redirect was dead anyway: signup ends on a "check your
-                  // email" toast and never redirects.
-                  <button onClick={() => openAuthModal(undefined, 'signup')} className="sb-btn-primary border-0 cursor-pointer">
-                    Start free — 7 days, no card →
-                  </button>
-                )}
-                <a href="#how-it-works" className="sb-btn-secondary no-underline">
-                  See how it works
-                </a>
-              </motion.div>
-
-              {/* Stats */}
-              <motion.div
-                className="flex flex-wrap gap-x-6 gap-y-3 pt-2 border-t border-sb-hairline"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                {[
-                  { val: 'Auto', label: 'via Gmail', accent: true },
-                  { val: 'Read-only', label: 'always' },
-                  { val: 'All', label: 'Indian banks & UPI' },
-                ].map((m, i) => (
-                  <motion.div
-                    key={m.label}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.25 + i * 0.08, type: 'spring', bounce: 0.4 }}
-                  >
-                    <p className={cn('text-xl font-bold', m.accent ? 'text-brand-400' : 'text-sb-ink')}>{m.val}</p>
-                    <p className="text-xs text-sb-ink-muted mt-0.5">{m.label}</p>
-                  </motion.div>
-                ))}
+                <div className="lg:rotate-[1.2deg]">
+                  <InteractionSimulation />
+                </div>
               </motion.div>
             </div>
-
-            <motion.div
-              className="flex justify-center lg:justify-end"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <InteractionSimulation />
-            </motion.div>
           </div>
         </section>
 
@@ -277,7 +281,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div data-reveal className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-sb-ink-muted mb-4">How it works</div>
-              <h2 data-reveal data-delay="80" className="text-4xl font-bold tracking-tight text-sb-ink mb-4">Spend money. We handle the rest.</h2>
+              <h2 data-reveal data-delay="80" className="sb-display-lg text-sb-ink mb-4">Spend money. We handle the rest.</h2>
               <p data-reveal data-delay="150" className="text-sb-ink-secondary text-lg max-w-lg mx-auto">Three steps, zero effort from your end.</p>
             </div>
             <div ref={stepsRef} className="grid md:grid-cols-3 md:auto-rows-fr gap-6">
@@ -319,7 +323,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div data-reveal className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-sb-ink-muted mb-4">Features</div>
-              <h2 data-reveal data-delay="80" className="text-4xl font-bold tracking-tight text-sb-ink mb-4">Smart, simple, and <span className="text-sb-primary">privacy-respecting.</span></h2>
+              <h2 data-reveal data-delay="80" className="sb-display-lg text-sb-ink mb-4">Smart, simple, and <span className="text-sb-primary">privacy-respecting.</span></h2>
               <p data-reveal data-delay="150" className="text-sb-ink-secondary text-lg max-w-lg mx-auto">Everything you need to manage your money — without handing over your data.</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 sm:auto-rows-fr gap-5">
@@ -343,7 +347,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div data-reveal className="sb-card-light p-6 sm:p-10 md:p-12 flex flex-col md:flex-row items-center gap-10 justify-between">
               <div className="max-w-lg">
-                <h2 className="text-2xl font-bold text-sb-ink mb-4">Your money, your data. Your control.</h2>
+                <h2 className="sb-display-md text-sb-ink mb-4">Your money, your data. Your control.</h2>
                 <p className="text-sb-ink-secondary leading-relaxed text-sm">
                   Your transactions live in a database row that only your account can read, enforced by Postgres row-level security — never sold, never handed to advertisers. To detect an alert, its text passes through our server to Google's Gemini in real time and is not retained afterwards. We never ask for your net-banking credentials, PINs, or OTPs, and we can't touch your money.
                 </p>
@@ -369,7 +373,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-6" data-reveal="from-left">
               <div className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-sb-ink-muted">Install</div>
-              <h2 className="text-4xl font-bold text-sb-ink leading-tight">
+              <h2 className="sb-display-lg text-sb-ink leading-tight">
                 On your phone<br />in <span className="text-sb-primary">60 seconds.</span>
               </h2>
               <p className="text-sb-ink-secondary leading-relaxed">
@@ -473,7 +477,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-3xl px-6">
             <div className="text-center mb-14">
               <div data-reveal className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-sb-ink-muted mb-4">FAQ</div>
-              <h2 data-reveal data-delay="80" className="text-4xl font-bold text-sb-ink">Questions people ask</h2>
+              <h2 data-reveal data-delay="80" className="sb-display-lg text-sb-ink">Questions people ask</h2>
             </div>
             <div className="space-y-3">
               {faqItems.map((item, idx) => {
@@ -528,7 +532,7 @@ export default function LandingPage() {
         {/* ── FINAL CTA ────────────────────────────────────── */}
         <section className="py-14 md:py-28 text-center border-b border-sb-hairline relative overflow-hidden">
           <div className="mx-auto max-w-2xl px-6 space-y-6 relative z-10">
-            <h2 data-reveal="scale" className="text-4xl md:text-5xl font-bold tracking-tight text-sb-ink">
+            <h2 data-reveal="scale" className="sb-display-xl text-sb-ink">
               Take control of<br /><span className="text-sb-primary">your finances today.</span>
             </h2>
             <p data-reveal data-delay="100" className="text-lg text-sb-ink-secondary max-w-md mx-auto leading-relaxed">

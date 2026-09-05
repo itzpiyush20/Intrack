@@ -1,6 +1,7 @@
-import { Card, EmptyState } from '@/components/ui'
-import { formatCurrencyCompact } from '@/utils'
+import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { Store } from 'lucide-react'
+import { SERIES, CARD_TITLE, CARD_SUBTITLE } from './chartTokens'
 
 export interface MerchantLeaderboardItem {
   merchant: string
@@ -18,64 +19,86 @@ export function MerchantLeaderboard({ data, loading, onMerchantClick }: Merchant
   const maxAmount = data.length ? Math.max(...data.map((d) => d.amount)) : 0
 
   return (
-    <Card className="lg:col-span-5 flex flex-col min-h-[300px] p-5">
+    <Card className="flex flex-col lg:col-span-5">
       <div>
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Store className="w-5 h-5 text-brand-400 shrink-0" />
-          Top Merchants
+        <h2 className={CARD_TITLE}>
+          <Store className="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
+          Who you paid most
         </h2>
-        <p className="text-xs text-zinc-500 mt-0.5">Where most of your spend went this period</p>
+        <p className={CARD_SUBTITLE}>
+          The merchants that took the largest share of your spending in this
+          period.
+        </p>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center mt-4">
+      <div className="mt-6 flex flex-1 flex-col justify-center">
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="skeleton h-3.5 w-1/2" />
-                <div className="skeleton h-2 w-full" />
-              </div>
+          <ul role="status" aria-label="Loading merchants" className="space-y-4">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i} className="space-y-2">
+                <Skeleton className="h-3.5 w-1/2" />
+                <Skeleton className="h-2 w-full" />
+              </li>
             ))}
-          </div>
+          </ul>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Store className="w-8 h-8 text-zinc-500" />}
-            title="No merchant data"
-            description="Record expenses with a merchant name to see who you spend with most."
+            icon={<Store className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            title="No merchants to rank"
+            description="Expenses need a merchant name before they can be ranked. Scanned transactions usually carry one."
           />
         ) : (
-          <div className="space-y-3.5">
-            {data.map((item, index) => (
-              <div
-                key={item.merchant}
-                className={`space-y-1 ${onMerchantClick ? 'cursor-pointer hover:opacity-75' : ''}`}
-                onClick={onMerchantClick ? () => onMerchantClick(item.merchant) : undefined}
-                role={onMerchantClick ? 'button' : undefined}
-                tabIndex={onMerchantClick ? 0 : undefined}
-              >
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="shrink-0 h-5 w-5 rounded-full bg-surface-2 border border-border-subtle/50 flex items-center justify-center text-[10px] font-bold text-zinc-500">
-                      {index + 1}
+          <ul className="space-y-1">
+            {data.map((item, index) => {
+              const width = item.amount > 0 && maxAmount > 0 ? Math.max(3, (item.amount / maxAmount) * 100) : 0
+              const row = (
+                <>
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-zinc-400 tnum"
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="truncate text-sm font-medium text-zinc-100">{item.merchant}</span>
                     </span>
-                    <span className="text-zinc-300 font-medium truncate">{item.merchant}</span>
-                    <span className="shrink-0 text-zinc-600">
-                      · {item.count} txn{item.count === 1 ? '' : 's'}
+                    <span className="shrink-0 text-sm font-semibold text-zinc-50 tnum">
+                      {formatCurrencyCompact(item.amount)}
                     </span>
-                  </div>
-                  <span className="shrink-0 font-semibold text-zinc-200">
-                    {formatCurrencyCompact(item.amount)}
                   </span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-3 rounded-full overflow-hidden ml-7">
-                  <div
-                    className="h-full bg-brand-400/80 rounded-full transition-all duration-500"
-                    style={{ width: `${item.amount > 0 && maxAmount > 0 ? Math.max(3, (item.amount / maxAmount) * 100) : 0}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+                  <span className="mt-1.5 flex items-center gap-2 pl-7">
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
+                      <span
+                        className="block h-full rounded-full transition-[width] duration-500"
+                        style={{ width: `${width}%`, backgroundColor: SERIES.expense.color }}
+                      />
+                    </span>
+                    <span className="shrink-0 text-xs text-zinc-400 tnum">
+                      {item.count} txn{item.count === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                </>
+              )
+
+              return (
+                <li key={item.merchant}>
+                  {onMerchantClick ? (
+                    <button
+                      type="button"
+                      onClick={() => onMerchantClick(item.merchant)}
+                      aria-label={`${item.merchant}: ${formatCurrency(item.amount)} across ${item.count} transaction${item.count === 1 ? '' : 's'}. Open them.`}
+                      className="flex min-h-11 w-full flex-col justify-center rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col justify-center px-2 py-2">{row}</div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
         )}
       </div>
     </Card>

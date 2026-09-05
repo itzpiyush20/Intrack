@@ -1,8 +1,20 @@
 import { useState } from 'react'
-import { Card, EmptyState } from '@/components/ui'
-import { formatCurrencyCompact } from '@/utils'
+import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { formatCurrency, formatCurrencyCompact, cn } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import { LineChart } from 'lucide-react'
+import {
+  NEUTRAL_MARK,
+  AXIS_LABEL,
+  BUCKET_LABEL,
+  GRIDLINE,
+  TOOLTIP,
+  CHART_COLUMN,
+  CHART_SCROLLER,
+  CARD_TITLE,
+  CARD_SUBTITLE,
+} from './chartTokens'
+import ChartLegend from './ChartLegend'
 
 export interface CategoryTrendSegment {
   category: string
@@ -40,116 +52,147 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
     })
   })
 
+  // The "Other" roll-up used `var(--zinc-600)`, which the light theme resolves
+  // to #dde1e8 — a near-white block on a white card. It was drawn but could
+  // not be seen. NEUTRAL_MARK is a real grey in both directions.
+  const segmentColor = (category: string) =>
+    category === OTHER_KEY ? NEUTRAL_MARK : getStyle(category).color
+  const segmentLabel = (category: string) =>
+    category === OTHER_KEY ? 'Everything else' : getStyle(category).label
+
   return (
-    <Card className="lg:col-span-7 flex flex-col min-h-[300px] p-5">
+    <Card className="flex flex-col lg:col-span-7">
       <div>
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <LineChart className="w-5 h-5 text-brand-400 shrink-0" />
-          Category Trend
+        <h2 className={CARD_TITLE}>
+          <LineChart className="h-5 w-5 shrink-0 text-brand-700" aria-hidden="true" />
+          What you spend on, month by month
         </h2>
-        <p className="text-xs text-zinc-500 mt-0.5">Top spending categories over the last 6 months</p>
+        <p className={CARD_SUBTITLE}>
+          Your five biggest categories over the last six months, so a habit
+          forming is visible before it becomes a surprise.
+        </p>
       </div>
 
-      <div className="flex-1 flex flex-col justify-end mt-6">
+      <div className="mt-6 flex flex-1 flex-col justify-end">
         {loading ? (
-          <div className="flex items-end justify-between gap-6 h-40 pt-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex-1 flex items-end h-full justify-center">
-                <div className="skeleton w-6 h-2/3" />
-              </div>
-            ))}
+          <div role="status" aria-label="Loading chart">
+            <div className="flex h-48 items-end justify-between gap-3 sm:gap-6">
+              {[58, 72, 90, 64, 81, 47].map((h, i) => (
+                <div key={i} className="flex h-full flex-1 items-end justify-center">
+                  <div aria-hidden="true" className="skeleton w-6 rounded-t-sm sm:w-10" style={{ height: `${h}%` }} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-between gap-3">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-3 flex-1" />
+              ))}
+            </div>
           </div>
         ) : !hasTransactions ? (
           <EmptyState
-            icon={<LineChart className="w-8 h-8 text-zinc-500" />}
-            title="Insufficient history"
-            description="Record expenses over consecutive months to see category trends."
+            icon={<LineChart className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            title="Not enough history yet"
+            description="This chart needs expenses across a few months before a trend means anything."
           />
         ) : (
           <div className="space-y-4">
-            <div className="overflow-x-auto scrollbar-none w-full pb-2">
-              <div className="flex items-end justify-between gap-2.5 sm:gap-6 md:gap-8 h-48 pt-4 relative select-none min-w-full sm:min-w-[500px] md:min-w-0">
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-full border-t border-dashed border-zinc-400 h-0" />
+            <div className={CHART_SCROLLER}>
+              <div className="relative h-56 min-w-full select-none pt-5 pl-12 sm:min-w-[500px] md:min-w-0">
+                <div aria-hidden="true" className="absolute inset-0 flex flex-col justify-between">
+                  {[1, 0.75, 0.5, 0.25, 0].map((t) => (
+                    <div key={t} className="relative flex items-center">
+                      <span className={cn(AXIS_LABEL, 'absolute -top-2 left-0 bg-surface-1 pr-1.5 leading-none')}>
+                        {maxTotal > 0 ? formatCurrencyCompact(maxTotal * t) : ''}
+                      </span>
+                      <div className={GRIDLINE} />
+                    </div>
                   ))}
                 </div>
 
-                {data.map((m, index) => (
-                  <div
-                    key={m.monthKey}
-                    className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer"
-                    onClick={() => setTappedIndex(tappedIndex === index ? null : index)}
-                  >
-                    <div
-                      className={`absolute bottom-full mb-2 bg-zinc-950 border border-zinc-800 text-xs p-2.5 rounded-xl shadow-xl space-y-1 pointer-events-none transition-opacity z-10 min-w-[140px] text-left group-hover:opacity-100 ${tappedIndex === index ? 'opacity-100' : 'opacity-0'}`}
-                    >
-                      <p className="font-semibold text-zinc-300 border-b border-border-subtle/50 pb-1 mb-1">
-                        {m.label} · {formatCurrencyCompact(m.total)}
-                      </p>
-                      {m.segments.filter((s) => s.amount > 0).map((s) => {
-                        const isOther = s.category === OTHER_KEY
-                        const cat = isOther ? null : getStyle(s.category)
-                        return (
-                          <div key={s.category} className="flex items-center justify-between gap-3">
-                            <span className="flex items-center gap-1.5 text-zinc-400">
-                              <span
-                                className="h-2 w-2 rounded-full shrink-0"
-                                style={{ backgroundColor: isOther ? 'var(--zinc-600)' : cat!.color }}
-                              />
-                              {isOther ? 'Other' : cat!.label}
+                <div className="relative flex h-full items-end justify-between gap-1.5 sm:gap-5 md:gap-7">
+                  {data.map((m, index) => {
+                    const open = tappedIndex === index
+                    const visible = m.segments.filter((s) => s.amount > 0)
+                    return (
+                      <div key={m.monthKey} className={cn(CHART_COLUMN, 'cursor-default')}>
+                        <div
+                          aria-hidden="true"
+                          className={cn(
+                            TOOLTIP,
+                            'space-y-1.5 group-hover:opacity-100 group-focus-within:opacity-100',
+                            open ? 'opacity-100' : 'opacity-0'
+                          )}
+                        >
+                          <p className="mb-1.5 flex items-center justify-between gap-4 border-b border-border-subtle pb-1.5 text-xs font-semibold text-zinc-50">
+                            <span>{m.label}</span>
+                            <span className="tnum">{formatCurrencyCompact(m.total)}</span>
+                          </p>
+                          {visible.map((s) => (
+                            <span key={s.category} className="flex items-center justify-between gap-4 text-xs">
+                              <span className="flex min-w-0 items-center gap-1.5 text-zinc-300">
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{ backgroundColor: segmentColor(s.category) }}
+                                />
+                                <span className="truncate">{segmentLabel(s.category)}</span>
+                              </span>
+                              <span className="shrink-0 font-semibold text-zinc-50 tnum">
+                                {formatCurrencyCompact(s.amount)}
+                              </span>
                             </span>
-                            <span className="font-bold text-zinc-200">{formatCurrencyCompact(s.amount)}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                          ))}
+                        </div>
 
-                    <div className="flex flex-col-reverse w-full max-w-[40px] rounded-t-md overflow-hidden min-h-11" style={{ height: `${m.total > 0 && maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}>
-                      {m.segments.filter((s) => s.amount > 0).map((s) => {
-                        const isOther = s.category === OTHER_KEY
-                        const cat = isOther ? null : getStyle(s.category)
-                        const heightPct = m.total > 0 ? (s.amount / m.total) * 100 : 0
-                        const clickable = !isOther && !!onSegmentClick
-                        return (
-                          <div
-                            key={s.category}
-                            className={`w-full transition-all duration-500 ease-out hover:opacity-80 ${clickable ? 'cursor-pointer' : ''}`}
-                            style={{
-                              height: `${heightPct}%`,
-                              backgroundColor: isOther ? 'var(--zinc-600)' : cat!.color,
-                            }}
-                            onClick={clickable ? (e) => { e.stopPropagation(); onSegmentClick!(s.category, m.monthKey) } : undefined}
-                            role={clickable ? 'button' : undefined}
-                            tabIndex={clickable ? 0 : undefined}
-                          />
-                        )
-                      })}
-                    </div>
+                        <div
+                          className="flex w-full max-w-[40px] flex-col-reverse overflow-hidden rounded-t-sm"
+                          style={{ height: `${m.total > 0 && maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}
+                          onClick={() => setTappedIndex(open ? null : index)}
+                        >
+                          {visible.map((s) => {
+                            const isOther = s.category === OTHER_KEY
+                            const heightPct = m.total > 0 ? (s.amount / m.total) * 100 : 0
+                            const clickable = !isOther && !!onSegmentClick
+                            const style = { height: `${heightPct}%`, backgroundColor: segmentColor(s.category) }
+                            return clickable ? (
+                              <button
+                                key={s.category}
+                                type="button"
+                                className="w-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/60"
+                                style={style}
+                                aria-label={`${segmentLabel(s.category)} in ${m.label}: ${formatCurrency(s.amount)}. Open its transactions.`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onSegmentClick!(s.category, m.monthKey)
+                                }}
+                              />
+                            ) : (
+                              <div key={s.category} className="w-full" style={style} />
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
 
-                    <span className="text-xs text-zinc-500 font-semibold mt-2.5 group-hover:text-zinc-200 transition-colors shrink-0">
-                      {m.label}
-                    </span>
-                  </div>
+              <div className="flex min-w-full justify-between gap-1.5 pl-12 sm:min-w-[500px] sm:gap-5 md:min-w-0 md:gap-7">
+                {data.map((m) => (
+                  <span key={m.monthKey} className={cn(BUCKET_LABEL, 'mt-2 min-w-11 flex-1 text-center')}>
+                    {m.label}
+                  </span>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 text-[11px] font-medium text-zinc-500">
-              {legendCategories.map((category) => {
-                const isOther = category === OTHER_KEY
-                const cat = isOther ? null : getStyle(category)
-                return (
-                  <div key={category} className="flex items-center gap-1.5">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: isOther ? 'var(--zinc-600)' : cat!.color }}
-                    />
-                    <span>{isOther ? 'Other' : cat!.label}</span>
-                  </div>
-                )
-              })}
-            </div>
+            <ChartLegend
+              className="pt-1"
+              items={legendCategories.map((category) => ({
+                color: segmentColor(category),
+                label: segmentLabel(category),
+              }))}
+            />
           </div>
         )}
       </div>

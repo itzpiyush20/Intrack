@@ -8,6 +8,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
 import { useState, useEffect, useCallback } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { transition } from '@/components/ui'
 import { useAuth, useToast } from '@/context'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -26,6 +28,7 @@ import {
   Clock,
   MessageSquare,
   ChevronDown,
+  CheckCircle2,
   Home,
   CreditCard,
   Plus,
@@ -114,6 +117,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     '/admin'
   ].includes(location.pathname)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Motion reports state: the mobile menu opening, the install banner
+  // arriving. Both collapse to nothing under a reduced-motion preference.
+  const reduceMotion = useReducedMotion()
   type NotificationItem = { key: string; message: string; type: 'danger' | 'warning' | 'info'; href: string }
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false)
@@ -730,7 +737,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <nav className={cn("border-b px-4 py-3 space-y-1 lg:hidden animate-fade-in", "border-sb-hairline bg-sb-canvas text-sb-ink")} aria-label="Mobile navigation">
+          <motion.nav
+            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={transition(reduceMotion)}
+            className={cn("border-b px-4 py-3 space-y-1 lg:hidden overflow-hidden", "border-sb-hairline bg-sb-canvas text-sb-ink")}
+            aria-label="Mobile navigation"
+          >
             {user && isAppRoute ? (
               <>
                 {navItems
@@ -812,9 +825,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3 text-center no-underline"
+                    className={cn(
+                      "flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold mb-3 text-center no-underline transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                      "bg-brand-500/10 text-brand-700 border border-brand-500/30 hover:bg-brand-500/15"
+                    )}
                   >
-                    <BarChart3 className="h-4 w-4 shrink-0" /> Open app
+                    <BarChart3 className="h-4 w-4 shrink-0" aria-hidden="true" /> Open app
                   </Link>
                 )}
                 {/* Mirrors the desktop nav above. "Daily Life" used to point at
@@ -826,18 +843,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   { label: 'Features', href: '/#features' },
                   { label: 'Install App', href: '/#install-guide' },
                   { label: 'FAQ', href: '/#faq' },
+                  { label: 'Pricing', href: '/pricing' },
+                  { label: 'Support', href: '/support' },
                 ].map((item) => (
                   <Link
                     key={item.label}
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}
+                    className={cn(
+                      "flex min-h-11 items-center rounded-lg px-3 text-sm font-medium no-underline transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                      "text-sb-ink hover:bg-sb-canvas-soft"
+                    )}
                   >
                     {item.label}
                   </Link>
                 ))}
-                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}>Pricing</Link>
-                <Link to="/support" onClick={() => setMobileMenuOpen(false)} className={cn("block rounded-lg px-3 py-2 text-sm font-medium no-underline", "text-sb-ink hover:bg-sb-canvas-soft")}>Support</Link>
 
                 {user ? (
                   <button
@@ -845,46 +866,54 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       setMobileMenuOpen(false)
                       signOut()
                     }}
-                    className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
+                    className={cn(
+                      "w-full text-left flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-sm font-medium border-t mt-1 pt-3 cursor-pointer transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-danger-border)]",
+                      "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]"
+                    )}
                   >
-                    <LogOut className="h-4 w-4 text-red-400 shrink-0" /> Sign Out
+                    <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" /> Sign out
                   </button>
                 ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        openAuthModal(undefined, 'login')
-                      }}
-                      className={cn("w-full block rounded-lg px-3 py-2 text-sm font-medium text-center border mt-3 cursor-pointer", "bg-sb-canvas border-sb-hairline text-sb-ink")}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        openAuthModal(undefined, 'signup')
-                      }}
-                      className="w-full block rounded-lg px-3 py-2.5 text-sm font-medium text-static-white bg-brand-500 hover:bg-brand-600 text-center rounded-[6px] mt-1.5 border-0 cursor-pointer"
-                    >
-                      Get Started
-                    </button>
-                  </>
+                  <div className="mt-3 space-y-2 border-t border-sb-hairline pt-3">
+                    <Button variant="secondary" block onClick={() => {
+                      setMobileMenuOpen(false)
+                      openAuthModal(undefined, 'login')
+                    }}>
+                      Sign in
+                    </Button>
+                    <Button block onClick={() => {
+                      setMobileMenuOpen(false)
+                      openAuthModal(undefined, 'signup')
+                    }}>
+                      Get started
+                    </Button>
+                  </div>
                 )}
               </>
             )}
-          </nav>
+          </motion.nav>
         )}
       </header>
 
       {/* Main Content */}
+      {/* Trial strip. There is no free tier — when the trial ends, access stops
+          — so the copy says what runs out and what the deadline is, without
+          implying a downgraded-but-still-working state afterwards. */}
       {profile?.subscription_status === 'trial' && (
-        <div className="bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] text-xs font-semibold py-2.5 px-4 text-center flex flex-col sm:flex-row items-center justify-center gap-1.5 shadow-inner border-b border-[var(--status-warning-border)]">
-          <span className="flex items-center gap-1.5 justify-center">
-            <Clock className="h-3.5 w-3.5 shrink-0" /> Intrack Trial: You have {daysLeft} days remaining of full Pro access.
+        <div className="bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] text-sm py-2.5 px-4 text-center flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 border-b border-[var(--status-warning-border)]">
+          <span className="flex items-center gap-1.5 justify-center font-medium">
+            <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>
+              Trial · <span className="tnum font-semibold">{daysLeft}</span>{' '}
+              {daysLeft === 1 ? 'day' : 'days'} of full access left
+            </span>
           </span>
-          <Link to="/pricing" className="underline hover:opacity-85 transition-opacity font-bold text-[var(--status-warning-text)] flex items-center gap-1">
-            Upgrade to Keep Two Scans a Day <Crown className="h-3 w-3 shrink-0" />
+          <Link
+            to="/pricing"
+            className="rounded underline underline-offset-2 hover:opacity-85 transition-opacity font-semibold text-[var(--status-warning-text)] flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-warning-border)]"
+          >
+            Choose a plan <Crown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           </Link>
         </div>
       )}
@@ -897,12 +926,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
         id="main-content"
       >
         {user && isAppRoute && showPrivacyNote && (
-          <div className="mb-6 rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-3 shadow-[var(--shadow-sm)]">
-            <div className="flex-1 space-y-1.5 text-xs text-zinc-400 leading-relaxed">
-              <p className="text-sm font-semibold text-text-primary">How your data is handled</p>
-              <p>Your inbox is read straight from Gmail — we never hold a copy of your mailbox. To classify an alert, its subject and the start of its body pass through our server to Google's Gemini in real time and are not retained. Your Google access is read-only, and we never ask for passwords, PINs, or OTPs.</p>
+          <div className="mb-6 rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 shadow-[var(--shadow-sm)]">
+            <span
+              aria-hidden="true"
+              className="h-10 w-10 shrink-0 rounded-xl bg-brand-500/10 text-brand-700 flex items-center justify-center"
+            >
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <p className="text-sm font-semibold text-zinc-100">How your data is handled</p>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Your inbox is read straight from Gmail — we never hold a copy of your mailbox. To
+                classify an alert, its subject and the start of its body pass through our server to
+                Google’s Gemini in real time and are not retained. Your Google access is read-only,
+                and we never ask for passwords, PINs, or OTPs.
+              </p>
             </div>
-            <Button variant="secondary" size="md" onClick={handleDismissPrivacyNote} className="shrink-0 self-start sm:self-auto">
+            <Button variant="secondary" size="md" onClick={handleDismissPrivacyNote} className="shrink-0 self-start">
               Got it
             </Button>
           </div>
@@ -925,84 +965,90 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
             {/* Success screen */}
             {feedbackSuccess ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center space-y-4 animate-fade-in">
-                <div className="h-16 w-16 rounded-full bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-3xl">
-                  🎉
-                </div>
-                <h3 className="text-lg font-bold text-text-primary">Feedback submitted!</h3>
-                <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
-                  Thank you! Your feedback helps us make Intrack better.
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <span
+                  aria-hidden="true"
+                  className="h-16 w-16 rounded-2xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] flex items-center justify-center text-[var(--status-positive-text)]"
+                >
+                  <CheckCircle2 className="h-7 w-7" />
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-zinc-100">Sent — thank you</h3>
+                <p className="mt-1.5 max-w-xs text-sm text-zinc-400 leading-relaxed">
+                  We read every note. If you reported a bug, this is what tells us where to look.
                 </p>
-                <div className="w-10 h-1 bg-brand-500 rounded-full mt-2" />
               </div>
             ) : (
               <>
                 {/* Form */}
-                <form onSubmit={handleFeedbackSubmit} className="space-y-4 flex-1">
-                  
+                <form onSubmit={handleFeedbackSubmit} className="space-y-5 flex-1">
+
                   {/* Category Selection */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">
-                      Feedback Type
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { key: 'ui_ux', label: '🎨 UI/UX Design', desc: 'Spacing & styles' },
-                        { key: 'bug', label: '🐛 Bug Report', desc: 'Unexpected error' },
-                        { key: 'feature_request', label: '💡 Feature Idea', desc: 'New suggestions' },
-                        { key: 'other', label: '❓ Other Feedback', desc: 'General thoughts' }
-                      ].map((cat) => (
+                  <fieldset>
+                    <legend className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      What is this about?
+                    </legend>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {([
+                        { key: 'ui_ux', label: 'Design & layout', desc: 'Spacing, colour, wording' },
+                        { key: 'bug', label: 'Something broke', desc: 'An error or wrong figure' },
+                        { key: 'feature_request', label: 'Feature idea', desc: 'Something you wish it did' },
+                        { key: 'other', label: 'Anything else', desc: 'General thoughts' },
+                      ] as const).map((cat) => (
                         <button
                           key={cat.key}
                           type="button"
-                          onClick={() => setFeedbackCategory(cat.key as any)}
+                          onClick={() => setFeedbackCategory(cat.key)}
+                          aria-pressed={feedbackCategory === cat.key}
                           className={cn(
-                            'p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer',
+                            'min-h-11 p-3 rounded-xl border text-left transition-colors cursor-pointer',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                             feedbackCategory === cat.key
-                              ? 'bg-brand-500/10 border-brand-500/50 text-brand-400'
-                              : 'bg-surface-2/40 border-border-subtle/50 text-zinc-400 hover:bg-surface-2/85 hover:text-white'
+                              ? 'bg-brand-500/10 border-brand-500/40 text-zinc-100'
+                              : 'bg-surface-2/50 border-border-subtle/50 text-zinc-300 hover:border-border-hover'
                           )}
                         >
-                          <p className="text-xs font-bold">{cat.label}</p>
-                          <p className="text-xs opacity-60 mt-0.5 leading-normal">{cat.desc}</p>
+                          <span className="block text-sm font-semibold">{cat.label}</span>
+                          <span className="block text-xs text-zinc-400 mt-0.5 leading-normal">{cat.desc}</span>
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </fieldset>
 
                   {/* Rating Selector */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">
-                      How was your experience?
-                    </label>
-                    <div className="flex items-center justify-between bg-surface-2/40 border border-border-subtle/40 rounded-2xl p-3">
+                  <fieldset>
+                    <legend className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      How is it going?
+                    </legend>
+                    <div className="flex items-stretch justify-between gap-1 bg-surface-2/40 border border-border-subtle/40 rounded-xl p-1.5">
                       {[
                         { val: 1, emoji: '😠', label: 'Bad' },
                         { val: 2, emoji: '🙁', label: 'Poor' },
                         { val: 3, emoji: '😐', label: 'Ok' },
                         { val: 4, emoji: '🙂', label: 'Good' },
-                        { val: 5, emoji: '😍', label: 'Love it' }
+                        { val: 5, emoji: '😍', label: 'Great' }
                       ].map((rt) => (
                         <button
                           key={rt.val}
                           type="button"
                           onClick={() => setFeedbackRating(rt.val)}
-                          className="flex flex-col items-center gap-1 focus:outline-none group relative cursor-pointer"
+                          aria-pressed={feedbackRating === rt.val}
+                          aria-label={`${rt.label} — ${rt.val} out of 5`}
+                          className={cn(
+                            'flex flex-1 min-w-0 min-h-11 flex-col items-center justify-center gap-1 rounded-lg py-2 cursor-pointer transition-colors',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                            feedbackRating === rt.val
+                              ? 'bg-surface-1 border border-brand-500/40'
+                              : 'border border-transparent hover:bg-surface-2'
+                          )}
                         >
-                          <span
-                            className={cn(
-                              'text-2xl transition-all duration-200 hover:scale-125 select-none',
-                              feedbackRating === rt.val
-                                ? 'scale-115 opacity-100'
-                                : 'opacity-40 hover:opacity-100'
-                            )}
-                          >
+                          <span aria-hidden="true" className={cn('text-xl select-none', feedbackRating === rt.val ? 'opacity-100' : 'opacity-50')}>
                             {rt.emoji}
                           </span>
                           <span
+                            aria-hidden="true"
                             className={cn(
-                              'text-xs font-bold transition-colors duration-200',
-                              feedbackRating === rt.val ? 'text-amber-400' : 'text-zinc-500'
+                              'text-xs font-medium truncate max-w-full',
+                              feedbackRating === rt.val ? 'text-zinc-100' : 'text-zinc-400'
                             )}
                           >
                             {rt.label}
@@ -1010,162 +1056,181 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </fieldset>
 
                   {/* Suggestion Text */}
                   <div>
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">
-                      Suggestions or Issue details
+                    <label htmlFor="feedback-message" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                      Tell us what happened
                     </label>
                     <textarea
-                      placeholder="Let us know what can be improved or what errors you encountered..."
+                      id="feedback-message"
+                      placeholder="What could be better, or what went wrong?"
                       value={feedbackMessage}
                       onChange={(e) => setFeedbackMessage(e.target.value)}
                       disabled={feedbackLoading}
                       maxLength={500}
                       rows={4}
                       required
-                      className="w-full bg-surface-2/60 border border-border-subtle rounded-2xl p-3.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400 transition-all resize-none leading-relaxed"
+                      className="w-full bg-surface-1 border border-border-default rounded-lg p-3 text-sm text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 hover:border-border-hover transition-[border-color,box-shadow] duration-150 resize-y leading-relaxed"
                     />
-                    <div className="flex justify-between items-center mt-1 text-xs text-zinc-500 font-semibold px-1">
-                      <span>Minimum 5 characters</span>
-                      <span>{feedbackMessage.length}/500</span>
+                    <div className="flex justify-between items-center gap-3 mt-1.5 text-xs text-zinc-400 px-0.5">
+                      <span>At least 5 characters</span>
+                      <span className="tnum">{feedbackMessage.length}/500</span>
                     </div>
                   </div>
 
                   {feedbackError && (
                     <div
                       role="alert"
-                      className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-xs text-[var(--status-danger-text)] leading-relaxed"
+                      className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-sm text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2"
                     >
-                      {feedbackError}
+                      <X className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>{feedbackError}</span>
                     </div>
                   )}
 
                   <Button type="submit" block loading={feedbackLoading} disabled={feedbackMessage.trim().length < 5}>
-                    Submit Feedback
+                    Send feedback
                   </Button>
                 </form>
               </>
             )}
       </Modal>
 
-      {/* PWA Install Banner for Mobile Viewports */}
+      {/* PWA Install Banner for Mobile Viewports.
+          It stacks at 360px rather than squeezing two buttons beside two lines
+          of text — the old row put "Dismiss" and "Install" at roughly 60px each
+          on the narrowest phones. */}
       {showInstallBanner && (
-        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 lg:hidden animate-slide-up">
-          <div className="bg-surface-1 border border-border-subtle/85 backdrop-blur-xl rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 shadow-[var(--shadow-sm)]">
-                <span className="text-base font-bold text-static-white">{currencySymbol}</span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white leading-tight">Install Intrack PWA</h4>
-                <p className="text-xs text-zinc-400 mt-0.5 font-medium">Add to your home screen for quick secure access.</p>
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={transition(reduceMotion, 0.24)}
+          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 lg:hidden"
+        >
+          <div className="bg-surface-1 border border-border-default rounded-2xl p-4 shadow-[var(--shadow-lg)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3 min-w-0">
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 shadow-[var(--shadow-sm)] text-base font-bold text-static-white"
+              >
+                {currencySymbol}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-zinc-100 leading-tight">Add Intrack to your home screen</p>
+                <p className="text-sm text-zinc-400 mt-0.5 leading-relaxed">Opens like an app, straight to your dashboard.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleDismissBanner}
-                className="min-h-11 px-3 py-1.5 rounded-lg border border-border-subtle text-xs font-bold text-zinc-400 hover:text-white cursor-pointer transition-colors"
-              >
-                Dismiss
-              </button>
-              <button
-                onClick={handleInstallClick}
-                className="min-h-11 px-4 py-1.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-[var(--shadow-sm)] cursor-pointer transition-colors hover:bg-[var(--btn-primary-bg-hover)] active:bg-[var(--btn-primary-bg-active)]"
-              >
+              <Button variant="ghost" size="md" onClick={handleDismissBanner} className="flex-1 sm:flex-none">
+                Not now
+              </Button>
+              <Button size="md" onClick={handleInstallClick} className="flex-1 sm:flex-none">
                 Install
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
       {/* =========================================================== */}
       {/* Mobile Bottom Navigation Bar — shown only on mobile (<md) */}
       {/* =========================================================== */}
+      {/* Four destinations either side of one action.
+          The labels are deliberately short: at 360px each slot is roughly 70px
+          wide, and "Transactions" at 12px does not fit in that — it used to
+          overflow its slot. Every label also carries `truncate` so no future
+          rename can push the bar wider than the viewport. The full word stays
+          in the desktop nav, the mobile menu and each page's own heading. */}
       {user && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface-1/95 backdrop-blur-md border-t border-border-subtle safe-area-inset-bottom"
+          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface-1 border-t border-border-subtle safe-area-inset-bottom"
           aria-label="Mobile navigation"
         >
-          <div className="flex items-center justify-around h-16 px-1">
-            {/* Home */}
-            <Link
-              to={ROUTES.DASHBOARD}
-              className={cn(
-                'flex flex-col items-center gap-0.5 flex-1 py-2 px-1 rounded-xl transition-all duration-200',
-                location.pathname === ROUTES.DASHBOARD
-                  ? 'text-brand-400'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              )}
-              aria-label="Home"
-            >
-              <Home className="h-5 w-5" />
-              <span className="text-xs font-semibold tracking-wide">Home</span>
-            </Link>
+          <div className="flex items-stretch justify-around h-16 px-1">
+            {([
+              { to: ROUTES.DASHBOARD, icon: Home, label: 'Home', aria: 'Home' },
+              { to: ROUTES.EXPENSES, icon: CreditCard, label: 'Spends', aria: 'Transactions' },
+            ] as const).map(({ to, icon: TabIcon, label, aria }) => {
+              const isActive = location.pathname === to
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-label={aria}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                    isActive ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
+                  )}
+                >
+                  <TabIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span className="text-xs font-medium truncate max-w-full">{label}</span>
+                </Link>
+              )
+            })}
 
-            {/* Transactions */}
-            <Link
-              to={ROUTES.EXPENSES}
-              className={cn(
-                'flex flex-col items-center gap-0.5 flex-1 py-2 px-1 rounded-xl transition-all duration-200',
-                location.pathname === ROUTES.EXPENSES
-                  ? 'text-brand-400'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              )}
-              aria-label="Transactions"
-            >
-              <CreditCard className="h-5 w-5" />
-              <span className="text-xs font-semibold tracking-wide">Transactions</span>
-            </Link>
-
-            {/* Quick Add FAB — centre button */}
+            {/* Quick Add — the one action in the bar, so it is the one filled
+                shape. No hover scale: on a touch device hover never resolves,
+                and the press already reports itself. */}
             <div className="flex-1 flex items-center justify-center">
               <Link
                 to={ROUTES.EXPENSES}
                 state={{ openForm: true }}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500 hover:bg-brand-600 shadow-[var(--shadow-md)] hover:scale-110 active:scale-95 transition-all duration-200"
-                aria-label="Quick add transaction"
+                className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-2xl shadow-[var(--shadow-md)] transition-colors active:scale-95',
+                  'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] text-[var(--btn-primary-fg)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+                )}
+                aria-label="Add a transaction"
               >
-                <Plus className="h-6 w-6 text-white" strokeWidth={2.5} />
+                <Plus className="h-6 w-6" strokeWidth={2.5} aria-hidden="true" />
               </Link>
             </div>
 
             {/* Pending */}
             <Link
               to={ROUTES.PENDING}
+              aria-label={
+                notifications.length > 0
+                  ? `Pending — ${notifications.length} notification${notifications.length === 1 ? '' : 's'}`
+                  : 'Pending'
+              }
+              aria-current={location.pathname === ROUTES.PENDING ? 'page' : undefined}
               className={cn(
-                'flex flex-col items-center gap-0.5 flex-1 py-2 px-1 rounded-xl transition-all duration-200 relative',
-                location.pathname === ROUTES.PENDING
-                  ? 'text-brand-400'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                location.pathname === ROUTES.PENDING ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
               )}
-              aria-label="Pending approvals"
             >
-              <span className="relative inline-flex">
-                <Bell className="h-5 w-5" />
+              <span className="relative inline-flex shrink-0">
+                <Bell className="h-5 w-5" aria-hidden="true" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-0.5 text-[10px] font-bold text-white">
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-1 text-[10px] font-bold tnum text-static-white"
+                  >
                     {notifications.length > 9 ? '9+' : notifications.length}
                   </span>
                 )}
               </span>
-              <span className="text-xs font-semibold tracking-wide">Pending</span>
+              <span className="text-xs font-medium truncate max-w-full">Pending</span>
             </Link>
 
             {/* Insights */}
             <Link
               to={ROUTES.INSIGHTS}
-              className={cn(
-                'flex flex-col items-center gap-0.5 flex-1 py-2 px-1 rounded-xl transition-all duration-200',
-                location.pathname === ROUTES.INSIGHTS
-                  ? 'text-brand-400'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              )}
               aria-label="Insights"
+              aria-current={location.pathname === ROUTES.INSIGHTS ? 'page' : undefined}
+              className={cn(
+                'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                location.pathname === ROUTES.INSIGHTS ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
+              )}
             >
-              <Sparkles className="h-5 w-5" />
-              <span className="text-xs font-semibold tracking-wide">Insights</span>
+              <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span className="text-xs font-medium truncate max-w-full">Insights</span>
             </Link>
           </div>
         </nav>

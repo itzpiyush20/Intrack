@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       description="How Intrack handles your data: read-only Gmail access, what is kept and what is discarded, where it is stored, and your rights under India's DPDPA 2023."
     >
       <div className="mb-10">
-        <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Privacy Policy</h1>
+        <h1 className="sb-display-xl text-sb-ink">Privacy Policy</h1>
         <p className="text-xs mt-1 text-sb-ink-muted">Last updated: August 20, 2026 · Effective immediately</p>
       </div>
 

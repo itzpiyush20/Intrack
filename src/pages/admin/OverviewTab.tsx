@@ -3,6 +3,7 @@ import { useAdminQuery } from './useAdminQuery'
 import { approximateMonthlyRevenue } from './adminMetrics'
 import AdminBarChart from './AdminBarChart'
 import RefundReviewCard from './RefundReviewCard'
+import { StatCard, StatGridSkeleton, AdminError } from './adminUi'
 
 interface OverviewRow {
   total_accounts: number
@@ -24,32 +25,23 @@ interface GrowthRow {
   signins: number
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-zinc-100">{value}</p>
-      {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
-    </Card>
-  )
-}
-
 export default function OverviewTab() {
   const stats = useAdminQuery<OverviewRow[]>('admin_overview_stats')
   const growth = useAdminQuery<GrowthRow[]>('admin_growth_series', { days: 30 })
 
-  if (stats.loading) return <p className="py-8 text-sm text-zinc-400">Loading…</p>
-  if (stats.error) {
+  if (stats.loading) {
     return (
-      <div className="py-8">
-        <p className="text-sm text-red-400">Could not load overview: {stats.error}</p>
-        <button onClick={stats.reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
+      <div className="space-y-6">
+        <StatGridSkeleton count={8} />
       </div>
     )
   }
+  if (stats.error) {
+    return <AdminError message={`Could not load overview: ${stats.error}`} onRetry={stats.reload} />
+  }
 
   const s = stats.data?.[0]
-  if (!s) return <p className="py-8 text-sm text-zinc-400">No data yet.</p>
+  if (!s) return <p className="py-8 text-sm text-zinc-500">No data yet.</p>
 
   const paying = s.paying_monthly + s.paying_annual
   const mrr = approximateMonthlyRevenue(s.paying_monthly, s.paying_annual)
@@ -62,22 +54,22 @@ export default function OverviewTab() {
       <RefundReviewCard />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Total accounts" value={String(s.total_accounts)} hint={`+${s.signups_7d} this week`} />
-        <Stat label="Paying" value={String(paying)} hint={`${s.paying_monthly} monthly · ${s.paying_annual} yearly`} />
-        <Stat label="Approx. revenue" value={`₹${mrr.toLocaleString('en-IN')}`} hint="per month, from current plans" />
-        <Stat label="Expiring in 7 days" value={String(s.expiring_7d)} hint="churn risk" />
-        <Stat label="Signed in (7d)" value={String(s.signins_7d)} hint={`${s.signins_30d} in 30 days`} />
-        <Stat label="New signups (30d)" value={String(s.signups_30d)} />
-        <Stat label="Transactions (30d)" value={String(s.transactions_30d)} hint={`${s.transactions_7d} this week`} />
-        <Stat label="Awaiting approval" value={String(s.transactions_pending)} hint="sitting in Pending" />
+        <StatCard label="Total accounts" value={String(s.total_accounts)} hint={`+${s.signups_7d} this week`} />
+        <StatCard label="Paying" value={String(paying)} hint={`${s.paying_monthly} monthly · ${s.paying_annual} yearly`} emphasis />
+        <StatCard label="Approx. revenue" value={`₹${mrr.toLocaleString('en-IN')}`} hint="per month, from current plans" emphasis />
+        <StatCard label="Expiring in 7 days" value={String(s.expiring_7d)} hint="churn risk" />
+        <StatCard label="Signed in (7d)" value={String(s.signins_7d)} hint={`${s.signins_30d} in 30 days`} />
+        <StatCard label="New signups (30d)" value={String(s.signups_30d)} />
+        <StatCard label="Transactions (30d)" value={String(s.transactions_30d)} hint={`${s.transactions_7d} this week`} />
+        <StatCard label="Awaiting approval" value={String(s.transactions_pending)} hint="sitting in Pending" />
       </div>
 
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Signups per day (30 days)</h2>
         {growth.loading ? (
-          <p className="py-8 text-center text-sm text-zinc-500">Loading…</p>
+          <div className="skeleton h-40 rounded-xl" />
         ) : growth.error ? (
-          <p className="py-8 text-center text-sm text-red-400">{growth.error}</p>
+          <AdminError message={growth.error} onRetry={growth.reload} />
         ) : (
           <AdminBarChart
             data={(growth.data ?? []).map((g) => ({ label: g.day, value: g.signups }))}
@@ -94,7 +86,7 @@ export default function OverviewTab() {
           while it was being collected. What is still true is narrower: this
           particular figure is a projection, and no view over `payments` has
           been built yet. */}
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-zinc-500 leading-relaxed border-t border-border-subtle/50 pt-4">
         Revenue is approximate — projected from the plans people hold today, not read from
         payment records. It counts every active plan at list price, so accounts on an admin
         grant or a coupon are included even though nothing was paid for them. Real receipts

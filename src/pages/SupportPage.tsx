@@ -146,7 +146,7 @@ export default function SupportPage() {
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-left transition-all cursor-pointer border border-transparent bg-transparent ${
                       isActive
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        ? 'bg-brand-500/10 text-brand-400 border-brand-500/20'
                         : 'text-zinc-400 hover:text-sb-ink hover:bg-surface-2'
                     }`}
                     aria-selected={isActive}
@@ -169,7 +169,7 @@ export default function SupportPage() {
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
                       isActive
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 bg-transparent'
+                        ? 'bg-brand-500/10 text-brand-400 border-brand-500/20 bg-transparent'
                         : 'bg-surface-1 text-zinc-400 border-border-subtle'
                     }`}
                     aria-selected={isActive}
@@ -295,7 +295,7 @@ export default function SupportPage() {
                             id={`support-faq-q-${idx}`}
                           >
                             <span className="text-sm font-semibold text-sb-ink">{faq.q}</span>
-                            <span className="text-lg text-emerald-400">
+                            <span className="text-lg text-brand-400">
                               {isExpanded ? '−' : '＋'}
                             </span>
                           </button>
@@ -336,8 +336,8 @@ export default function SupportPage() {
                   </div>
 
                   {success && (
-                    <div role="status" className="rounded-2xl p-4 bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-xs font-bold text-emerald-400">✅ Ticket received</p>
+                    <div role="status" className="rounded-2xl p-4 bg-brand-500/10 border border-brand-500/20">
+                      <p className="text-xs font-bold text-brand-400">✅ Ticket received</p>
                       {/* This used to say the message "has reached our support
                           inbox", which implies an email landed somewhere. It is
                           a stored ticket, read in the admin panel — the same
@@ -377,12 +377,12 @@ export default function SupportPage() {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           className={cn(
-                            "w-full bg-surface-2 border text-zinc-300 text-xs rounded-xl px-3 py-2.5 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400 transition-all",
+                            "w-full bg-surface-2 border text-zinc-100 text-sm rounded-xl px-3 py-2.5 placeholder:text-zinc-500 h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus:border-brand-500 transition-all",
                             errors.name ? "border-[var(--status-danger-border)]" : "border-border-subtle/50"
                           )}
                           placeholder="e.g. Rahul Sharma"
                         />
-                        {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+                        {errors.name && <p className="text-xs text-[var(--status-danger-text)] mt-1">{errors.name}</p>}
                       </div>
                       <div>
                         <label htmlFor="support-email" className="text-xs block mb-1.5 font-bold uppercase tracking-widest text-zinc-500">Email Address</label>
@@ -392,12 +392,12 @@ export default function SupportPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className={cn(
-                            "w-full bg-surface-2 border text-zinc-300 text-xs rounded-xl px-3 py-2.5 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400 transition-all",
+                            "w-full bg-surface-2 border text-zinc-100 text-sm rounded-xl px-3 py-2.5 placeholder:text-zinc-500 h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus:border-brand-500 transition-all",
                             errors.email ? "border-[var(--status-danger-border)]" : "border-border-subtle/50"
                           )}
                           placeholder="e.g. piyush@example.com"
                         />
-                        {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
+                        {errors.email && <p className="text-xs text-[var(--status-danger-text)] mt-1">{errors.email}</p>}
                       </div>
                     </div>
 
@@ -409,12 +409,12 @@ export default function SupportPage() {
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
                         className={cn(
-                          "w-full bg-surface-2 border text-zinc-300 text-xs rounded-xl px-3 py-2.5 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400 transition-all",
+                          "w-full bg-surface-2 border text-zinc-100 text-sm rounded-xl px-3 py-2.5 placeholder:text-zinc-500 h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus:border-brand-500 transition-all",
                           errors.subject ? "border-[var(--status-danger-border)]" : "border-border-subtle/50"
                         )}
                         placeholder="e.g. Gmail integration scan error"
                       />
-                      {errors.subject && <p className="text-xs text-red-400 mt-1">{errors.subject}</p>}
+                      {errors.subject && <p className="text-xs text-[var(--status-danger-text)] mt-1">{errors.subject}</p>}
                     </div>
 
                     <div>
@@ -425,12 +425,12 @@ export default function SupportPage() {
                         onChange={(e) => setMessage(e.target.value)}
                         rows={4}
                         className={cn(
-                          "w-full bg-surface-2 border text-zinc-300 text-xs rounded-xl px-3 py-2.5 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400 transition-all resize-none",
+                          "w-full bg-surface-2 border text-zinc-100 text-sm rounded-xl px-3 py-2.5 placeholder:text-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus:border-brand-500 transition-all resize-none",
                           errors.message ? "border-[var(--status-danger-border)]" : "border-border-subtle/50"
                         )}
                         placeholder="Tell us what went wrong. Include bank or credit card names..."
                       />
-                      {errors.message && <p className="text-xs text-red-400 mt-1">{errors.message}</p>}
+                      {errors.message && <p className="text-xs text-[var(--status-danger-text)] mt-1">{errors.message}</p>}
                     </div>
 
                     {/* Notice at the point of collection. The form accepts

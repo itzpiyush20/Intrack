@@ -1,16 +1,31 @@
 // ============================================
-// ExpenseForm — Add or Edit a transaction
+// ExpenseForm — add or edit one transaction
+//
+// Restyle and recompose only: every field, every validation and both save
+// paths behave exactly as before.
+//
+// The form is grouped rather than listed. The old shape was six equal
+// two-column rows, which made "what is this and how much" look no more
+// important than "tags". Now the amount and its direction lead, the identity
+// of the spend follows, and the optional parts (tags, money you expect back,
+// remarks) sit below a rule so they read as optional.
+//
+// Direction is chosen with two real radio-style buttons rather than a
+// dropdown of coloured dots: it is a binary with consequences elsewhere on
+// the form (the returnable block only exists for expenses), and a control
+// that shows both options at once is honest about that.
 // ============================================
 
 import { useState, type FormEvent } from 'react'
-import { Button, Input } from '@/components/ui'
-import Select from '@/components/ui/Select'
+import { Button, Input, Select } from '@/components/ui'
 import { useCategories } from '@/context/CategoriesContext'
 import { useAuth } from '@/context/AuthContext'
 import { createTransaction, updateTransaction } from '@/services'
 import type { Database } from '@/types/database'
 import { KNOWN_MERCHANTS } from '@/services/merchantNormalizer'
 import { toISODateLocal } from '@/utils/dateFilter'
+import { cn } from '@/utils'
+import { ArrowDownLeft, ArrowUpRight, AlertTriangle } from 'lucide-react'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 
@@ -23,10 +38,10 @@ interface ExpenseFormProps {
   onCancel?: () => void
 }
 
-const typeOptions = [
-  { value: 'debit', label: '🔴 Expense (Debit)' },
-  { value: 'credit', label: '🟢 Income (Credit)' },
-]
+const DIRECTIONS = [
+  { value: 'debit', label: 'Money out', hint: 'An expense', icon: ArrowUpRight },
+  { value: 'credit', label: 'Money in', hint: 'Income', icon: ArrowDownLeft },
+] as const
 
 export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: ExpenseFormProps) {
   const { user, currencySymbol } = useAuth()
@@ -67,12 +82,12 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
 
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Please enter a valid amount')
+      setError('Enter an amount greater than zero.')
       return
     }
 
     if (isReturnable && (!counterparty.trim() || !expectedReturnDate)) {
-      setError('Please fill in who owes this and the expected return date')
+      setError('Say who owes this and when you expect it back.')
       return
     }
 
@@ -151,153 +166,222 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
     onSaved()
   }
 
+  const parsedTags = tagsInput
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+
   return (
     <>
       {error && (
-        <div role="alert" className="mb-4 rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-sm text-[var(--status-danger-text)]">
-          {error}
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-2 rounded-xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-3 text-sm text-[var(--status-danger-text)]"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Type"
-            options={typeOptions}
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            required
-          />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* What moved, and which way. */}
+        <fieldset className="space-y-4">
+          <legend className="sr-only">Amount and direction</legend>
+
+          <div className="space-y-1.5">
+            <span id="direction-label" className="block text-sm font-medium text-zinc-300">
+              Direction
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="direction-label"
+              className="grid grid-cols-2 gap-2"
+            >
+              {DIRECTIONS.map((d) => {
+                const Icon = d.icon
+                const active = type === d.value
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setType(d.value)}
+                    className={cn(
+                      'flex h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium',
+                      'cursor-pointer transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                      active
+                        ? 'border-brand-500 bg-brand-500/10 text-brand-400'
+                        : 'border-border-default bg-surface-1 text-zinc-400 hover:border-border-hover hover:text-zinc-100'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>{d.label}</span>
+                    <span className="sr-only">— {d.hint}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           <Input
             label={`Amount (${currencySymbol})`}
             type="number"
+            inputMode="decimal"
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             min="0.01"
             step="0.01"
+            className="tnum text-base"
             required
           />
-        </div>
+        </fieldset>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Input
-              label="Merchant"
-              placeholder="e.g. Swiggy"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              list="merchant-suggestions"
+        {/* Who, what, when. */}
+        <fieldset className="space-y-4">
+          <legend className="sr-only">What this was</legend>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Input
+                label="Merchant"
+                placeholder="e.g. Swiggy"
+                value={merchant}
+                onChange={(e) => setMerchant(e.target.value)}
+                list="merchant-suggestions"
+              />
+              <datalist id="merchant-suggestions">
+                {KNOWN_MERCHANTS.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+
+            <Select
+              label="Category"
+              options={categoryOptions}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              required
             />
-            <datalist id="merchant-suggestions">
-              {KNOWN_MERCHANTS.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
           </div>
 
-          <Select
-            label="Category"
-            options={categoryOptions}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            required
-          />
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Description"
+              placeholder="What was this for?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+            />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Description"
-            placeholder="What was this for?"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
+            <Input
+              label="Date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="tnum"
+              required
+            />
+          </div>
+        </fieldset>
 
-          <Input
-            label="Date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
-        </div>
+        {/* Optional detail, below a rule so it reads as optional. */}
+        <fieldset className="space-y-4 border-t border-border-subtle pt-5">
+          <legend className="sr-only">Optional detail</legend>
 
-        <div className="space-y-1.5">
-          <Input
-            label="Tags (comma-separated)"
-            placeholder="e.g. food, vacation, work"
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-          />
-          {tagsInput && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {tagsInput
-                .split(',')
-                .map((t) => t.trim())
-                .filter((t) => t.length > 0)
-                .map((t, idx) => (
-                  <span
+          <div className="space-y-2">
+            <Input
+              label="Tags"
+              placeholder="e.g. food, vacation, work"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+            />
+            {parsedTags.length > 0 ? (
+              <ul className="flex flex-wrap gap-1.5">
+                {parsedTags.map((t, idx) => (
+                  <li
                     key={idx}
-                    className="inline-flex items-center px-2 py-0.5 rounded-lg bg-brand-500/10 border border-brand-500/25 text-xs font-semibold text-brand-400"
+                    className="inline-flex items-center rounded-lg border border-brand-500/25 bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-400"
                   >
                     #{t}
-                  </span>
+                  </li>
                 ))}
-            </div>
-          )}
-        </div>
-
-        {type === 'debit' && (
-          <div className="space-y-3 rounded-xl border border-border-subtle/50 bg-surface-2/30 p-3">
-            <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isReturnable}
-                onChange={(e) => setIsReturnable(e.target.checked)}
-                className="rounded border-zinc-700 bg-surface-2 text-brand-500 focus:ring-brand-500/25 h-4 w-4"
-              />
-              This is money I'll get back
-            </label>
-
-            {isReturnable && (
-              <div className="grid gap-3 sm:grid-cols-2 pt-1">
-                <Input
-                  label="Who owes this"
-                  placeholder="e.g. Rahul"
-                  value={counterparty}
-                  onChange={(e) => setCounterparty(e.target.value)}
-                  required={isReturnable}
-                />
-                <Input
-                  label="Expected return date"
-                  type="date"
-                  value={expectedReturnDate}
-                  onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  min={date}
-                  required={isReturnable}
-                />
-              </div>
+              </ul>
+            ) : (
+              <p className="text-xs text-zinc-400">
+                Separate with commas. Tags let you group spending across categories.
+              </p>
             )}
           </div>
-        )}
 
-        {(isReturnable || notes) && (
-          <Input
-            label="Remarks"
-            placeholder="Additional details..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        )}
+          {type === 'debit' && (
+            <div className="rounded-xl border border-border-subtle bg-surface-2/50 p-3.5">
+              <label className="flex cursor-pointer select-none items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={isReturnable}
+                  onChange={(e) => setIsReturnable(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-default bg-surface-1 text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-zinc-200">
+                    I expect this money back
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-400">
+                    Money you lent or fronted for someone. Intrack tracks it until it returns.
+                  </span>
+                </span>
+              </label>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full">
-          <Button type="submit" loading={loading} className="w-full sm:w-auto justify-center">
-            {isEditing ? 'Update' : 'Add Transaction'}
+              {isReturnable && (
+                <div className="mt-4 grid gap-4 border-t border-border-subtle/60 pt-4 sm:grid-cols-2">
+                  <Input
+                    label="Who owes it"
+                    placeholder="e.g. Rahul"
+                    value={counterparty}
+                    onChange={(e) => setCounterparty(e.target.value)}
+                    required={isReturnable}
+                  />
+                  <Input
+                    label="Expected back by"
+                    type="date"
+                    value={expectedReturnDate}
+                    onChange={(e) => setExpectedReturnDate(e.target.value)}
+                    min={date}
+                    className="tnum"
+                    required={isReturnable}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(isReturnable || notes) && (
+            <Input
+              label="Remarks"
+              placeholder="Anything worth remembering about this one"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          )}
+        </fieldset>
+
+        {/* Actions. Primary first on desktop; both full width on a phone so
+            neither is a small target at the bottom of a sheet. */}
+        <div className="flex flex-col gap-2 border-t border-border-subtle pt-5 sm:flex-row-reverse sm:justify-start">
+          <Button type="submit" loading={loading} className="w-full justify-center sm:w-auto">
+            {isEditing ? 'Save changes' : 'Add transaction'}
           </Button>
           {onCancel && (
-            <Button type="button" variant="ghost" className="w-full sm:w-auto justify-center" onClick={onCancel}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full justify-center sm:w-auto"
+              onClick={onCancel}
+            >
               Cancel
             </Button>
           )}

@@ -8,8 +8,10 @@
 // ============================================
 
 import { useCallback, useEffect, useState } from 'react'
-import { Card, Button, Input } from '@/components/ui'
+import { Card, Button, Input, Select, ConfirmDialog, EmptyState, Badge } from '@/components/ui'
 import { supabase } from '@/services/supabase'
+import { AdminError, TableSkeleton, TABLE_WRAP, TABLE, TABLE_HEAD, TABLE_HEAD_CELL, TABLE_HEAD_CELL_NUM, TABLE_ROW, TABLE_CELL, TABLE_CELL_NUM, TABLE_CELL_STRONG } from './adminUi'
+import { Plus } from 'lucide-react'
 
 interface PromoCode {
   code: string
@@ -72,6 +74,10 @@ export default function CouponsTab() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  // The coupon a delete is pending confirmation for — same gate window.confirm
+  // used to provide, now the shared confirm dialog so it matches every other
+  // destructive action in the app.
+  const [deleteTarget, setDeleteTarget] = useState<PromoCode | null>(null)
 
   const load = useCallback(() => setRefreshKey((k) => k + 1), [])
 
@@ -118,15 +124,17 @@ export default function CouponsTab() {
     }
   }
 
-  const remove = async (target: PromoCode) => {
-    if (!window.confirm(`Delete ${target.code}? Nobody has redeemed it, so nothing is lost.`)) return
-
+  const confirmDelete = async () => {
+    const target = deleteTarget
+    if (!target) return
     try {
       await callAdminPromo({ action: 'delete', code: target.code })
       setSuccess(`Coupon ${target.code} deleted.`)
       load()
     } catch (e) {
       setFormError(`Could not delete ${target.code}: ${(e as Error).message}`)
+    } finally {
+      setDeleteTarget(null)
     }
   }
 
@@ -141,130 +149,137 @@ export default function CouponsTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-4">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-200">Create a coupon</h2>
-        <p className="mb-4 text-xs text-zinc-500">
+      <Card>
+        <h2 className="mb-1 text-base font-bold text-zinc-100">Create a coupon</h2>
+        <p className="mb-4 text-sm text-zinc-400 leading-relaxed">
           Anyone who has the code can redeem it once, for as long as the code is still
           valid. Each person gets full premium access counted from the day they redeem,
           so someone redeeming on the last day still gets the full run.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            label="Code"
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.toUpperCase())
+              // Clear the previous result once a new code is being typed,
+              // otherwise the panel reads as if THIS code was just created.
+              setSuccess(null)
+              setFormError(null)
+            }}
+            placeholder="DIWALI2026"
+          />
           <div>
-            <label className="mb-1 block text-xs text-zinc-400">Code</label>
-            <Input
-              value={code}
-              onChange={(e) => {
-                setCode(e.target.value.toUpperCase())
-                // Clear the previous result once a new code is being typed,
-                // otherwise the panel reads as if THIS code was just created.
-                setSuccess(null)
-                setFormError(null)
-              }}
-              placeholder="DIWALI2026"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-zinc-400">Valid for (days)</label>
-            <Input value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" />
-            <p className="mt-1 text-[11px] text-zinc-500">
+            <Input label="Valid for (days)" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" className="tnum" />
+            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
               Code works for this many days from today, and each person who redeems it
               gets this many days of access from their own redemption date.
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-400">Plan granted</label>
-            <select
+            <Select
+              label="Plan granted"
               value={planType}
               onChange={(e) => setPlanType(e.target.value === 'annual' ? 'annual' : 'monthly')}
-              className="h-11 w-full rounded-xl border border-border-subtle/50 bg-surface-2 px-3 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="annual">Annual</option>
-            </select>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              Which plan the coupon grants. The LENGTH of access is set by the days field —
+              options={[
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'annual', label: 'Annual' },
+              ]}
+            />
+            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
+              Which plan the coupon grants. The length of access is set by the days field —
               this only decides which plan name the account ends up on.
             </p>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-zinc-400">Usage limit (blank = unlimited)</label>
-            <Input value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="100" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-zinc-400">Note (optional, for you)</label>
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Instagram launch" />
+          <Input
+            label="Usage limit (blank = unlimited)"
+            value={maxUses}
+            onChange={(e) => setMaxUses(e.target.value)}
+            placeholder="100"
+            className="tnum"
+          />
+          <div className="sm:col-span-2">
+            <Input label="Note (optional, for you)" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Instagram launch" />
           </div>
         </div>
 
-        {formError && <p className="mt-3 text-sm text-red-400">{formError}</p>}
-        {success && <p className="mt-3 text-sm text-emerald-400">{success}</p>}
+        {formError && (
+          <p className="mt-3 rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
+            {formError}
+          </p>
+        )}
+        {success && (
+          <p className="mt-3 rounded-lg border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] px-3 py-2 text-sm text-[var(--status-positive-text)]">
+            {success}
+          </p>
+        )}
 
         <div className="mt-4">
-          <Button onClick={create} disabled={saving || !code.trim()}>
-            {saving ? 'Creating…' : 'Create coupon'}
+          <Button onClick={create} loading={saving} disabled={saving || !code.trim()} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Create coupon
           </Button>
         </div>
       </Card>
 
-      <Card className="p-0">
-        <h2 className="border-b border-border-subtle p-4 text-sm font-semibold text-zinc-200">
+      <Card noPadding>
+        <h2 className="border-b border-border-subtle p-4 text-base font-bold text-zinc-100">
           Existing coupons
         </h2>
 
-        {loading && <p className="p-4 text-sm text-zinc-400">Loading…</p>}
-        {error && (
-          <div className="p-4">
-            <p className="text-sm text-red-400">{error}</p>
-            <button onClick={load} className="mt-2 text-sm text-brand-400 underline">Retry</button>
-          </div>
-        )}
+        {loading && <TableSkeleton rows={4} cols={7} />}
+        {error && <div className="p-4"><AdminError message={error} onRetry={load} /></div>}
         {!loading && !error && codes.length === 0 && (
-          <p className="p-4 text-sm text-zinc-500">No coupons yet. Create one above.</p>
+          <EmptyState icon="🎟️" title="No coupons yet" description="Create one above to give someone free access." />
         )}
 
         {!loading && !error && codes.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border-subtle text-xs uppercase tracking-wider text-zinc-500">
+          <div className={TABLE_WRAP}>
+            <table className={TABLE}>
+              <thead className={TABLE_HEAD}>
                 <tr>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Grants</th>
-                  <th className="px-4 py-3">Used</th>
-                  <th className="px-4 py-3">Code expires</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Note</th>
-                  <th className="px-4 py-3"></th>
+                  <th className={TABLE_HEAD_CELL}>Code</th>
+                  <th className={TABLE_HEAD_CELL}>Grants</th>
+                  <th className={TABLE_HEAD_CELL_NUM}>Used</th>
+                  <th className={TABLE_HEAD_CELL}>Code expires</th>
+                  <th className={TABLE_HEAD_CELL}>Status</th>
+                  <th className={TABLE_HEAD_CELL}>Note</th>
+                  <th className={TABLE_HEAD_CELL}></th>
                 </tr>
               </thead>
               <tbody>
                 {codes.map((c) => (
-                  <tr key={c.code} className="border-b border-border-subtle/50">
-                    <td className="px-4 py-3 font-medium text-zinc-200">{c.code}</td>
-                    <td className="px-4 py-3 text-zinc-400">{c.duration_days} days · {c.plan_type}</td>
-                    <td className="px-4 py-3 text-zinc-400">
+                  <tr key={c.code} className={TABLE_ROW}>
+                    <td className={TABLE_CELL_STRONG}>{c.code}</td>
+                    <td className={`${TABLE_CELL} tnum`}>{c.duration_days} days · {c.plan_type}</td>
+                    <td className={TABLE_CELL_NUM}>
                       {c.used_count}{c.max_uses !== null ? ` / ${c.max_uses}` : ''}
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">
+                    <td className={`${TABLE_CELL} tnum`}>
                       {c.expires_at ? new Date(c.expires_at).toLocaleDateString('en-IN') : 'Never'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={c.active ? 'text-emerald-400' : 'text-zinc-500'}>
-                        {c.active ? 'Active' : 'Disabled'}
-                      </span>
+                      <Badge variant={c.active ? 'success' : 'default'}>{c.active ? 'Active' : 'Disabled'}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">{c.note || '—'}</td>
+                    <td className={`${TABLE_CELL} text-zinc-500`}>{c.note || '—'}</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => toggle(c)} className="text-xs text-brand-400 underline">
-                        {c.active ? 'Disable' : 'Enable'}
-                      </button>
-                      {/* Only unused codes can be deleted; once redeemed, the
-                          record of who got free access must outlive the code. */}
-                      {c.used_count === 0 && (
-                        <button onClick={() => remove(c)} className="ml-3 text-xs text-red-400 underline">
-                          Delete
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => toggle(c)} className="px-2">
+                          {c.active ? 'Disable' : 'Enable'}
+                        </Button>
+                        {/* Only unused codes can be deleted; once redeemed, the
+                            record of who got free access must outlive the code. */}
+                        {c.used_count === 0 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDeleteTarget(c)}
+                            className="px-2 text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]"
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -274,12 +289,22 @@ export default function CouponsTab() {
         )}
       </Card>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-zinc-500 leading-relaxed">
         Disable pauses a code but keeps it listed. Delete removes it entirely and stops
         anyone redeeming it — people who already redeemed it keep the access they were
         given, and the record of who redeemed it is kept underneath. A user can redeem
         any given code only once.
       </p>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${deleteTarget?.code}?`}
+        message="Nobody has redeemed it, so nothing is lost. This cannot be undone."
+        confirmLabel="Delete"
+        danger
+      />
     </div>
   )
 }

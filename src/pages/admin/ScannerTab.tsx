@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Card } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
 import { useAdminQuery } from './useAdminQuery'
 import { scanSuccessRate } from './adminMetrics'
 import AdminBarChart from './AdminBarChart'
+import { StatCard, StatGridSkeleton, AdminError, TableSkeleton, TABLE_WRAP, TABLE, TABLE_HEAD, TABLE_HEAD_CELL, TABLE_ROW, TABLE_CELL } from './adminUi'
+import { ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react'
 
 interface ScannerRow {
   day: string
@@ -61,66 +63,60 @@ function GateSenders({ gate }: { gate: string }) {
     lim: 20,
   })
 
-  if (senders.loading) {
-    return <p className="px-3 py-2 text-xs text-zinc-500">Loading senders…</p>
-  }
+  if (senders.loading) return <TableSkeleton rows={3} cols={3} />
 
   if (senders.error) {
-    return (
-      <div className="px-3 py-2">
-        <p className="text-xs text-red-400">Could not load senders: {senders.error}</p>
-        <button onClick={senders.reload} className="mt-1 text-xs text-brand-400 underline">
-          Retry
-        </button>
-      </div>
-    )
+    return <div className="p-3"><AdminError message={`Could not load senders: ${senders.error}`} onRetry={senders.reload} /></div>
   }
 
   const rows = senders.data ?? []
   if (rows.length === 0) {
-    return <p className="px-3 py-2 text-xs text-zinc-500">No senders recorded for this gate.</p>
+    return <p className="px-3 py-3 text-sm text-zinc-500">No senders recorded for this gate.</p>
   }
 
   const flagged = rows.filter((r) => looksFinancial(r.sender_domain)).length
 
   return (
-    <div className="px-3 py-2">
-      <p className="mb-2 text-xs text-zinc-500">
+    <div className="px-3 py-3">
+      <p className="mb-2 text-xs text-zinc-500 leading-relaxed">
         {flagged === 0
           ? 'Top senders this gate rejected. None look like a bank or payment provider.'
           : `Top senders this gate rejected. ${flagged} look${flagged === 1 ? 's' : ''} like a bank or payment provider — check these.`}
       </p>
-      <table className="w-full text-left text-xs">
-        <thead className="text-zinc-500">
-          <tr>
-            <th className="py-1 font-normal">Sender domain</th>
-            <th className="py-1 text-right font-normal">Rejected</th>
-            <th className="py-1 text-right font-normal">Last seen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const financial = looksFinancial(r.sender_domain)
-            return (
-              <tr key={r.sender_domain} className="border-t border-border-subtle/40">
-                <td className={`py-1 ${financial ? 'font-medium text-amber-400' : 'text-zinc-300'}`}>
-                  {r.sender_domain}
-                  {financial && (
-                    <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-400">
-                      bank / payments
+      <div className={TABLE_WRAP}>
+        <table className="w-full text-left text-xs">
+          <thead className="text-zinc-500">
+            <tr>
+              <th className="py-1.5 pr-4 font-medium">Sender domain</th>
+              <th className="py-1.5 pr-4 text-right font-medium">Rejected</th>
+              <th className="py-1.5 text-right font-medium">Last seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const financial = looksFinancial(r.sender_domain)
+              return (
+                <tr key={r.sender_domain} className="border-t border-border-subtle/40">
+                  <td className={`py-1.5 pr-4 ${financial ? 'font-semibold text-[var(--status-warning-text)]' : 'text-zinc-300'}`}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {financial && <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                      {r.sender_domain}
                     </span>
-                  )}
-                </td>
-                <td className="py-1 text-right text-zinc-400">{r.rejections}</td>
-                <td className="py-1 text-right text-zinc-500">
-                  {new Date(r.last_seen).toLocaleDateString('en-IN')}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      <p className="mt-2 text-[11px] text-zinc-600">
+                    {financial && (
+                      <Badge variant="warning" className="ml-2 py-0 text-[10px]">bank / payments</Badge>
+                    )}
+                  </td>
+                  <td className="py-1.5 pr-4 text-right tnum text-zinc-400">{r.rejections}</td>
+                  <td className="py-1.5 text-right tnum text-zinc-500">
+                    {new Date(r.last_seen).toLocaleDateString('en-IN')}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-[11px] text-zinc-500">
         Domains only — subject lines are never shown here.
       </p>
     </div>
@@ -133,14 +129,9 @@ export default function ScannerTab() {
   const failures = useAdminQuery<FailureRow[]>('admin_scan_failures', { lim: 20 })
   const gates = useAdminQuery<GateRow[]>('admin_rejection_gates', { days: 30 })
 
-  if (stats.loading) return <p className="py-8 text-sm text-zinc-400">Loading…</p>
+  if (stats.loading) return <StatGridSkeleton count={4} />
   if (stats.error) {
-    return (
-      <div className="py-8">
-        <p className="text-sm text-red-400">Could not load scanner stats: {stats.error}</p>
-        <button onClick={stats.reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
-      </div>
-    )
+    return <AdminError message={`Could not load scanner stats: ${stats.error}`} onRetry={stats.reload} />
   }
 
   const rows = stats.data ?? []
@@ -162,25 +153,10 @@ export default function ScannerTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Success rate</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-100">{rate === null ? '—' : `${rate}%`}</p>
-          <p className="mt-1 text-xs text-zinc-500">partial counts as success</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Failed scans</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-100">{totals.failed}</p>
-          <p className="mt-1 text-xs text-zinc-500">last 30 days</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Manual / auto</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-100">{totals.manual} / {totals.scheduled}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Txns found</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-100">{totals.found}</p>
-          <p className="mt-1 text-xs text-zinc-500">from {totals.emails} emails</p>
-        </Card>
+        <StatCard label="Success rate" value={rate === null ? '—' : `${rate}%`} hint="partial counts as success" emphasis />
+        <StatCard label="Failed scans" value={String(totals.failed)} hint="last 30 days" />
+        <StatCard label="Manual / auto" value={`${totals.manual} / ${totals.scheduled}`} />
+        <StatCard label="Txns found" value={String(totals.found)} hint={`from ${totals.emails} emails`} />
       </div>
 
       <Card className="p-4">
@@ -194,7 +170,7 @@ export default function ScannerTab() {
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Rejections by gate (30 days)</h2>
         {gates.loading ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <TableSkeleton rows={3} cols={2} />
         ) : (gates.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-zinc-500">No rejections recorded.</p>
         ) : (
@@ -211,18 +187,18 @@ export default function ScannerTab() {
                       type="button"
                       onClick={() => setOpenGate(open ? null : g.gate)}
                       aria-expanded={open}
-                      className={`flex w-full items-center justify-between rounded px-3 py-1.5 text-left transition-colors hover:bg-zinc-800/60 ${
-                        open ? 'bg-zinc-800/60 text-zinc-100' : 'text-zinc-300'
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
+                        open ? 'bg-surface-2 text-zinc-100' : 'text-zinc-300'
                       }`}
                     >
-                      <span>
-                        <span className="mr-2 inline-block w-3 text-zinc-500">{open ? '▾' : '▸'}</span>
+                      <span className="inline-flex items-center gap-2">
+                        {open ? <ChevronDown className="h-3.5 w-3.5 text-zinc-500" /> : <ChevronRight className="h-3.5 w-3.5 text-zinc-500" />}
                         {g.gate}
                       </span>
-                      <span className="text-zinc-500">{g.rejections}</span>
+                      <span className="tnum text-zinc-500">{g.rejections}</span>
                     </button>
                     {open && (
-                      <div className="mt-1 rounded border border-border-subtle/60 bg-zinc-900/40">
+                      <div className="mt-1 rounded-lg border border-border-subtle/60 bg-surface-2/40">
                         <GateSenders gate={g.gate} />
                       </div>
                     )}
@@ -237,20 +213,32 @@ export default function ScannerTab() {
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Recent failures</h2>
         {failures.loading ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <TableSkeleton rows={3} cols={2} />
         ) : (failures.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-zinc-500">No failed scans. Good.</p>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {failures.data!.map((f, i) => (
-              <li key={i} className="border-b border-border-subtle/50 pb-2">
-                <p className="text-zinc-300">{f.email} · {f.scan_mode ?? 'unknown'}</p>
-                <p className="text-xs text-zinc-500">
-                  {new Date(f.scanned_at).toLocaleString('en-IN')} — {f.error_message ?? 'no message'}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <div className={TABLE_WRAP}>
+            <table className={TABLE}>
+              <thead className={TABLE_HEAD}>
+                <tr>
+                  <th className={TABLE_HEAD_CELL}>Email</th>
+                  <th className={TABLE_HEAD_CELL}>Mode</th>
+                  <th className={TABLE_HEAD_CELL}>When</th>
+                  <th className={TABLE_HEAD_CELL}>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failures.data!.map((f, i) => (
+                  <tr key={i} className={TABLE_ROW}>
+                    <td className={TABLE_CELL}>{f.email}</td>
+                    <td className={TABLE_CELL}>{f.scan_mode ?? 'unknown'}</td>
+                    <td className={`${TABLE_CELL} whitespace-nowrap tnum`}>{new Date(f.scanned_at).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3 text-[var(--status-danger-text)]">{f.error_message ?? 'no message'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

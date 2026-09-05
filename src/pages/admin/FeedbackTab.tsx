@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Card } from '@/components/ui'
+import { Card, Button, EmptyState } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { useAdminQuery } from './useAdminQuery'
+import { StatCard, StatGridSkeleton, AdminError, FeedCardSkeleton, Pager } from './adminUi'
 
 interface SummaryRow {
   total: number
@@ -76,26 +77,20 @@ export default function FeedbackTab() {
 
   return (
     <div className="space-y-6">
-      {s && (
+      {summary.loading ? (
+        <StatGridSkeleton count={3} />
+      ) : s ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <StatCard label="Average rating" value={s.total === 0 ? '—' : `${s.average_rating} / 5`} />
+          <StatCard label="Total feedback" value={String(s.total)} />
           <Card className="p-4">
-            <p className="text-xs uppercase tracking-wider text-zinc-500">Average rating</p>
-            <p className="mt-2 text-2xl font-bold text-zinc-100">
-              {s.total === 0 ? '—' : `${s.average_rating} / 5`}
-            </p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs uppercase tracking-wider text-zinc-500">Total feedback</p>
-            <p className="mt-2 text-2xl font-bold text-zinc-100">{s.total}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs uppercase tracking-wider text-zinc-500">Breakdown</p>
-            <p className="mt-2 text-sm text-zinc-300">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Breakdown</p>
+            <p className="mt-2 text-sm text-zinc-300 tnum">
               {s.bug} bugs · {s.feature_request} features · {s.ui_ux} UI · {s.other} other
             </p>
           </Card>
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center gap-2">
         {([false, true] as const).map((only) => (
@@ -104,8 +99,8 @@ export default function FeedbackTab() {
             onClick={() => setUnhandledOnly(only)}
             className={
               unhandledOnly === only
-                ? 'rounded-full bg-brand-500/20 px-3 py-1 text-xs font-medium text-brand-300'
-                : 'rounded-full px-3 py-1 text-xs text-zinc-500 hover:text-zinc-300'
+                ? 'rounded-full bg-brand-500/15 border border-brand-500/30 px-3 py-1.5 text-xs font-semibold text-brand-500'
+                : 'rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-300'
             }
           >
             {only ? 'Unhandled only' : 'All'}
@@ -113,23 +108,26 @@ export default function FeedbackTab() {
         ))}
       </div>
 
-      {actionError && <p className="text-sm text-red-400">{actionError}</p>}
+      {actionError && (
+        <p className="rounded-lg border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] px-3 py-2 text-sm text-[var(--status-danger-text)]">
+          {actionError}
+        </p>
+      )}
 
-      {list.loading && <p className="py-8 text-sm text-zinc-400">Loading…</p>}
-
-      {list.error && (
-        <div className="py-8">
-          <p className="text-sm text-red-400">Could not load feedback: {list.error}</p>
-          <button onClick={list.reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
+      {list.loading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => <FeedCardSkeleton key={i} />)}
         </div>
       )}
 
+      {list.error && <AdminError message={`Could not load feedback: ${list.error}`} onRetry={list.reload} />}
+
       {!list.loading && !list.error && rows.length === 0 && (
-        <p className="py-8 text-center text-sm text-zinc-500">
-          {unhandledOnly && allRows.length > 0
-            ? 'Everything on this page has been handled.'
-            : 'No feedback submitted yet.'}
-        </p>
+        <EmptyState
+          icon="💬"
+          title={unhandledOnly && allRows.length > 0 ? 'All caught up' : 'No feedback submitted yet'}
+          description={unhandledOnly && allRows.length > 0 ? 'Everything on this page has been handled.' : undefined}
+        />
       )}
 
       {rows.map((f) => {
@@ -137,18 +135,18 @@ export default function FeedbackTab() {
         return (
           <Card
             key={f.id}
-            className={handled ? 'p-4 opacity-60' : 'p-4 border-l-2 border-l-brand-500'}
+            className={handled ? 'opacity-60' : 'border-l-2 border-l-brand-500'}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className={handled ? 'text-sm text-zinc-400' : 'text-sm font-medium text-zinc-100'}>
+                <p className={handled ? 'text-sm text-zinc-400' : 'text-sm font-semibold text-zinc-100'}>
                   {f.email}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-zinc-500">
                   {f.category} · {new Date(f.created_at).toLocaleDateString('en-IN')}
                 </p>
               </div>
-              <span className="shrink-0 text-sm text-zinc-400">{f.rating}/5</span>
+              <span className="shrink-0 text-sm font-medium text-zinc-400 tnum">{f.rating}/5</span>
             </div>
 
             <p className={handled ? 'mt-3 whitespace-pre-wrap text-sm text-zinc-400' : 'mt-3 whitespace-pre-wrap text-sm text-zinc-300'}>
@@ -161,29 +159,28 @@ export default function FeedbackTab() {
                   ? `Handled ${new Date(f.handled_at).toLocaleDateString('en-IN')}`
                   : 'Needs a reply'}
               </span>
-              <button
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => setHandled(f, !handled)}
-                disabled={busyId === f.id}
-                className="text-xs text-brand-400 underline disabled:opacity-40"
+                loading={busyId === f.id}
+                className="px-2"
               >
-                {busyId === f.id ? 'Saving…' : handled ? 'Reopen' : 'Mark handled'}
-              </button>
+                {handled ? 'Reopen' : 'Mark handled'}
+              </Button>
             </div>
           </Card>
         )
       })}
 
-      {pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-400">
-          <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="disabled:opacity-40">
-            Previous
-          </button>
-          <span>Page {page + 1} of {pages}</span>
-          <button disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)} className="disabled:opacity-40">
-            Next
-          </button>
-        </div>
-      )}
+      <Pager
+        page={page}
+        pages={pages}
+        total={total}
+        noun="entries"
+        onPrev={() => setPage((p) => p - 1)}
+        onNext={() => setPage((p) => p + 1)}
+      />
     </div>
   )
 }
