@@ -141,11 +141,11 @@ export default function ForgotPasswordPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-sm text-zinc-400">
+      <p className="mt-6 text-sm text-sb-ink-muted text-center">
         Remembered it?{' '}
         <Link
           to="/?auth=login"
-          className="rounded font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+          className="rounded font-semibold text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
         >
           Sign in
         </Link>

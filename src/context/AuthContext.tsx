@@ -827,17 +827,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   if (deviceCheckRequired && state.user) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-surface-0 px-4 py-8" role="main">
-        <div className="w-full max-w-md bg-surface-1 border border-border-subtle rounded-3xl p-6 shadow-2xl backdrop-blur-2xl flex flex-col gap-6 animate-scale-up">
+      <main className="relative min-h-screen flex items-center justify-center bg-surface-0 px-4 py-8 overflow-hidden" role="main">
+        {/* Ambient emerald backlight */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-[36rem] rounded-full bg-radial from-brand-500/15 via-brand-500/5 to-transparent blur-3xl"
+        />
+
+        <div className="relative z-10 w-full max-w-md bg-surface-1 border border-sb-hairline rounded-3xl p-6 sm:p-8 shadow-card-lg overflow-hidden flex flex-col gap-6 animate-scale-up before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/35 before:to-transparent">
           <div className="text-center">
-            <span className="text-4xl" aria-hidden="true">📱</span>
+            <div className="w-14 h-14 rounded-2xl bg-brand-50 border border-brand-200/70 flex items-center justify-center text-2xl mx-auto shadow-xs" aria-hidden="true">
+              📱
+            </div>
             {/* Copy is deliberately about tidying up your own devices, not about
                 an enforced ceiling. The list this screen edits lives in
                 user-writable metadata (see verifyDeviceSession), so promising
                 that access "is limited to 2 devices" would be claiming a
                 guarantee the client cannot make. */}
-            <h1 className="text-xl font-bold text-white mt-4">Too Many Signed-In Devices</h1>
-            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+            <h1 className="text-xl font-bold tracking-tight text-sb-ink mt-3">Too Many Signed-In Devices</h1>
+            <p className="text-xs text-sb-ink-secondary mt-1.5 leading-relaxed">
               Intrack keeps your account to <strong>2 devices</strong> at a time. To use this one, pick at least one device to sign out:
             </p>
           </div>
@@ -851,8 +859,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   onClick={() => handleToggleDeviceSelect(session.id)}
                   className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
                     isChecked
-                      ? 'border-brand-400 bg-brand-500/5 hover:bg-brand-500/10'
-                      : 'border-border-subtle bg-surface-2/40 hover:bg-surface-2 hover:border-zinc-700'
+                      ? 'border-brand-500 bg-brand-50/70 shadow-xs'
+                      : 'border-sb-hairline bg-surface-2/40 hover:bg-surface-2'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -860,14 +868,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => {}} // Controlled by outer div click
-                      className="rounded border-zinc-800 bg-surface-2 text-brand-500 focus:ring-brand-500/25 h-4 w-4 pointer-events-none"
+                      className="rounded border-sb-hairline bg-surface-1 text-brand-600 focus:ring-brand-500/25 h-4 w-4 pointer-events-none"
                     />
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-zinc-200">{session.name}</span>
-                      <span className="text-xs text-zinc-500 mt-0.5">{formatRelativeTime(session.lastActive)}</span>
+                      <span className="text-xs font-semibold text-sb-ink">{session.name}</span>
+                      <span className="text-xs text-sb-ink-muted mt-0.5">{formatRelativeTime(session.lastActive)}</span>
                     </div>
                   </div>
-                  <span className="text-xs uppercase font-bold text-zinc-500 px-2 py-0.5 border border-border-subtle rounded-full">
+                  <span className="text-[10px] uppercase font-bold text-brand-700 bg-brand-50 px-2 py-0.5 border border-brand-200/70 rounded-full">
                     Active
                   </span>
                 </div>
@@ -885,6 +893,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               onClick={handleResolveSessions}
               disabled={selectedDevices.length === 0}
               block
+              className="!h-11"
             >
               Sign Out Selected & Connect
             </Button>
@@ -892,6 +901,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               variant="secondary"
               onClick={() => signOut()}
               block
+              className="!h-11"
             >
               Cancel & Log Out
             </Button>

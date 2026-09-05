@@ -43,7 +43,7 @@ export function MerchantLeaderboard({ data, loading, onMerchantClick }: Merchant
           </ul>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Store className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            icon={<Store className="h-8 w-8 text-brand-600" aria-hidden="true" />}
             title="No merchants to rank"
             description="Expenses need a merchant name before they can be ranked. Scanned transactions usually carry one."
           />
@@ -57,24 +57,24 @@ export function MerchantLeaderboard({ data, loading, onMerchantClick }: Merchant
                     <span className="flex min-w-0 items-center gap-2">
                       <span
                         aria-hidden="true"
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-zinc-400 tnum"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-200/60 text-[11px] font-bold text-brand-700 tnum shadow-xs"
                       >
                         {index + 1}
                       </span>
-                      <span className="truncate text-sm font-medium text-zinc-100">{item.merchant}</span>
+                      <span className="truncate text-sm font-semibold text-sb-ink">{item.merchant}</span>
                     </span>
-                    <span className="shrink-0 text-sm font-semibold text-zinc-50 tnum">
+                    <span className="shrink-0 text-sm font-bold text-sb-ink tnum">
                       {formatCurrencyCompact(item.amount)}
                     </span>
                   </span>
                   <span className="mt-1.5 flex items-center gap-2 pl-7">
-                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                       <span
                         className="block h-full rounded-full transition-[width] duration-500"
                         style={{ width: `${width}%`, backgroundColor: SERIES.expense.color }}
                       />
                     </span>
-                    <span className="shrink-0 text-xs text-zinc-400 tnum">
+                    <span className="shrink-0 text-xs text-sb-ink-muted tnum font-medium">
                       {item.count} txn{item.count === 1 ? '' : 's'}
                     </span>
                   </span>

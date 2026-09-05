@@ -26,11 +26,11 @@ const remarkStyles: Record<'sm' | 'md', string> = {
 export default function TransactionIdentity({ title, remark, size = 'md', className }: TransactionIdentityProps) {
   return (
     <div className={cn('min-w-0', className)}>
-      <p className={cn(titleStyles[size], 'text-zinc-200 truncate')} title={title}>
+      <p className={cn(titleStyles[size], 'text-sb-ink truncate')} title={title}>
         {title}
       </p>
       {remark && (
-        <p className={cn(remarkStyles[size], 'text-zinc-500 truncate mt-0.5')} title={remark}>
+        <p className={cn(remarkStyles[size], 'text-sb-ink-muted truncate mt-0.5')} title={remark}>
           {remark}
         </p>
       )}

@@ -17,13 +17,13 @@
  * because a keyboard user loses these buttons entirely without one.
  */
 export const ACTION_BUTTON =
-  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
-  'hover:text-zinc-100 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 ' +
+  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-sb-ink-muted transition-colors ' +
+  'hover:text-sb-ink hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-brand-500/40 cursor-pointer'
 
 /** The same button where the action destroys something. */
 export const ACTION_BUTTON_DANGER =
-  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
+  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-sb-ink-muted transition-colors ' +
   'hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-danger-border)] cursor-pointer'
 
@@ -34,8 +34,9 @@ export const ACTION_BUTTON_DANGER =
  * sits in stays the only object with real elevation.
  */
 export const ROW_TILE =
-  'rounded-xl border border-border-subtle/40 bg-surface-2/50 transition-colors hover:border-border-hover'
+  'rounded-xl border border-sb-hairline bg-surface-2/40 transition-colors hover:border-brand-500/30 hover:bg-surface-2/70'
 
 /** The small uppercase label above a group of rows inside a section. */
 export const SECTION_LABEL =
-  'text-xs font-bold text-zinc-400 uppercase tracking-wider'
+  'text-[11px] font-semibold text-sb-ink-muted uppercase tracking-wider'
+

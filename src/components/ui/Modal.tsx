@@ -68,18 +68,18 @@ export default function Modal({
               transition: { duration: 0.2 }
             }}
             className={cn(
-              "relative w-full max-w-lg bg-surface-1 border border-border-subtle shadow-2xl flex flex-col max-h-[75svh] overflow-hidden",
+              "relative w-full max-w-lg bg-surface-1 border border-sb-hairline shadow-2xl flex flex-col max-h-[75svh] overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent",
               sheet ? "rounded-t-3xl sm:rounded-2xl max-h-[92svh] sm:max-h-[75svh]" : "rounded-2xl",
               className
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-              <h3 className="text-base font-bold text-text-primary">{title}</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-sb-hairline shrink-0">
+              <h3 className="text-base font-bold text-sb-ink">{title}</h3>
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-11 w-11 !p-0 rounded-lg flex items-center justify-center text-zinc-400 hover:text-text-primary hover:bg-surface-2"
+                className="h-9 w-9 !p-0 rounded-lg flex items-center justify-center text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2"
                 aria-label="Close dialog"
               >
                 <X className="h-4 w-4" />
@@ -87,13 +87,13 @@ export default function Modal({
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 overflow-y-auto flex-1 text-sm text-text-secondary leading-relaxed">
+            <div className="px-6 py-5 overflow-y-auto flex-1 text-sm text-sb-ink-secondary leading-relaxed">
               {children}
             </div>
 
             {/* Footer */}
             {footer && (
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-surface-0/50 shrink-0">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-sb-hairline bg-surface-2/40 shrink-0">
                 {footer}
               </div>
             )}

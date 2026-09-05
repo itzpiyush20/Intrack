@@ -9,7 +9,7 @@ interface Props {
 
 export default function AdminBarChart({ data, emptyMessage }: Props) {
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-zinc-500">{emptyMessage}</p>
+    return <p className="py-8 text-center text-sm text-sb-ink-muted">{emptyMessage}</p>
   }
 
   const max = Math.max(...data.map((d) => d.value), 1)
@@ -19,7 +19,7 @@ export default function AdminBarChart({ data, emptyMessage }: Props) {
       {data.map((d) => (
         <div key={d.label} className="flex min-w-[10px] flex-1 flex-col items-center gap-1">
           <div
-            className="w-full rounded-t bg-brand-400/70"
+            className="w-full rounded-t bg-gradient-to-t from-brand-600 to-brand-400 shadow-xs"
             style={{ height: `${(d.value / max) * 100}%` }}
             title={`${d.label}: ${d.value}`}
           />

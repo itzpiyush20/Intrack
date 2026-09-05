@@ -71,7 +71,7 @@ function confidenceTone(confidence: number): { icon: typeof CheckCircle2; classN
   if (confidence >= 50) {
     return { icon: AlertCircle, className: 'text-[var(--status-warning-text)]', label: 'Worth a look' }
   }
-  return { icon: AlertTriangle, className: 'text-zinc-400', label: 'Low confidence' }
+  return { icon: AlertTriangle, className: 'text-sb-ink-muted', label: 'Low confidence' }
 }
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
@@ -1055,17 +1055,25 @@ export default function PendingPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-8 animate-fade-in">
+      {/* Ambient luxury emerald glow aura */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden"
+      >
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+      </div>
+
+      <div className="space-y-8 animate-fade-in relative">
 
         {/* ── Premium Gate ──────────────────────────────────── */}
         {activeBanner === 'premium' && (
           <div className="rounded-3xl bg-brand-500/10 border border-brand-500/30 p-6 flex flex-col items-center text-center gap-4 shadow-[var(--shadow-md)] animate-fade-in">
             <div className="h-14 w-14 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-3xl">
-              <Crown className="h-7 w-7 text-brand-400" />
+              <Crown className="h-7 w-7 text-brand-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Email Scanning is a Premium Feature</h2>
-              <p className="text-sm text-zinc-400 mt-1.5 max-w-md">
+              <h2 className="text-lg font-bold text-sb-ink">Email Scanning is a Premium Feature</h2>
+              <p className="text-sm text-sb-ink-muted mt-1.5 max-w-md">
                 Automatically capture transactions from your Gmail inbox. Upgrade to Premium to scan your bank alerts and let Intrack do the work.
               </p>
             </div>
@@ -1085,13 +1093,13 @@ export default function PendingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-sm mt-2">
               {[
-                { icon: <Zap className="h-5 w-5 text-brand-400" />, label: 'Auto-scan inbox' },
-                { icon: <Brain className="h-5 w-5 text-brand-400" />, label: 'AI categorization' },
-                { icon: <BarChart3 className="h-5 w-5 text-brand-400" />, label: 'Full insights' },
+                { icon: <Zap className="h-5 w-5 text-brand-600" />, label: 'Auto-scan inbox' },
+                { icon: <Brain className="h-5 w-5 text-brand-600" />, label: 'AI categorization' },
+                { icon: <BarChart3 className="h-5 w-5 text-brand-600" />, label: 'Full insights' },
               ].map((f) => (
-                <div key={f.label} className="rounded-xl bg-surface-2 border border-border-subtle p-2.5 text-center flex flex-col items-center justify-center">
+                <div key={f.label} className="rounded-xl bg-surface-2 border border-sb-hairline p-2.5 text-center flex flex-col items-center justify-center">
                   <span className="block mb-1">{f.icon}</span>
-                  <span className="text-xs text-zinc-400 font-semibold block">{f.label}</span>
+                  <span className="text-xs text-sb-ink-muted font-semibold block">{f.label}</span>
                 </div>
               ))}
             </div>
@@ -1101,8 +1109,14 @@ export default function PendingPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Pending Alerts</h1>
-            <p className="mt-1 text-sm text-zinc-400">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                Bank Alert Engine Active
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Pending Alerts</h1>
+            <p className="mt-1 text-sm text-sb-ink-muted">
               Bank alerts scanned from email notifications. Review, correct category, and approve them.
             </p>
           </div>
@@ -1116,23 +1130,19 @@ export default function PendingPage() {
                 className="shrink-0 gap-1.5 shadow-md justify-center"
                 aria-label="Scan Gmail Inbox for new bank alerts"
               >
-                <Sparkles className="h-4 w-4 text-brand-300" /> Scan Bank Alerts
+                <Sparkles className="h-4 w-4 text-white" /> Scan Bank Alerts
               </Button>
             </div>
             {scanning && (scanProgress || scanTakingLong) ? (
-              <span role="status" className="text-xs text-zinc-500">
+              <span role="status" className="text-xs text-sb-ink-muted">
                 {scanProgress ?? 'Still scanning your inbox — large inboxes can take up to a minute…'}
               </span>
             ) : nextScanAt ? (
-              /* Directly under the scan button: when the next scan is due, as a
-                 clock time in the viewer's own timezone. Replaced a badge that
-                 claimed the app catches up on its own, which stopped being true
-                 when automatic scanning was removed on 2026-08-27. */
-              <span className="text-xs font-semibold text-brand-300 bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-brand-300 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-brand-600 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
               </span>
             ) : (
-              <span className="text-xs text-zinc-500">Ready to scan</span>
+              <span className="text-xs text-sb-ink-muted">Ready to scan</span>
             )}
           </div>
         </div>
@@ -1140,38 +1150,29 @@ export default function PendingPage() {
         {/* ── Scan Dashboard ───────────────────────────────── */}
         {lastScanLog && (
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="bg-surface-1 border-border-subtle p-4 space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Last Scan</p>
-              <p className="text-sm font-bold text-white">
+            <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-4 space-y-1 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Last Scan</p>
+              <p className="text-sm font-bold text-sb-ink">
                 {new Date(lastScanLog.scanned_at).toLocaleDateString('en-IN', {
                   day: '2-digit', month: 'short', year: 'numeric',
                 })}
               </p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-sb-ink-muted">
                 {new Date(lastScanLog.scanned_at).toLocaleTimeString('en-IN', {
                   hour: '2-digit', minute: '2-digit', hour12: true,
                 })}
               </p>
             </Card>
 
-            <Card className="bg-surface-1 border-border-subtle p-4 space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Last Scan Stats</p>
-              <p className="text-sm font-bold text-white">{lastScanLog.transactions_found} transactions</p>
-              <p className="text-xs text-zinc-500">{lastScanLog.emails_processed} emails processed</p>
-              {/* A failed scan showed "0 transactions" and nothing else, which
-                  is indistinguishable from a scan that simply found nothing.
-                  The engine records the stage it failed in — show it. */}
+            <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-4 space-y-1 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-emerald-500/30 before:to-transparent">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Last Scan Stats</p>
+              <p className="text-sm font-bold text-sb-ink">{lastScanLog.transactions_found} transactions</p>
+              <p className="text-xs text-sb-ink-muted">{lastScanLog.emails_processed} emails processed</p>
               {lastScanLog.status === 'failed' && lastScanLog.error_message && (
                 <p className="text-xs text-[var(--status-danger-text)] mt-1 break-words">
                   Failed: {lastScanLog.error_message}
                 </p>
               )}
-              {/* A SUCCESSFUL scan can still carry a note — low-confidence
-                  rows, or the AI being unavailable so everything fell back to
-                  regex matching. Those notes were written to the log but
-                  rendered nowhere, which is how a ten-week AI outage stayed
-                  invisible: the scan said "success" and no one could see that
-                  every email had been categorised by the fallback. */}
               {lastScanLog.status === 'success' && lastScanLog.error_message && (
                 <p className="text-xs text-[var(--status-warning-text)] mt-1 break-words">
                   {lastScanLog.error_message}
@@ -1179,21 +1180,21 @@ export default function PendingPage() {
               )}
             </Card>
 
-            <Card className="bg-surface-1 border-border-subtle p-4 space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-4 space-y-1 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">
                 {nextScanAt ? 'Next Scan' : 'Scan Status'}
               </p>
               {nextScanAt ? (
                 <>
-                  <p className="text-sm font-bold text-brand-400">{formatNextScanTime(nextScanAt)}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm font-bold text-brand-600">{formatNextScanTime(nextScanAt)}</p>
+                  <p className="text-xs text-sb-ink-muted">
                     {quotaExhausted ? "Today's scans used" : 'Scans are at least 4 hours apart'}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-sm font-bold text-[var(--status-positive-text)]">Ready to scan</p>
-                  <p className="text-xs text-zinc-500">Click "Scan Bank Alerts" above</p>
+                  <p className="text-xs text-sb-ink-muted">Click "Scan Bank Alerts" above</p>
                 </>
               )}
             </Card>
@@ -1201,23 +1202,23 @@ export default function PendingPage() {
         )}
 
         {lastScanLog && recentRejections.length > 0 && (
-          <div className="rounded-2xl border border-border-subtle bg-surface-1">
+          <div className="rounded-2xl border border-sb-hairline bg-surface-1">
             <button
               type="button"
               onClick={() => setShowRejectionsPanel((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-zinc-300"
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-sb-ink-secondary"
             >
               <span>Recently skipped emails ({recentRejections.length})</span>
-              <span className="text-xs text-zinc-500">{showRejectionsPanel ? 'Hide' : 'Show'}</span>
+              <span className="text-xs text-sb-ink-muted">{showRejectionsPanel ? 'Hide' : 'Show'}</span>
             </button>
             {showRejectionsPanel && (
               <div className="px-4 pb-4 space-y-2">
                 {recentRejections.map((r) => (
                   <div
                     key={r.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs border-t border-border-subtle/50 pt-2"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs border-t border-sb-hairline pt-2"
                   >
-                    <span className="text-zinc-400 truncate">
+                    <span className="text-sb-ink-muted truncate">
                       {r.sender_domain || 'unknown sender'} — {r.subject || '(no subject)'}
                     </span>
                     <Badge variant="default" className="shrink-0 w-fit">
@@ -1258,8 +1259,8 @@ export default function PendingPage() {
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="h-5 w-5 text-[var(--status-warning-text)] shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-white">Refresh Alert — Action Required</p>
-                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                <p className="font-bold text-sb-ink">Refresh Alert — Action Required</p>
+                <p className="text-xs text-sb-ink-muted mt-0.5 leading-relaxed">
                   Your transaction tracker has not refreshed in the last 24 hours. Please refresh the tracker again to cover any transactions you may have missed.
                 </p>
               </div>
@@ -1290,18 +1291,12 @@ export default function PendingPage() {
                 <p className="text-sm font-semibold text-[var(--status-positive-text)]">
                   {scanSuccessMessage.total === 0
                     ? scanSuccessMessage.merged > 0
-                      // Every email matched a transaction already on file. Say so
-                      // — "no new transactions" alone reads like the scan failed.
                       ? `Scan complete — ${scanSuccessMessage.merged} receipt${scanSuccessMessage.merged === 1 ? '' : 's'} matched transactions you already have.`
                       : 'Scan complete — nothing new in your inbox.'
                     : `Scan complete — ${scanSuccessMessage.total} new transaction${scanSuccessMessage.total === 1 ? '' : 's'} found.`}
                 </p>
-                {/* Deliberately does not print an "auto-approved" figure. Every
-                    scanned transaction lands in Pending for an explicit yes
-                    (CLAUDE.md invariant 1), so a line implying otherwise would
-                    describe behaviour this app does not have. */}
                 {scanSuccessMessage.total > 0 && (
-                  <p className="mt-1 text-sm text-zinc-300 leading-relaxed">
+                  <p className="mt-1 text-sm text-sb-ink-secondary leading-relaxed">
                     {scanSuccessMessage.pendingReview > 0
                       ? `${scanSuccessMessage.pendingReview} waiting below for your approval`
                       : 'Everything found is waiting below for your approval'}
@@ -1328,16 +1323,16 @@ export default function PendingPage() {
         {activeBanner === 'cooldown' && (
           <div
             role="status"
-            className="rounded-2xl border border-border-default bg-surface-2/60 p-4 sm:p-5
+            className="rounded-2xl border border-sb-hairline bg-surface-2 p-4 sm:p-5
                        flex items-start justify-between gap-3 animate-fade-in"
           >
             <div className="flex items-start gap-3 min-w-0">
-              <Clock className="h-5 w-5 text-zinc-400 shrink-0 mt-px" aria-hidden="true" />
+              <Clock className="h-5 w-5 text-sb-ink-muted shrink-0 mt-px" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-zinc-50">
+                <p className="text-sm font-semibold text-sb-ink">
                   {quotaExhausted ? "Today's scans are used up" : 'The next scan is not ready yet'}
                 </p>
-                <p className="mt-1 text-sm text-zinc-400 leading-relaxed">{scanCooldownMessage}</p>
+                <p className="mt-1 text-sm text-sb-ink-muted leading-relaxed">{scanCooldownMessage}</p>
                 {nextScanAt && (
                   <p className="mt-2 text-sm font-semibold text-brand-700 tnum">
                     Next scan {formatNextScanTime(nextScanAt)}
@@ -1349,7 +1344,7 @@ export default function PendingPage() {
               type="button"
               onClick={() => { setScanCooldownMessage(null) }}
               className="shrink-0 -my-2 -mr-2 min-h-11 min-w-11 px-3 rounded-lg flex items-center justify-center cursor-pointer
-                         text-xs font-semibold text-zinc-400 transition-colors hover:bg-surface-3 hover:text-zinc-100
+                         text-xs font-semibold text-sb-ink-muted transition-colors hover:bg-surface-3 hover:text-sb-ink
                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
               aria-label="Dismiss scan limit message"
             >
@@ -1368,8 +1363,8 @@ export default function PendingPage() {
             <div className="flex items-start gap-3 min-w-0">
               <Link2 className="h-5 w-5 text-brand-500 shrink-0 mt-px" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-zinc-50">Connect Gmail to start finding transactions</p>
-                <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                <p className="text-sm font-semibold text-sb-ink">Connect Gmail to start finding transactions</p>
+                <p className="mt-1 text-sm text-sb-ink-muted leading-relaxed">
                   Intrack reads your bank alert emails only when you press Scan — never on its own.{' '}
                   {profile?.subscription_status === 'trial'
                     ? '(Trial account active)'
@@ -1401,43 +1396,35 @@ export default function PendingPage() {
           </div>
         )}
 
-        {/* NOT gated by activeBanner — this explainer should always show
-            alongside the connect banner above, regardless of banner priority. */}
         {!isGoogleConnected && (
-          <Card className="animate-fade-in">
+          <Card className="animate-fade-in border-sb-hairline bg-surface-1 shadow-card">
             <div className="flex items-center gap-2.5">
-              <Shield className="h-5 w-5 text-brand-500 shrink-0" aria-hidden="true" />
-              <h2 className="text-base font-semibold tracking-tight text-zinc-50">
+              <Shield className="h-5 w-5 text-brand-600 shrink-0" aria-hidden="true" />
+              <h2 className="text-base font-semibold tracking-tight text-sb-ink">
                 What happens to your mail
               </h2>
             </div>
-            <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+            <p className="mt-3 text-sm text-sb-ink-secondary leading-relaxed">
               Your inbox is read <em>straight from Gmail</em> over a read-only connection — no server
               here keeps a copy of your mailbox. To tell a real transaction from a newsletter, an
               alert's subject and the start of its body pass through our server to Google's Gemini
               for a moment, and are discarded immediately after.
             </p>
-            <div className="mt-4 rounded-xl border border-border-subtle bg-surface-2/60 p-3.5 flex items-start gap-2.5">
+            <div className="mt-4 rounded-xl border border-sb-hairline bg-surface-2/60 p-3.5 flex items-start gap-2.5">
               <Lightbulb className="h-4 w-4 text-[var(--status-warning-icon)] shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                <strong className="font-semibold text-zinc-100">What is kept:</strong> the transaction
+              <p className="text-sm text-sb-ink-secondary leading-relaxed">
+                <strong className="font-semibold text-sb-ink">What is kept:</strong> the transaction
                 itself — merchant, amount, date, category — saved to a database row only your account
                 can read.{' '}
-                <strong className="font-semibold text-zinc-100">What we never see:</strong> your Gmail
+                <strong className="font-semibold text-sb-ink">What we never see:</strong> your Gmail
                 password, your net-banking credentials, PINs, or OTPs.
               </p>
             </div>
-            {/* This warning used to sit in the sign-up modal, back when
-                logging in with Google also requested the inbox scope. Sign-in
-                now asks only for name and email, which Google shows without
-                any warning, so the note belongs here — at the one button that
-                really does trigger the unverified-app screen. Delete it once
-                Google's verification review completes. */}
-            <p className="mt-4 text-xs text-zinc-400 leading-relaxed">
+            <p className="mt-4 text-xs text-sb-ink-muted leading-relaxed">
               Because {APP_CONFIG.APP_NAME} is still completing Google's formal app verification, the
               next screen may warn that the app is unverified and show a developer key instead of our
               name. That is expected — choose{' '}
-              <span className="font-mono text-zinc-300">Advanced → Go to {APP_CONFIG.APP_NAME}</span>{' '}
+              <span className="font-mono text-sb-ink font-semibold">Advanced → Go to {APP_CONFIG.APP_NAME}</span>{' '}
               to continue. You can revoke this access at any time from your Google Account, or from
               Settings here.
             </p>
@@ -1446,54 +1433,46 @@ export default function PendingPage() {
 
         {/* Quick summary stats */}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Card className="p-4 sm:p-5">
+          <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-4 sm:p-5 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
             <p className={SECTION_LABEL}>Waiting for you</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 tnum">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-sb-ink tnum">
               {totalPendingCount}
             </p>
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-sb-ink-muted">
               {totalPendingCount === 1 ? 'transaction to review' : 'transactions to review'}
             </p>
-            {/* The list below is capped; the count above is not. Say so, rather
-                than letting the headline disagree with what is on screen. */}
             {totalPendingCount > pendingTxns.length && !loading && (
-              <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+              <p className="mt-1.5 text-xs text-sb-ink-muted leading-relaxed">
                 Showing {pendingTxns.length} of {totalPendingCount} — approve or reject to see the rest
               </p>
             )}
           </Card>
-          <Card className="p-4 sm:p-5">
+          <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-4 sm:p-5 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-emerald-500/40 before:to-transparent">
             <p className={SECTION_LABEL}>Value on hold</p>
-            {/* Both directions, side by side and never netted. A single figure
-                cannot describe this card honestly: summing them hides that the
-                amounts move opposite ways, and netting them lets one large
-                salary credit mask a large pending spend behind a healthy
-                positive number. When nothing incoming is waiting — the common
-                case — only the outgoing figure renders. */}
             <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1">
-              <span className="flex items-baseline gap-1.5 text-2xl font-semibold tracking-tight text-zinc-50 tnum">
-                <ArrowDown className="h-4 w-4 shrink-0 self-center text-zinc-400" aria-hidden="true" />
+              <span className="flex items-baseline gap-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-sb-ink tnum">
+                <ArrowDown className="h-4 w-4 shrink-0 self-center text-sb-ink-muted" aria-hidden="true" />
                 {formatCurrency(totalPendingValue)}
-                <span className="text-xs font-medium text-zinc-400">out</span>
+                <span className="text-xs font-semibold text-sb-ink-muted">out</span>
               </span>
               {totalPendingCredits > 0 && (
-                <span className="flex items-baseline gap-1.5 text-2xl font-semibold tracking-tight text-[var(--status-positive-text)] tnum">
+                <span className="flex items-baseline gap-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--status-positive-text)] tnum">
                   <ArrowUp className="h-4 w-4 shrink-0 self-center" aria-hidden="true" />
                   {formatCurrency(totalPendingCredits)}
-                  <span className="text-xs font-medium text-zinc-400">in</span>
+                  <span className="text-xs font-semibold text-sb-ink-muted">in</span>
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs text-zinc-400">Nothing counted until you approve it (₹ only)</p>
+            <p className="mt-1 text-xs text-sb-ink-muted">Nothing counted until you approve it (₹ only)</p>
           </Card>
         </div>
 
         {/* Opt-in merchant rule suggestion — rule creation is explicit-only */}
         {ruleSuggestion && (
           <div className="flex flex-col gap-3 rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 sm:flex-row sm:items-center">
-            <p className="flex-1 min-w-0 text-sm text-zinc-300 leading-relaxed">
-              Always file <strong className="font-semibold text-zinc-50">{ruleSuggestion.merchant}</strong> under{' '}
-              <strong className="font-semibold text-zinc-50">{getStyle(ruleSuggestion.category).label}</strong> in
+            <p className="flex-1 min-w-0 text-sm text-sb-ink-secondary leading-relaxed">
+              Always file <strong className="font-semibold text-sb-ink">{ruleSuggestion.merchant}</strong> under{' '}
+              <strong className="font-semibold text-sb-ink">{getStyle(ruleSuggestion.category).label}</strong> in
               future? Each one will still wait here for your approval.
             </p>
             <div className="flex items-center gap-2 shrink-0">
@@ -1523,7 +1502,7 @@ export default function PendingPage() {
                 aria-label="Dismiss rule suggestion"
                 onClick={() => setRuleSuggestion(null)}
                 className="h-11 w-11 shrink-0 rounded-lg flex items-center justify-center cursor-pointer
-                           text-zinc-400 transition-colors hover:bg-surface-2 hover:text-zinc-100
+                           text-sb-ink-muted transition-colors hover:bg-surface-2 hover:text-sb-ink
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -1532,14 +1511,12 @@ export default function PendingPage() {
           </div>
         )}
 
-        {/* Transaction review list */}
+          {/* Transaction review list */}
         <div className="w-full space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div className="max-w-xl">
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-50">Your review queue</h2>
-              {/* The 7 days is the SCAN window, not the display window: this
-                  list is every unreviewed alert, however old. */}
-              <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+              <h2 className="text-lg font-semibold tracking-tight text-sb-ink">Your review queue</h2>
+              <p className="text-sm text-sb-ink-muted mt-1 leading-relaxed">
                 Each scan looks back 7 days. Anything you have not acted on stays here until you do.
               </p>
             </div>
@@ -1561,13 +1538,10 @@ export default function PendingPage() {
             })()}
           </div>
 
-          {/* Selection bar — only present once something is ticked, so the
-              page is unchanged for anyone reviewing one row at a time. It
-              sticks below the 64px app header so a long selection can still be
-              acted on without scrolling back up. */}
+          {/* Selection bar — only present once something is ticked */}
           {selectedTxns.length > 0 && (
-            <Card className="sticky top-[72px] z-10 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-brand-500/35 bg-brand-500/[0.06] shadow-[var(--shadow-md)]">
-              <p className="text-sm font-semibold text-zinc-50 shrink-0 tnum">
+            <Card className="sticky top-[72px] z-10 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 border-brand-500/40 bg-surface-1 shadow-lg">
+              <p className="text-sm font-semibold text-sb-ink shrink-0 tnum">
                 {selectedTxns.length} selected
               </p>
 
@@ -1603,8 +1577,8 @@ export default function PendingPage() {
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="h-11 px-3 shrink-0 rounded-lg text-xs font-medium text-zinc-400 cursor-pointer transition-colors
-                             hover:bg-surface-2 hover:text-zinc-100
+                  className="h-11 px-3 shrink-0 rounded-lg text-xs font-medium text-sb-ink-muted cursor-pointer transition-colors
+                             hover:bg-surface-2 hover:text-sb-ink
                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   Clear
@@ -1614,13 +1588,10 @@ export default function PendingPage() {
           )}
 
           {loading ? (
-            /* Skeletons in the shape of the rows that are coming, so nothing
-               jumps when they arrive. A centred spinner told the user only
-               that something was happening. */
             <ul role="status" aria-label="Loading your review queue" className="space-y-3">
               {[0, 1, 2].map((i) => (
                 <li key={i}>
-                  <Card className="p-4 sm:p-5">
+                  <Card className="p-4 sm:p-5 border-sb-hairline bg-surface-1 shadow-card">
                     <div className="flex items-start gap-3">
                       <Skeleton shape="block" className="h-5 w-5 shrink-0 rounded-md" />
                       <div className="min-w-0 flex-1 space-y-2">
@@ -1645,7 +1616,7 @@ export default function PendingPage() {
               ))}
             </ul>
           ) : pendingTxns.length === 0 ? (
-            <Card>
+            <Card className="border-sb-hairline bg-surface-1 shadow-card">
               <EmptyState
                 icon={<CheckCircle2 className="h-7 w-7 text-[var(--status-positive-text)]" aria-hidden="true" />}
                 title="Nothing to review"
@@ -1669,16 +1640,10 @@ export default function PendingPage() {
                 txn.category
               )
 
-              // Only the flagged row shows the hint, and only while the row it
-              // points at is still on screen. If the partner was already
-              // approved, rejected or deleted there is nothing to compare
-              // against, so the affordance is simply not rendered.
               const duplicatePartner = txn.possible_duplicate_of
                 ? pendingTxns.find((t) => t.id === txn.possible_duplicate_of) ?? null
                 : null
 
-              // Presentation of the same 80 / 50 bands the page has always
-              // used. Icon plus word, so the band never depends on colour.
               const tone = confidenceTone(suggestion.confidence)
               const ToneIcon = tone.icon
               const identity = resolveTransactionIdentity(txn)
@@ -1701,13 +1666,10 @@ export default function PendingPage() {
                 >
                 <Card
                   className={cn(
-                    'p-4 sm:p-5 flex flex-col gap-4 transition-colors',
-                    isSelected ? 'border-brand-500/40 bg-brand-500/[0.03]' : 'hover:border-border-hover'
+                    'p-4 sm:p-5 flex flex-col gap-4 border-sb-hairline bg-surface-1 shadow-card hover:shadow-card-hover transition-all duration-200',
+                    isSelected ? 'border-brand-500/50 bg-brand-500/[0.04]' : ''
                   )}
                 >
-                  {/* The four facts, in one glance: what it was, how much, and
-                      when. The amount sits hard against the right edge of every
-                      card, so the figures line up as a column down the list. */}
                   <div className="flex items-start gap-3">
                     <label
                       className="shrink-0 -ml-1.5 -mt-1.5 h-11 w-11 rounded-lg flex items-center justify-center cursor-pointer
@@ -1724,14 +1686,14 @@ export default function PendingPage() {
                     </label>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-zinc-50 truncate" title={identity.title}>
+                      <p className="text-sm font-semibold text-sb-ink truncate" title={identity.title}>
                         {identity.title}
                       </p>
-                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sb-ink-muted">
                         <span className="tnum">{formatDate(txn.date)}</span>
-                        <span aria-hidden="true" className="text-zinc-500">·</span>
+                        <span aria-hidden="true" className="text-sb-ink-muted">·</span>
                         <span className="tnum">{parseTransactionTime(txn)}</span>
-                        <span aria-hidden="true" className="text-zinc-500">·</span>
+                        <span aria-hidden="true" className="text-sb-ink-muted">·</span>
                         <span className="inline-flex items-center gap-1 min-w-0">
                           {isCard ? (
                             <CreditCard className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -1746,15 +1708,13 @@ export default function PendingPage() {
                     <div className="shrink-0 text-right">
                       <p
                         className={cn(
-                          'text-base sm:text-lg font-semibold tracking-tight tnum',
-                          isDebit ? 'text-zinc-50' : 'text-[var(--status-positive-text)]'
+                          'text-base sm:text-lg font-bold tracking-tight tnum',
+                          isDebit ? 'text-sb-ink' : 'text-[var(--status-positive-text)]'
                         )}
                       >
                         {formatCurrency(Number(txn.amount), txn.currency)}
                       </p>
-                      {/* Direction is carried by an arrow and a word, never by
-                          the colour of the figure alone. */}
-                      <p className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-zinc-400">
+                      <p className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-sb-ink-muted">
                         {isDebit ? (
                           <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         ) : (
@@ -1765,9 +1725,8 @@ export default function PendingPage() {
                     </div>
                   </div>
 
-                  {/* Where it came from and how sure Intrack is — supporting
-                      detail, deliberately quieter than the four facts above. */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 border-t border-border-subtle pt-3">
+                  {/* Supporting detail */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-sb-ink-muted border-t border-sb-hairline pt-3">
                     <span className="inline-flex items-center gap-1.5">
                       <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       Found in your inbox
@@ -1793,12 +1752,12 @@ export default function PendingPage() {
                           <p className="text-sm font-semibold text-[var(--status-warning-text)]">
                             This might be a duplicate
                           </p>
-                          <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                          <p className="mt-1 text-sm text-sb-ink-muted leading-relaxed">
                             It could be the same payment as{' '}
-                            <strong className="font-semibold text-zinc-100">
+                            <strong className="font-semibold text-sb-ink">
                               {resolveTransactionIdentity(duplicatePartner).title}
                             </strong>{' '}
-                            <strong className="font-semibold text-zinc-100 tnum">
+                            <strong className="font-semibold text-sb-ink tnum">
                               {formatCurrency(Number(duplicatePartner.amount), duplicatePartner.currency)}
                             </strong>{' '}
                             on {formatDate(duplicatePartner.date)} — a bank alert and a receipt for one
@@ -1834,7 +1793,7 @@ export default function PendingPage() {
                     <div>
                       <label
                         htmlFor={`cat-select-${txn.id}`}
-                        className="block text-xs font-medium text-zinc-300 mb-1.5"
+                        className="block text-xs font-medium text-sb-ink-secondary mb-1.5"
                       >
                         Category
                       </label>
@@ -1854,7 +1813,7 @@ export default function PendingPage() {
                     <div>
                       <label
                         htmlFor={`desc-input-${txn.id}`}
-                        className="block text-xs font-medium text-zinc-300 mb-1.5"
+                        className="block text-xs font-medium text-sb-ink-secondary mb-1.5"
                       >
                         Description
                       </label>
@@ -1867,10 +1826,7 @@ export default function PendingPage() {
                     </div>
                   </div>
 
-                  {/* The two decisions, pushed to opposite ends of the row and
-                      given different weight, so the destructive one is never
-                      the neighbour of the confirming one under a thumb. Both
-                      are reversible for five seconds via the Undo in the toast. */}
+                  {/* The two decisions */}
                   <div className="flex items-center justify-between gap-3 pt-1">
                     <Button
                       variant="secondary"
@@ -1909,7 +1865,7 @@ export default function PendingPage() {
         className="sm:max-w-xl"
         footer={
           <div className="flex items-center justify-between w-full">
-            <span className="text-xs text-zinc-500 font-medium">
+            <span className="text-xs text-sb-ink-muted font-medium">
               {autoCategorizedTxns.length} awaiting your confirmation
             </span>
             <Button
@@ -1926,8 +1882,8 @@ export default function PendingPage() {
         }
       >
         <div className="space-y-4">
-          <div className="bg-brand-500/5 border border-brand-500/10 rounded-xl p-3.5 text-xs text-brand-300 leading-relaxed flex items-start gap-2.5">
-            <Brain className="h-4 w-4 text-brand-400 shrink-0 mt-0.5" />
+          <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-3.5 text-xs text-brand-700 leading-relaxed flex items-start gap-2.5">
+            <Brain className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" />
             <span>
               <strong>Self-Learning Engine Active:</strong> These transactions were auto-categorized and need your confirmation. Change the category if it's wrong, then confirm each one below.
             </span>
@@ -1937,15 +1893,12 @@ export default function PendingPage() {
             {autoCategorizedTxns.map((txn) => (
               <div
                 key={txn.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-surface-2 border border-border-subtle hover:border-zinc-700/50 transition-all gap-3 animate-fade-in"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-surface-2 border border-sb-hairline hover:border-sb-border transition-all gap-3 animate-fade-in"
               >
-                {/* Same identity resolution as the review list above — the raw
-                    merchant/description pair this replaced printed bank
-                    narration verbatim and labelled blanks "Unknown Vendor". */}
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" className="max-w-[280px]" />
-                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/30 shrink-0">
+                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-surface-1 text-sb-ink-muted border border-sb-hairline shrink-0">
                       {formatDate(txn.date)}
                     </span>
                   </div>
@@ -1960,7 +1913,7 @@ export default function PendingPage() {
                     value={autoCategorySelections[txn.id] || txn.category}
                     disabled={confirmingIds.has(txn.id)}
                     onChange={(e) => handleAutoCategorySelect(txn.id, e.target.value)}
-                    className="bg-surface-3 border border-border-subtle text-xs text-zinc-300 rounded-xl px-2.5 h-11 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer font-semibold"
+                    className="bg-surface-1 border border-sb-hairline text-xs text-sb-ink rounded-xl px-2.5 h-11 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
                     aria-label={`Category for ${resolveTransactionIdentity(txn).title}`}
                   >
                     {categories.map((cat) => (

@@ -15,7 +15,7 @@ export function PeriodSelector({ value, onChange, id }: PeriodSelectorProps) {
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value as RangeType)}
-      className="bg-surface-2 border border-zinc-700 text-zinc-200 text-base md:text-xs rounded-xl px-3 py-2.5 md:py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm hover:border-zinc-600 transition-colors"
+      className="bg-surface-1 border border-sb-hairline text-sb-ink text-base md:text-xs font-semibold rounded-xl px-3 py-2.5 md:py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500 cursor-pointer shadow-xs hover:border-brand-500/40 transition-all"
     >
       {/* Shortest window first, longest last. */}
       <option value="this-week">This Week</option>

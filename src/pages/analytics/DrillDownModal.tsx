@@ -81,7 +81,7 @@ export function DrillDownModal({ transactions }: DrillDownModalProps) {
     <Modal isOpen={isOpen} onClose={handleClose} title={label} sheet>
       {visible.length === 0 ? (
         <EmptyState
-          icon={<Inbox className="w-8 h-8 text-zinc-500" />}
+          icon={<Inbox className="w-8 h-8 text-brand-600" />}
           title="No transactions here anymore"
           description="Everything behind this number has been reviewed."
         />
@@ -98,7 +98,7 @@ export function DrillDownModal({ transactions }: DrillDownModalProps) {
                   </div>
                 </div>
               ) : editLoading || !editingRow ? (
-                <div key={txn.id} className="p-4 text-sm text-zinc-500">Loading…</div>
+                <div key={txn.id} className="p-4 text-sm text-sb-ink-muted">Loading…</div>
               ) : (
                 <ExpenseForm
                   key={txn.id}
@@ -108,16 +108,16 @@ export function DrillDownModal({ transactions }: DrillDownModalProps) {
                 />
               )
             ) : (
-              <div key={txn.id} className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface-1 p-3">
+              <div key={txn.id} className="flex items-center justify-between gap-3 rounded-xl border border-sb-hairline bg-surface-1 shadow-xs p-3">
                 <div className="min-w-0 flex-1">
                   <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                  <p className="text-xs text-zinc-500 mt-0.5">{formatDate(txn.date)} · {txn.category}</p>
+                  <p className="text-xs text-sb-ink-muted mt-0.5">{formatDate(txn.date)} · {txn.category}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className={`text-sm font-bold ${txn.type === 'credit' ? 'text-[var(--status-positive-text)]' : 'text-zinc-200'}`}>
+                  <span className={`text-sm font-bold ${txn.type === 'credit' ? 'text-[var(--status-positive-text)]' : 'text-sb-ink'}`}>
                     {formatCurrency(txn.amount)}
                   </span>
-                  <Button size="sm" variant="ghost" onClick={() => handleEditClick(txn.id)} aria-label={`Edit ${resolveTransactionIdentity(txn).title}`}>
+                  <Button size="sm" variant="ghost" onClick={() => handleEditClick(txn.id)} aria-label={`Edit ${resolveTransactionIdentity(txn).title}`} className="text-sb-ink-muted hover:text-sb-ink">
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                 </div>

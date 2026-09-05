@@ -106,8 +106,8 @@ const LINK_BUTTON_PRIMARY =
   'shadow-[var(--shadow-sm)] hover:bg-[var(--btn-primary-bg-hover)]'
 
 const LINK_BUTTON_SECONDARY =
-  `${LINK_BUTTON_BASE} font-medium border border-border-default bg-surface-1 text-zinc-100 ` +
-  'hover:bg-surface-2 hover:border-border-hover'
+  `${LINK_BUTTON_BASE} font-semibold border border-sb-hairline bg-surface-1 text-sb-ink shadow-xs ` +
+  'hover:bg-surface-2 hover:border-border-default'
 
 /**
  * A titled group of cards.
@@ -135,12 +135,12 @@ function Section({
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-50 md:text-lg">
+          <h2 className="flex items-center gap-2 text-base font-bold text-sb-ink md:text-lg">
             {Icon && <Icon className="h-4 w-4 shrink-0 text-brand-700" aria-hidden="true" />}
             {title}
           </h2>
           {description && (
-            <p className="mt-1 text-sm leading-relaxed text-zinc-400">{description}</p>
+            <p className="mt-1 text-sm leading-relaxed text-sb-ink-muted">{description}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}
@@ -175,11 +175,11 @@ function PeriodSummary({
 
   if (loading) {
     return (
-      <Card noPadding>
+      <Card noPadding className="relative overflow-hidden bg-surface-1 border-sb-hairline shadow-card rounded-2xl">
         <div
           role="status"
           aria-label="Loading period totals"
-          className="grid divide-y divide-border-subtle sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+          className="grid divide-y divide-sb-hairline sm:grid-cols-3 sm:divide-x sm:divide-y-0"
         >
           {[0, 1, 2].map((i) => (
             <div key={i} className="p-5 md:p-6">
@@ -229,33 +229,29 @@ function PeriodSummary({
   ]
 
   return (
-    <Card noPadding>
+    <Card noPadding className="relative overflow-hidden bg-surface-1 border-sb-hairline shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
       <motion.div
         variants={staggerParent(reduce, tiles.length)}
         initial="initial"
         animate="animate"
-        className="grid divide-y divide-border-subtle sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+        className="grid divide-y divide-sb-hairline sm:grid-cols-3 sm:divide-x sm:divide-y-0"
       >
         {tiles.map((tile) => {
           const Icon = tile.icon
           return (
             <motion.div key={tile.key} variants={staggerChild(reduce)} className="min-w-0 p-5 md:p-6">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sb-ink-muted">
                 <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" style={{ color: tile.color }} />
                 {tile.label}
               </p>
               <p
-                // Steps down between 640px and 1024px, where three columns
-                // share the width and a lakh-sized figure would otherwise be
-                // clipped. Truncation is the last resort, with the full amount
-                // on the title attribute.
-                className="mt-2 truncate text-xl font-semibold tracking-tight tnum sm:text-2xl lg:text-3xl"
+                className="mt-2 truncate text-xl font-extrabold tracking-tight tnum sm:text-2xl lg:text-3xl"
                 style={{ color: tile.color }}
                 title={formatCurrency(tile.value)}
               >
                 {formatCurrency(tile.value)}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{tile.note}</p>
+              <p className="mt-2 text-sm leading-relaxed text-sb-ink-muted">{tile.note}</p>
             </motion.div>
           )
         })}
@@ -1054,13 +1050,23 @@ export default function InsightsPage() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in">
-        {/* Header — the same shape as Settings: a title, one sentence, and the
-            control that governs the screen. No tinted panel, no backdrop blur. */}
+      <div className="relative animate-fade-in">
+        {/* Ambient emerald background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+        </div>
+
+        {/* Header */}
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Insights</h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+            <div className="mb-2 flex items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                Wealth Analytics Engine Active
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Insights</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
               Where your money actually went, and whether the split between
               essentials, extras and savings is one you would choose.
             </p>
@@ -1091,7 +1097,7 @@ export default function InsightsPage() {
         {noData ? (
           <Card className="mt-6">
             <EmptyState
-              icon={<LineChartIcon className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+              icon={<LineChartIcon className="h-8 w-8 text-brand-600" aria-hidden="true" />}
               title="No transactions to analyse yet"
               description="Insights is built entirely from your transactions. Once the scanner imports a few — or you add them yourself — every chart on this page fills in automatically."
               action={
@@ -1179,23 +1185,23 @@ export default function InsightsPage() {
                     aria-controls="insights-advanced"
                     className={cn(
                       'flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-2xl',
-                      'border border-border-subtle bg-surface-1 px-4 py-3 text-left transition-colors',
-                      'hover:border-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+                      'border border-sb-hairline bg-surface-1 px-4 py-3 text-left shadow-xs transition-all',
+                      'hover:border-brand-500/30 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
                     )}
                   >
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-zinc-50">
+                      <span className="block text-sm font-bold text-sb-ink">
                         {showAdvanced ? 'Hide the deeper analysis' : 'Show the deeper analysis'}
                       </span>
-                      <span className="mt-0.5 block text-sm leading-relaxed text-zinc-400">
+                      <span className="mt-0.5 block text-sm leading-relaxed text-sb-ink-muted">
                         Your 50/30/20 split, budget burn-down, unusual spending, a written read
                         of the month, and a forecast.
                       </span>
                     </span>
                     {showAdvanced ? (
-                      <ChevronUp className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                      <ChevronUp className="h-4 w-4 shrink-0 text-sb-ink-muted" aria-hidden="true" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                      <ChevronDown className="h-4 w-4 shrink-0 text-sb-ink-muted" aria-hidden="true" />
                     )}
                   </button>
 
@@ -1216,7 +1222,7 @@ export default function InsightsPage() {
                           <div className="flex flex-col gap-1.5">
                             <span
                               id="insights-advisory-period-label"
-                              className="text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                              className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted"
                             >
                               Advisory period
                             </span>
@@ -1311,12 +1317,12 @@ export default function InsightsPage() {
               <Link
                 to="/budgets"
                 className={cn(
-                  'flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border-subtle',
-                  'bg-surface-1 px-4 py-3 no-underline transition-colors hover:border-border-hover',
+                  'flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-sb-hairline',
+                  'bg-surface-1 px-4 py-3 no-underline shadow-xs transition-all hover:border-brand-500/30 hover:shadow-card',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
                 )}
               >
-                <span className="text-sm leading-relaxed text-zinc-400">
+                <span className="text-sm leading-relaxed text-sb-ink-muted">
                   Insights explains what already happened. Budgets set a limit and tell you
                   before you pass it.
                 </span>

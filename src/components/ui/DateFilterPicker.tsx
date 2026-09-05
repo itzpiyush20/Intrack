@@ -58,7 +58,7 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
   }
 
   return (
-    <div className={cn('flex items-center gap-1 bg-surface-1 border border-border-subtle rounded-xl p-1 shrink-0 flex-wrap', className)}>
+    <div className={cn('flex items-center gap-1 bg-surface-1 border border-sb-hairline shadow-xs rounded-xl p-1 shrink-0 flex-wrap', className)}>
       <div className="flex items-center gap-0.5 bg-surface-2 rounded-lg p-0.5 mr-0.5" role="tablist" aria-label="Date filter mode">
         <button
           type="button"
@@ -66,8 +66,8 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
           aria-selected={value.mode === 'month'}
           onClick={switchToMonth}
           className={cn(
-            'px-2.5 py-2.5 min-h-10 rounded-md text-xs font-semibold transition-colors cursor-pointer',
-            value.mode === 'month' ? 'bg-surface-1 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+            'px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-all cursor-pointer',
+            value.mode === 'month' ? 'bg-surface-1 text-sb-ink shadow-xs border border-sb-hairline' : 'text-sb-ink-muted hover:text-sb-ink'
           )}
         >
           Month
@@ -78,8 +78,8 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
           aria-selected={value.mode === 'custom'}
           onClick={switchToCustom}
           className={cn(
-            'px-2.5 py-2.5 min-h-10 rounded-md text-xs font-semibold transition-colors cursor-pointer',
-            value.mode === 'custom' ? 'bg-surface-1 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+            'px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-all cursor-pointer',
+            value.mode === 'custom' ? 'bg-surface-1 text-sb-ink shadow-xs border border-sb-hairline' : 'text-sb-ink-muted hover:text-sb-ink'
           )}
         >
           Custom
@@ -92,20 +92,20 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
             variant="ghost"
             size="sm"
             onClick={() => handleMonthChange(shiftMonth(value.month, -1))}
-            className="h-11 w-11 p-0"
+            className="h-9 w-9 p-0 text-sb-ink-muted hover:text-sb-ink"
             aria-label="Previous month"
             title="Previous month"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="px-3 text-sm font-semibold text-zinc-200 min-w-[120px] text-center">
+          <span className="px-3 text-xs font-semibold text-sb-ink min-w-[120px] text-center">
             {formatMonthName(value.month)}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => handleMonthChange(shiftMonth(value.month, 1))}
-            className="h-11 w-11 p-0"
+            className="h-9 w-9 p-0 text-sb-ink-muted hover:text-sb-ink"
             aria-label="Next month"
             title="Next month"
             disabled={value.month >= max}
@@ -120,17 +120,17 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
             value={value.from}
             max={value.to}
             onChange={(e) => handleFromChange(e.target.value)}
-            className="h-10 bg-surface-2 border border-border-subtle/50 text-zinc-200 text-xs rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+            className="h-9 bg-surface-1 border border-sb-hairline text-sb-ink text-xs rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs"
             aria-label="From date"
           />
-          <span className="text-zinc-600 text-xs" aria-hidden="true">–</span>
+          <span className="text-sb-ink-muted text-xs" aria-hidden="true">–</span>
           <input
             type="date"
             value={value.to}
             min={value.from}
             max={todayStr()}
             onChange={(e) => handleToChange(e.target.value)}
-            className="h-10 bg-surface-2 border border-border-subtle/50 text-zinc-200 text-xs rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+            className="h-9 bg-surface-1 border border-sb-hairline text-sb-ink text-xs rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs"
             aria-label="To date"
           />
         </div>

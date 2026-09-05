@@ -214,11 +214,22 @@ export default function SubscriptionsPage() {
 
   return (
     <AppLayout>
-      <div>
+      <div className="relative">
+        {/* Ambient emerald background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+        </div>
+
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Subscriptions</h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Recurring Commitments Active
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Subscriptions</h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-sb-ink-muted">
             Charges that keep coming back — streaming, broadband, apps — spotted in your own
             transactions, with the next date each one is due.
           </p>
@@ -227,7 +238,7 @@ export default function SubscriptionsPage() {
         {loading ? (
           <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-3">
             <div role="status" aria-label="Loading subscriptions" className="flex flex-col gap-6 md:col-span-1">
-              <Card>
+              <Card className="border-sb-hairline bg-surface-1 shadow-card rounded-2xl">
                 <Skeleton className="h-3 w-32" />
                 <Skeleton className="mt-4 h-8 w-40" />
                 <Skeleton className="mt-2 h-4 w-48" />
@@ -254,31 +265,35 @@ export default function SubscriptionsPage() {
                 calendar on mobile since the calendar is why someone opens this page */}
             <div className="order-2 flex flex-col gap-6 md:order-1 md:col-span-1">
               {/* Summary */}
-              <Card>
-                <h2 className={SECTION_LABEL}>Recurring spend</h2>
-                <p className="mt-3 text-3xl font-bold tracking-tight text-zinc-50 tnum">
+              <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-5 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted">Recurring spend</h2>
+                <p className="mt-3 text-3xl font-extrabold tracking-tight text-sb-ink tnum">
                   {formatCurrency(totalMonthlyOutflow)}
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
                   a month across {detectedSubs.length} {detectedSubs.length === 1 ? 'charge' : 'charges'}.
-                  Quarterly and annual ones are spread over the months they cover.
+                  Quarterly and annual commitments are normalized across the months they cover.
                 </p>
+                <div className="mt-4 pt-4 border-t border-sb-hairline flex items-center justify-between text-xs text-sb-ink-muted">
+                  <span>Annualized commitment</span>
+                  <span className="font-semibold text-sb-ink tnum">{formatCurrency(totalMonthlyOutflow * 12)}/yr</span>
+                </div>
               </Card>
 
               {/* Duplicate Alerts */}
               {(activeMusic.length > 1 || activeVideo.length > 2) && (
-                <Card className="border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)]">
-                  <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--status-warning-text)]">
-                    <Lightbulb className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <Card className="relative overflow-hidden border border-amber-200/80 bg-amber-50/60 p-5 shadow-xs rounded-2xl">
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-amber-900">
+                    <Lightbulb className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
                     <span>Worth a look</span>
                   </h2>
-                  <ul className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-zinc-300">
+                  <ul className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-amber-900/90">
                     {activeMusic.length > 1 && (
                       <li>
                         You are paying for more than one music service —{' '}
-                        <strong className="font-semibold text-zinc-100">{activeMusic.map(m => m.merchant).join(', ')}</strong>.
+                        <strong className="font-semibold text-sb-ink">{activeMusic.map(m => m.merchant).join(', ')}</strong>.
                         Keeping just one would save about{' '}
-                        <span className="font-semibold text-zinc-100 tnum">
+                        <span className="font-bold text-sb-ink tnum">
                           {formatCurrency(activeMusic.reduce((sum, s) => sum + s.amount, 0) - activeMusic[0].amount)}
                         </span>{' '}
                         a month.
@@ -295,12 +310,12 @@ export default function SubscriptionsPage() {
               )}
 
               {/* Creator Form */}
-              <Card>
-                <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
-                  <Plus className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+              <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-5 shadow-card rounded-2xl">
+                <h2 className="flex items-center gap-2 text-base font-bold text-sb-ink">
+                  <Plus className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                   <span>Add one yourself</span>
                 </h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
                   For a charge Intrack has not seen yet. It is logged as an expense this month on
                   the day you pick.
                 </p>
@@ -370,7 +385,7 @@ export default function SubscriptionsPage() {
                     </Select>
                   </div>
 
-                  <Button type="submit" block className="!h-11 justify-center">
+                  <Button type="submit" block className="!h-11 justify-center shadow-xs">
                     Add subscription
                   </Button>
                 </form>
@@ -379,14 +394,14 @@ export default function SubscriptionsPage() {
 
             {/* Right Column: Active Subscriptions List */}
             <div className="order-1 md:order-2 md:col-span-2">
-              <Card>
+              <Card className="relative overflow-hidden bg-surface-1 border-sb-hairline p-5 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
-                    <RefreshCw className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+                  <h2 className="flex items-center gap-2 text-base font-bold text-sb-ink">
+                    <RefreshCw className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     <span>What renews next</span>
                   </h2>
                   {detectedSubs.length > 0 && (
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs font-medium text-sb-ink-muted">
                       {visibleSubs.length === detectedSubs.length
                         ? `${detectedSubs.length} found`
                         : `${visibleSubs.length} of ${detectedSubs.length} shown`}
@@ -396,16 +411,13 @@ export default function SubscriptionsPage() {
 
                 {detectedSubs.length > 0 && (
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    {/* Input and Select each render their own wrapper div and
-                        pass className to the control inside, so the flex sizing
-                        goes on these wrappers, not on the components. */}
                     <div className="min-w-0 flex-1">
                       <Input
                         id="sub-search"
                         type="search"
                         aria-label="Search subscriptions"
                         placeholder="Search by name"
-                        icon={<Search className="h-4 w-4" aria-hidden="true" />}
+                        icon={<Search className="h-4 w-4 text-sb-ink-muted" aria-hidden="true" />}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -446,7 +458,7 @@ export default function SubscriptionsPage() {
 
                 {detectedSubs.length === 0 ? (
                   <EmptyState
-                    icon={<RefreshCw className="h-7 w-7 text-zinc-400" aria-hidden="true" />}
+                    icon={<RefreshCw className="h-7 w-7 text-sb-ink-muted" aria-hidden="true" />}
                     title="Nothing recurring yet"
                     description="Intrack calls a charge a subscription once it has seen the same merchant bill you at least twice. Log an expense, or scan your bank alerts, and they will appear here on their own."
                     action={
@@ -457,7 +469,7 @@ export default function SubscriptionsPage() {
                   />
                 ) : visibleSubs.length === 0 ? (
                   <EmptyState
-                    icon={<Search className="h-7 w-7 text-zinc-400" aria-hidden="true" />}
+                    icon={<Search className="h-7 w-7 text-sb-ink-muted" aria-hidden="true" />}
                     title="Nothing matches those filters"
                     description="Widen the renewal window, clear the category, or search for a different name."
                     action={
@@ -506,18 +518,18 @@ export default function SubscriptionsPage() {
                             animate="animate"
                             exit="exit"
                             transition={transition(reduce)}
-                            className="flex flex-col gap-3 rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4 transition-colors hover:border-border-hover sm:flex-row sm:items-center sm:justify-between"
+                            className="flex flex-col gap-3 rounded-xl border border-sb-hairline bg-surface-1 p-4 shadow-xs transition-all hover:border-brand-500/30 hover:shadow-card sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div className="flex min-w-0 items-center gap-3">
                               <span
                                 aria-hidden="true"
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-1 text-lg"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sb-hairline bg-surface-2 text-lg shadow-xs"
                               >
                                 {categoryMeta.emoji}
                               </span>
                               <div className="flex min-w-0 flex-col">
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span className="truncate text-sm font-semibold capitalize text-zinc-100">
+                                  <span className="truncate text-sm font-semibold capitalize text-sb-ink">
                                     {sub.merchant}
                                   </span>
                                   {sub.priceChange !== null && (
@@ -535,23 +547,23 @@ export default function SubscriptionsPage() {
                                     </span>
                                   )}
                                 </div>
-                                <p className="mt-0.5 text-xs text-zinc-400">
+                                <p className="mt-0.5 text-xs text-sb-ink-muted">
                                   {freqLabel} · charged {sub.timesCharged}× · last on{' '}
-                                  <span className="tnum">{formatDate(sub.lastBilled)}</span>
+                                  <span className="tnum font-medium">{formatDate(sub.lastBilled)}</span>
                                 </p>
                               </div>
                             </div>
 
                             <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
                               <div className="flex flex-col sm:items-end">
-                                <span className="text-sm font-semibold text-zinc-100 tnum">
+                                <span className="text-sm font-bold text-sb-ink tnum">
                                   {formatCurrency(sub.amount)}
                                 </span>
-                                <span className="text-xs text-zinc-400">{freqLabel.toLowerCase()}</span>
+                                <span className="text-xs text-sb-ink-muted">{freqLabel.toLowerCase()}</span>
                               </div>
                               <div className="flex flex-col gap-1 sm:items-end">
                                 <Badge variant={badgeVariant}>{renewsLabel}</Badge>
-                                <span className="text-xs text-zinc-400 tnum">
+                                <span className="text-xs text-sb-ink-muted tnum">
                                   {formatDate(sub.nextRenewal)}
                                 </span>
                               </div>
@@ -573,15 +585,15 @@ export default function SubscriptionsPage() {
                 )}
 
                 {ignoredKeys.length > 0 && (
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border-default bg-surface-2/40 px-4 py-3">
-                    <p className="text-sm text-zinc-400">
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-sb-hairline bg-surface-2/60 px-4 py-3">
+                    <p className="text-sm text-sb-ink-muted">
                       {ignoredKeys.length} hidden as “not a subscription”. Those expenses are still
                       counted everywhere else.
                     </p>
                     <button
                       type="button"
                       onClick={restoreAllSubscriptions}
-                      className="shrink-0 cursor-pointer rounded text-sm font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                      className="shrink-0 cursor-pointer rounded text-sm font-medium text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                     >
                       Show them again
                     </button>

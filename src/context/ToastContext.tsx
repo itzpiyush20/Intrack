@@ -49,21 +49,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {/* Floating Toast Container */}
       <div className="fixed bottom-6 left-4 right-4 w-auto sm:left-auto sm:right-6 sm:w-full z-toast flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((toast) => {
-          let bgColor = 'bg-[var(--surface-1)] border-border-subtle'
-          let textColor = 'text-zinc-200'
+          let bgColor = 'bg-surface-1 border-sb-hairline shadow-card'
+          let textColor = 'text-sb-ink'
           let emoji = 'ℹ️'
 
           if (toast.type === 'success') {
-            bgColor = 'bg-[var(--surface-1)] border-[var(--status-positive-border)] text-[var(--status-positive-text)]'
-            textColor = 'text-[var(--text-primary)]'
+            bgColor = 'bg-surface-1 border-[var(--status-positive-border)] text-[var(--status-positive-text)] shadow-card'
+            textColor = 'text-sb-ink'
             emoji = '✔️'
           } else if (toast.type === 'error') {
-            bgColor = 'bg-[var(--surface-1)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
-            textColor = 'text-[var(--text-primary)]'
+            bgColor = 'bg-surface-1 border-[var(--status-danger-border)] text-[var(--status-danger-text)] shadow-card'
+            textColor = 'text-sb-ink'
             emoji = '❌'
           } else if (toast.type === 'warning') {
-            bgColor = 'bg-[var(--surface-1)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
-            textColor = 'text-[var(--text-primary)]'
+            bgColor = 'bg-surface-1 border-[var(--status-warning-border)] text-[var(--status-warning-text)] shadow-card'
+            textColor = 'text-sb-ink'
             emoji = '⚠️'
           }
 
@@ -94,7 +94,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 )}
                 <button
                   onClick={() => removeToast(toast.id)}
-                  className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                  className="text-sb-ink-muted hover:text-sb-ink transition-colors cursor-pointer"
                   aria-label="Dismiss toast"
                 >
                   <X className="h-3.5 w-3.5" />

@@ -63,8 +63,8 @@ export function CreditCardPaymentTrend({ data, loading, onMonthClick }: CreditCa
           </div>
         ) : !hasPayments ? (
           <EmptyState
-            icon={<CreditCard className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
-            title="No card bill payments recorded"
+            icon={<CreditCard className="h-8 w-8 text-brand-600" aria-hidden="true" />}
+            title="No credit card bill payments logged"
             description="Categorise a payment as a credit card bill and it appears here, separate from your spending."
           />
         ) : (
@@ -105,11 +105,11 @@ export function CreditCardPaymentTrend({ data, loading, onMonthClick }: CreditCa
                           open ? 'opacity-100' : 'opacity-0'
                         )}
                       >
-                        <p className="text-xs font-semibold text-zinc-50">{d.label}</p>
-                        <p className="mt-0.5 text-sm font-semibold text-zinc-50 tnum">
+                        <p className="text-xs font-bold text-sb-ink">{d.label}</p>
+                        <p className="mt-0.5 text-sm font-bold text-sb-ink tnum">
                           {formatCurrencyCompact(d.amount)}
                         </p>
-                        <p className="mt-0.5 text-xs text-zinc-400">paid towards card bills</p>
+                        <p className="mt-0.5 text-xs text-sb-ink-muted">paid towards card bills</p>
                       </div>
 
                       <div className="flex h-full w-full max-w-[64px] items-end justify-center px-1">

@@ -54,36 +54,42 @@ export default function AccessEnded() {
     : null
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-surface-0 px-4 py-12 sm:px-6">
-      <div className="flex w-full max-w-lg flex-col gap-6">
+    <main className="relative flex min-h-svh items-center justify-center bg-surface-0 px-4 py-12 sm:px-6 overflow-hidden">
+      {/* Ambient emerald glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-[36rem] rounded-full bg-radial from-brand-500/15 via-brand-500/5 to-transparent blur-3xl"
+      />
+
+      <div className="relative z-10 flex w-full max-w-lg flex-col gap-6">
         <div className="flex justify-center">
-          <BrandMark className="text-brand-500" />
+          <BrandMark size={44} className="text-brand-600 drop-shadow-sm" />
         </div>
 
-        <Card className="flex flex-col gap-6 p-6 sm:p-8">
+        <div className="relative overflow-hidden rounded-2xl border border-sb-hairline bg-surface-1 p-6 sm:p-8 shadow-card flex flex-col gap-6 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/35 before:to-transparent">
           <div className="flex flex-col gap-2">
-            <span className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--status-warning-text)]">
-              <PauseCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 shadow-xs">
+              <PauseCircle className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
               Access paused
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 text-balance">
+            <h1 className="text-2xl font-bold tracking-tight text-sb-ink text-balance">
               {endedFromTrial ? 'Your 7-day trial has ended' : 'Your plan has ended'}
             </h1>
-            <p className="text-sm leading-relaxed text-zinc-400">
+            <p className="text-sm leading-relaxed text-sb-ink-secondary">
               {expiredOn ? `Access ended on ${expiredOn}. ` : ''}
               Intrack has no free version — a plan is what keeps scanning, budgets and insights
               switched on.
             </p>
           </div>
 
-          <div className="flex flex-col gap-1 rounded-xl border border-border-subtle bg-surface-2/50 p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-brand-400" aria-hidden="true" />
+          <div className="flex flex-col gap-1.5 rounded-xl border border-sb-hairline bg-surface-2/60 p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-sb-ink">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
               Nothing has been deleted
             </p>
-            <p className="text-sm leading-relaxed text-zinc-400">
+            <p className="text-sm leading-relaxed text-sb-ink-secondary">
               {txCount != null && txCount > 0
-                ? <>All <span className="font-medium text-zinc-200 tnum">{txCount}</span> transaction{txCount === 1 ? '' : 's'} you logged are still here, exactly as you left them. Pay and everything is back where it was.</>
+                ? <>All <span className="font-semibold text-sb-ink tnum">{txCount}</span> transaction{txCount === 1 ? '' : 's'} you logged are still here, exactly as you left them. Pay and everything is back where it was.</>
                 : 'Everything you logged is still here, exactly as you left it. Pay and everything is back where it was.'}
             </p>
           </div>
@@ -105,12 +111,12 @@ export default function AccessEnded() {
               </Link>
             </div>
           </div>
-        </Card>
+        </div>
 
         <button
           type="button"
           onClick={() => { void signOut() }}
-          className="mx-auto cursor-pointer rounded px-3 py-2 text-sm text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+          className="mx-auto cursor-pointer rounded px-3 py-2 text-sm text-sb-ink-muted transition-colors hover:text-sb-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 font-medium"
         >
           Sign out
         </button>

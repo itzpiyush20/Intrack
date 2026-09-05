@@ -71,43 +71,43 @@ function GateSenders({ gate }: { gate: string }) {
 
   const rows = senders.data ?? []
   if (rows.length === 0) {
-    return <p className="px-3 py-3 text-sm text-zinc-500">No senders recorded for this gate.</p>
+    return <p className="px-3 py-3 text-sm text-sb-ink-muted">No senders recorded for this gate.</p>
   }
 
   const flagged = rows.filter((r) => looksFinancial(r.sender_domain)).length
 
   return (
     <div className="px-3 py-3">
-      <p className="mb-2 text-xs text-zinc-500 leading-relaxed">
+      <p className="mb-2 text-xs text-sb-ink-muted leading-relaxed">
         {flagged === 0
           ? 'Top senders this gate rejected. None look like a bank or payment provider.'
           : `Top senders this gate rejected. ${flagged} look${flagged === 1 ? 's' : ''} like a bank or payment provider — check these.`}
       </p>
       <div className={TABLE_WRAP}>
         <table className="w-full text-left text-xs">
-          <thead className="text-zinc-500">
+          <thead className="text-sb-ink-muted">
             <tr>
-              <th className="py-1.5 pr-4 font-medium">Sender domain</th>
-              <th className="py-1.5 pr-4 text-right font-medium">Rejected</th>
-              <th className="py-1.5 text-right font-medium">Last seen</th>
+              <th className="py-1.5 pr-4 font-semibold">Sender domain</th>
+              <th className="py-1.5 pr-4 text-right font-semibold">Rejected</th>
+              <th className="py-1.5 text-right font-semibold">Last seen</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
               const financial = looksFinancial(r.sender_domain)
               return (
-                <tr key={r.sender_domain} className="border-t border-border-subtle/40">
-                  <td className={`py-1.5 pr-4 ${financial ? 'font-semibold text-[var(--status-warning-text)]' : 'text-zinc-300'}`}>
+                <tr key={r.sender_domain} className="border-t border-sb-hairline/60">
+                  <td className={`py-1.5 pr-4 ${financial ? 'font-semibold text-amber-700' : 'text-sb-ink-secondary'}`}>
                     <span className="inline-flex items-center gap-1.5">
-                      {financial && <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                      {financial && <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" aria-hidden="true" />}
                       {r.sender_domain}
                     </span>
                     {financial && (
                       <Badge variant="warning" className="ml-2 py-0 text-[10px]">bank / payments</Badge>
                     )}
                   </td>
-                  <td className="py-1.5 pr-4 text-right tnum text-zinc-400">{r.rejections}</td>
-                  <td className="py-1.5 text-right tnum text-zinc-500">
+                  <td className="py-1.5 pr-4 text-right tnum text-sb-ink-secondary">{r.rejections}</td>
+                  <td className="py-1.5 text-right tnum text-sb-ink-muted">
                     {new Date(r.last_seen).toLocaleDateString('en-IN')}
                   </td>
                 </tr>
@@ -116,7 +116,7 @@ function GateSenders({ gate }: { gate: string }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[11px] text-zinc-500">
+      <p className="mt-2 text-[11px] text-sb-ink-muted">
         Domains only — subject lines are never shown here.
       </p>
     </div>
@@ -159,23 +159,23 @@ export default function ScannerTab() {
         <StatCard label="Txns found" value={String(totals.found)} hint={`from ${totals.emails} emails`} />
       </div>
 
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Scans per day (30 days)</h2>
+      <Card className="relative overflow-hidden p-5 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-3 text-sm font-semibold text-sb-ink">Scans per day (30 days)</h2>
         <AdminBarChart
           data={rows.map((r) => ({ label: r.day, value: r.manual_scans + r.scheduled_scans }))}
           emptyMessage="No scans yet."
         />
       </Card>
 
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Rejections by gate (30 days)</h2>
+      <Card className="relative overflow-hidden p-5 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-3 text-sm font-semibold text-sb-ink">Rejections by gate (30 days)</h2>
         {gates.loading ? (
           <TableSkeleton rows={3} cols={2} />
         ) : (gates.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-zinc-500">No rejections recorded.</p>
+          <p className="text-sm text-sb-ink-muted">No rejections recorded.</p>
         ) : (
           <>
-            <p className="mb-2 text-xs text-zinc-500">
+            <p className="mb-2 text-xs text-sb-ink-muted">
               Select a gate to see which domains it is rejecting.
             </p>
             <ul className="space-y-1 text-sm">
@@ -187,18 +187,18 @@ export default function ScannerTab() {
                       type="button"
                       onClick={() => setOpenGate(open ? null : g.gate)}
                       aria-expanded={open}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
-                        open ? 'bg-surface-2 text-zinc-100' : 'text-zinc-300'
+                      className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
+                        open ? 'bg-brand-50 text-brand-700 font-semibold border border-brand-200/70 shadow-xs' : 'text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2'
                       }`}
                     >
                       <span className="inline-flex items-center gap-2">
-                        {open ? <ChevronDown className="h-3.5 w-3.5 text-zinc-500" /> : <ChevronRight className="h-3.5 w-3.5 text-zinc-500" />}
+                        {open ? <ChevronDown className="h-3.5 w-3.5 text-brand-600" /> : <ChevronRight className="h-3.5 w-3.5 text-sb-ink-muted" />}
                         {g.gate}
                       </span>
-                      <span className="tnum text-zinc-500">{g.rejections}</span>
+                      <span className="tnum text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-sb-ink-muted border border-sb-hairline">{g.rejections}</span>
                     </button>
                     {open && (
-                      <div className="mt-1 rounded-lg border border-border-subtle/60 bg-surface-2/40">
+                      <div className="mt-1.5 rounded-xl border border-sb-hairline bg-surface-2/40 p-1 shadow-xs">
                         <GateSenders gate={g.gate} />
                       </div>
                     )}
@@ -210,12 +210,12 @@ export default function ScannerTab() {
         )}
       </Card>
 
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Recent failures</h2>
+      <Card className="relative overflow-hidden p-5 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-3 text-sm font-semibold text-sb-ink">Recent failures</h2>
         {failures.loading ? (
           <TableSkeleton rows={3} cols={2} />
         ) : (failures.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-zinc-500">No failed scans. Good.</p>
+          <p className="text-sm text-sb-ink-muted">No failed scans. Good.</p>
         ) : (
           <div className={TABLE_WRAP}>
             <table className={TABLE}>

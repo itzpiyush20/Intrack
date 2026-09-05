@@ -50,11 +50,11 @@ export function AnomalyAlerts({ anomalies, onAnomalyClick }: AnomalyAlertsProps)
               {/* The percentage is measured on the month-end projection, so the
                   rupee figures next to it have to be the projection too, or the
                   three numbers on this card cannot be reconciled. */}
-              <p className="text-xs text-zinc-300">
-                <span className="font-semibold text-white">{formatCurrency(anomaly.thisMonth)}</span>
+              <p className="text-xs text-sb-ink-secondary">
+                <span className="font-bold text-sb-ink">{formatCurrency(anomaly.thisMonth)}</span>
                 {anomaly.isProjection ? ' so far — on track for ' : ' this month vs '}
                 {anomaly.isProjection && (
-                  <span className="font-semibold text-white">{formatCurrency(anomaly.projectedMonth)}</span>
+                  <span className="font-bold text-sb-ink">{formatCurrency(anomaly.projectedMonth)}</span>
                 )}
                 {anomaly.isProjection ? ' vs ' : ''}
                 <span className="text-[var(--status-warning-text)] font-semibold">{formatCurrency(anomaly.baseline)}</span> baseline

@@ -105,7 +105,7 @@ function ScanHistory({ userId }: { userId: string }) {
   }
 
   if ((data?.length ?? 0) === 0) {
-    return <p className="text-sm text-zinc-500">This account has never run a scan.</p>
+    return <p className="text-sm text-sb-ink-muted">This account has never run a scan.</p>
   }
 
   return (
@@ -394,7 +394,7 @@ export default function UsersTab() {
                             Cancel
                           </Button>
                         </div>
-                        <p className="mt-2 text-xs text-zinc-500">
+                        <p className="mt-2 text-xs text-sb-ink-muted">
                           Between 1 and 365 days. Added to any unexpired time the account already
                           has, never replacing it. Recorded in payments as a ₹0 admin payment.
                         </p>
@@ -403,7 +403,7 @@ export default function UsersTab() {
                   )}
 
                   {historyFor === u.id && (
-                    <tr className="border-b border-border-subtle/50 bg-surface-2/40">
+                    <tr className="border-b border-sb-hairline/60 bg-surface-2/50">
                       <td colSpan={COLUMN_COUNT} className="px-4 py-4">
                         <ScanHistory userId={u.id} />
                       </td>

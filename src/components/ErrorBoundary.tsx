@@ -61,15 +61,23 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
-          <div className="max-w-md w-full rounded-3xl bg-zinc-900 border border-zinc-800 p-8 text-center">
-            <div className="text-5xl mb-4">⚠️</div>
-            <h1 className="text-xl font-bold text-white mb-2">Something went wrong</h1>
-            <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+        <div className="min-h-screen bg-surface-0 flex items-center justify-center p-6 relative overflow-hidden">
+          {/* Ambient emerald backlight */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-[36rem] rounded-full bg-radial from-brand-500/15 via-brand-500/5 to-transparent blur-3xl"
+          />
+
+          <div className="relative z-10 max-w-md w-full rounded-3xl bg-surface-1 border border-sb-hairline p-8 text-center shadow-card-lg before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/35 before:to-transparent">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-2xl mx-auto mb-4 shadow-xs">
+              ⚠️
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-sb-ink mb-2">Something went wrong</h1>
+            <p className="text-sm text-sb-ink-secondary mb-6 leading-relaxed">
               Intrack encountered an unexpected error. Your data is safe — this is a display issue only.
             </p>
             {this.state.error && (
-              <pre className="text-left text-xs text-[var(--status-danger-text)] bg-zinc-950 rounded-xl p-3 mb-6 overflow-auto max-h-32 border border-[var(--status-danger-border)]">
+              <pre className="text-left font-mono text-xs text-rose-700 bg-rose-50/70 rounded-xl p-3.5 mb-6 overflow-auto max-h-32 border border-rose-200/80">
                 {this.state.error.message}
               </pre>
             )}
@@ -85,13 +93,13 @@ export class ErrorBoundary extends Component<Props, State> {
                     this.setState({ hasError: false, error: null })
                   }
                 }}
-                className="rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-5 py-2.5 transition-colors"
+                className="rounded-xl border border-sb-hairline bg-surface-1 hover:bg-surface-2 text-sb-ink text-sm font-semibold px-5 py-2.5 transition-colors shadow-xs cursor-pointer"
               >
                 Try Again
               </button>
               <button
                 onClick={this.handleReset}
-                className="rounded-xl bg-brand-500 hover:bg-brand-400 text-static-white text-sm font-semibold px-5 py-2.5 transition-colors"
+                className="rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 transition-colors shadow-xs cursor-pointer"
               >
                 Back to Home
               </button>

@@ -66,23 +66,21 @@ export const NEUTRAL_MARK = 'var(--zinc-400)'
  * `surface-2`, where `zinc-500` slips under the 4.5:1 floor. Tabular figures
  * because a good third of them are amounts.
  */
-export const AXIS_LABEL = 'text-xs font-medium text-zinc-400 tnum'
+export const AXIS_LABEL = 'text-xs font-medium text-sb-ink-muted tnum'
 
 /** A bucket label under a bar. Darkens on hover/focus of its column. */
 export const BUCKET_LABEL =
-  'text-xs font-medium text-zinc-400 tnum transition-colors group-hover:text-zinc-100 group-focus-visible:text-zinc-100'
+  'text-xs font-medium text-sb-ink-muted tnum transition-colors group-hover:text-sb-ink group-focus-visible:text-sb-ink'
 
 /** The horizontal reference lines behind a plot area. */
-export const GRIDLINE = 'w-full border-t border-border-subtle h-0'
+export const GRIDLINE = 'w-full border-t border-sb-hairline h-0'
 
 /**
- * A chart tooltip. Solid elevated surface with a real border — the old one was
- * `bg-zinc-950 border-zinc-800`, which in light mode is a white panel with a
- * #f1f3f6 border: invisible against the white card behind it.
+ * A chart tooltip. Solid elevated surface with a luxury card border and shadow.
  */
 export const TOOLTIP =
   'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 min-w-[9.5rem] rounded-xl ' +
-  'border border-border-default bg-surface-1 p-3 text-left shadow-[var(--shadow-lg)] ' +
+  'border border-sb-hairline bg-surface-1 p-3 text-left shadow-card ' +
   'pointer-events-none transition-opacity duration-150'
 
 /**
@@ -99,5 +97,5 @@ export const CHART_COLUMN =
 export const CHART_SCROLLER = 'w-full overflow-x-auto scrollbar-none pb-1'
 
 /** A card's title row: icon, heading, one line of plain-language description. */
-export const CARD_TITLE = 'text-base font-semibold text-zinc-50 flex items-center gap-2'
-export const CARD_SUBTITLE = 'mt-1 text-sm text-zinc-400 leading-relaxed'
+export const CARD_TITLE = 'text-base font-semibold text-sb-ink flex items-center gap-2'
+export const CARD_SUBTITLE = 'mt-1 text-sm text-sb-ink-muted leading-relaxed'

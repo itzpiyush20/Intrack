@@ -94,7 +94,7 @@ export default function ScrollHint({ children, wrapperClassName, className, aria
           type="button"
           onClick={() => nudge(-1)}
           aria-label="Scroll left for more"
-          className="absolute left-0 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="absolute left-0 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center text-sb-ink-muted hover:text-sb-ink transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -105,7 +105,7 @@ export default function ScrollHint({ children, wrapperClassName, className, aria
           type="button"
           onClick={() => nudge(1)}
           aria-label="Scroll right for more"
-          className="absolute right-0 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="absolute right-0 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center text-sb-ink-muted hover:text-sb-ink transition-colors cursor-pointer"
         >
           <ChevronRight className="h-4 w-4" />
         </button>

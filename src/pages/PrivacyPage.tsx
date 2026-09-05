@@ -11,7 +11,16 @@ export default function PrivacyPage() {
       title="Privacy Policy"
       description="How Intrack handles your data: read-only Gmail access, what is kept and what is discarded, where it is stored, and your rights under India's DPDPA 2023."
     >
+      {/* Ambient emerald background glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+      </div>
+
       <div className="mb-10">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+          DPDPA 2023 & Security Standards
+        </span>
         <h1 className="sb-display-xl text-sb-ink">Privacy Policy</h1>
         <p className="text-xs mt-1 text-sb-ink-muted">Last updated: August 20, 2026 · Effective immediately</p>
       </div>
@@ -20,7 +29,7 @@ export default function PrivacyPage() {
 
         {/* Intro */}
         <section>
-          <div className="rounded-[12px] bg-brand-500/10 border border-brand-500/20 p-5 mb-8">
+          <div className="relative overflow-hidden rounded-2xl bg-brand-50/60 border border-brand-200/80 p-5 mb-8 shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
             <p className="text-sm leading-relaxed text-sb-ink-secondary">
               <strong className="text-sb-ink">Our commitment:</strong> Intrack is built on a foundation of trust. We never sell your financial data, never store your banking passwords, and never share your personal information with advertisers. Your financial data belongs to you — always.
             </p>
@@ -124,8 +133,8 @@ function section(title: string, body: string | null, items?: { title: string; bo
       {items && (
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.title} className="sb-card-light p-4">
-              <p className="text-sm font-semibold text-sb-ink">{item.title}</p>
+            <div key={item.title} className="relative overflow-hidden bg-surface-1 border border-sb-hairline shadow-xs rounded-xl p-4 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+              <p className="text-sm font-bold text-sb-ink">{item.title}</p>
               <p className="text-sm leading-relaxed mt-1 text-sb-ink-secondary">{item.body}</p>
             </div>
           ))}

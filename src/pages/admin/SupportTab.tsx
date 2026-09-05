@@ -101,8 +101,8 @@ export default function SupportTab() {
             onClick={() => setOpenOnly(only)}
             className={
               openOnly === only
-                ? 'rounded-full bg-brand-500/15 border border-brand-500/30 px-3 py-1.5 text-xs font-semibold text-brand-500'
-                : 'rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-300'
+                ? 'rounded-full bg-brand-50 border border-brand-200/80 px-3.5 py-1 text-xs font-semibold text-brand-700 shadow-xs cursor-pointer'
+                : 'rounded-full border border-sb-hairline bg-surface-1 px-3.5 py-1 text-xs font-medium text-sb-ink-muted hover:text-sb-ink cursor-pointer transition-colors'
             }
           >
             {only ? 'Open only' : 'All'}
@@ -125,7 +125,7 @@ export default function SupportTab() {
       {list.error && (
         <div>
           <AdminError message={`Could not load support tickets: ${list.error}`} onRetry={list.reload} />
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-sb-ink-muted">
             If this says the function does not exist, run supabase/031_support_tickets.sql.
           </p>
         </div>
@@ -142,15 +142,15 @@ export default function SupportTab() {
       {rows.map((t) => {
         const handled = t.handled_at !== null
         return (
-          <Card key={t.id} className={handled ? 'opacity-60' : 'border-l-2 border-l-brand-500'}>
+          <Card key={t.id} className={`border border-sb-hairline bg-surface-1 shadow-card ${handled ? 'opacity-60' : 'border-l-4 border-l-brand-500'}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className={handled ? 'text-sm text-zinc-400' : 'text-sm font-semibold text-zinc-100'}>
+                <p className={handled ? 'text-sm text-sb-ink-muted' : 'text-sm font-semibold text-sb-ink'}>
                   {t.subject}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-sb-ink-muted">
                   {t.name} ·{' '}
-                  <a href={`mailto:${t.email}?subject=Re: ${encodeURIComponent(t.subject)}`} className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-zinc-300">
+                  <a href={`mailto:${t.email}?subject=Re: ${encodeURIComponent(t.subject)}`} className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-600 font-medium">
                     <Mail className="h-3 w-3" aria-hidden="true" />
                     {t.email}
                   </a>{' '}
@@ -162,15 +162,15 @@ export default function SupportTab() {
             <p
               className={
                 handled
-                  ? 'mt-3 whitespace-pre-wrap text-sm text-zinc-400'
-                  : 'mt-3 whitespace-pre-wrap text-sm text-zinc-300'
+                  ? 'mt-3 whitespace-pre-wrap text-sm text-sb-ink-muted'
+                  : 'mt-3 whitespace-pre-wrap text-sm text-sb-ink-secondary leading-relaxed'
               }
             >
               {t.message}
             </p>
 
             <div className="mt-3 flex items-center justify-between gap-4">
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-sb-ink-muted">
                 {handled && t.handled_at !== null
                   ? `Handled ${new Date(t.handled_at).toLocaleDateString('en-IN')}`
                   : 'Needs a reply'}

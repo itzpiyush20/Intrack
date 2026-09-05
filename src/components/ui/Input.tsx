@@ -26,14 +26,14 @@ export default function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-zinc-300"
+          className="block text-xs font-bold uppercase tracking-wider text-sb-ink-muted"
         >
           {label}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sb-ink-muted">
             {icon}
           </div>
         )}
@@ -42,13 +42,13 @@ export default function Input({
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'h-11 w-full rounded-lg border bg-surface-1 px-4 text-sm text-zinc-50',
-            'placeholder:text-zinc-400',
+            'h-11 w-full rounded-xl border bg-surface-1 px-4 text-sm text-sb-ink font-medium shadow-xs',
+            'placeholder:text-sb-ink-muted/70',
             'transition-[border-color,box-shadow] duration-150',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500',
+            'focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500',
             error
               ? 'border-[var(--status-danger-border)] focus:ring-[var(--status-danger-subtle)] focus:border-[var(--status-danger-text)]'
-              : 'border-border-default hover:border-border-hover',
+              : 'border-sb-hairline hover:border-brand-500/40',
             icon ? 'pl-10' : '',
             className
           )}

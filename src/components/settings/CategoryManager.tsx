@@ -90,7 +90,7 @@ export default function CategoryManager() {
   const renderCategoryRow = (category: Category) => (
     <li
       key={category.id}
-      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-2/50 border border-border-subtle/40 transition-colors hover:border-border-hover"
+      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-1 border border-sb-hairline shadow-xs transition-all hover:border-brand-500/30 hover:shadow-card"
     >
       <div className="flex items-center gap-3 min-w-0">
         <span
@@ -99,7 +99,7 @@ export default function CategoryManager() {
           aria-hidden="true"
         />
         <span className="text-base shrink-0">{category.emoji}</span>
-        <span className="text-sm font-semibold text-zinc-100 truncate">{category.name}</span>
+        <span className="text-sm font-semibold text-sb-ink truncate">{category.name}</span>
         {category.budget_eligible && <Badge variant="info">Budget</Badge>}
         {category.is_default && <Badge variant="default">Default</Badge>}
       </div>
@@ -128,28 +128,28 @@ export default function CategoryManager() {
   )
 
   return (
-    <Card className="border-border-subtle bg-surface-1 shadow-md">
+    <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
       <div className="flex items-center justify-between mb-2 gap-2">
-        <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
-          <Layers className="h-5 w-5 text-brand-400 shrink-0" />
+        <h2 className="text-base font-bold text-sb-ink flex items-center gap-2">
+          <Layers className="h-5 w-5 text-brand-600 shrink-0" />
           <span>Manage Categories</span>
         </h2>
-        <Button size="sm" onClick={openCreate} className="gap-1.5 shrink-0">
+        <Button size="sm" onClick={openCreate} className="gap-1.5 shrink-0 shadow-xs">
           <Plus className="h-3.5 w-3.5" /> New Category
         </Button>
       </div>
-      <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
+      <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
         Create, rename, restyle, or remove your own categories. Renaming updates every existing
         transaction, budget, and merchant rule automatically.
       </p>
 
       <div className="space-y-6">
         <div>
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider mb-2">
             Expense Categories
           </h3>
           {expenseCategories.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border-default p-4 text-center text-sm text-zinc-400">
+            <p className="rounded-xl border border-dashed border-sb-hairline bg-surface-2/60 p-4 text-center text-sm text-sb-ink-muted">
               No expense categories yet.
             </p>
           ) : (
@@ -158,11 +158,11 @@ export default function CategoryManager() {
         </div>
 
         <div>
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider mb-2">
             Income Categories
           </h3>
           {incomeCategories.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border-default p-4 text-center text-sm text-zinc-400">
+            <p className="rounded-xl border border-dashed border-sb-hairline bg-surface-2/60 p-4 text-center text-sm text-sb-ink-muted">
               No income categories yet.
             </p>
           ) : (

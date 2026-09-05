@@ -149,9 +149,9 @@ export default function CouponsTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <h2 className="mb-1 text-base font-bold text-zinc-100">Create a coupon</h2>
-        <p className="mb-4 text-sm text-zinc-400 leading-relaxed">
+      <Card className="relative overflow-hidden p-6 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-1 text-base font-bold text-sb-ink">Create a coupon</h2>
+        <p className="mb-4 text-sm text-sb-ink-secondary leading-relaxed">
           Anyone who has the code can redeem it once, for as long as the code is still
           valid. Each person gets full premium access counted from the day they redeem,
           so someone redeeming on the last day still gets the full run.
@@ -172,7 +172,7 @@ export default function CouponsTab() {
           />
           <div>
             <Input label="Valid for (days)" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" className="tnum" />
-            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
+            <p className="mt-1.5 text-xs text-sb-ink-muted leading-relaxed">
               Code works for this many days from today, and each person who redeems it
               gets this many days of access from their own redemption date.
             </p>
@@ -187,7 +187,7 @@ export default function CouponsTab() {
                 { value: 'annual', label: 'Annual' },
               ]}
             />
-            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
+            <p className="mt-1.5 text-xs text-sb-ink-muted leading-relaxed">
               Which plan the coupon grants. The length of access is set by the days field —
               this only decides which plan name the account ends up on.
             </p>
@@ -222,8 +222,8 @@ export default function CouponsTab() {
         </div>
       </Card>
 
-      <Card noPadding>
-        <h2 className="border-b border-border-subtle p-4 text-base font-bold text-zinc-100">
+      <Card noPadding className="border-sb-hairline shadow-card overflow-hidden">
+        <h2 className="border-b border-sb-hairline p-4 text-base font-bold text-sb-ink">
           Existing coupons
         </h2>
 
@@ -261,7 +261,7 @@ export default function CouponsTab() {
                     <td className="px-4 py-3">
                       <Badge variant={c.active ? 'success' : 'default'}>{c.active ? 'Active' : 'Disabled'}</Badge>
                     </td>
-                    <td className={`${TABLE_CELL} text-zinc-500`}>{c.note || '—'}</td>
+                    <td className={`${TABLE_CELL} text-sb-ink-muted`}>{c.note || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" variant="ghost" onClick={() => toggle(c)} className="px-2">
@@ -289,7 +289,7 @@ export default function CouponsTab() {
         )}
       </Card>
 
-      <p className="text-xs text-zinc-500 leading-relaxed">
+      <p className="text-xs text-sb-ink-muted leading-relaxed border-t border-sb-hairline pt-4">
         Disable pauses a code but keeps it listed. Delete removes it entirely and stops
         anyone redeeming it — people who already redeemed it keep the access they were
         given, and the record of who redeemed it is kept underneath. A user can redeem

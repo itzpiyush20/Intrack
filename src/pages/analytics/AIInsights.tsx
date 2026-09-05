@@ -15,16 +15,16 @@ export function AIInsights({
   aiInsights,
 }: AIInsightsProps) {
   return (
-    <Card className="border-border-subtle bg-surface-1 shadow-md p-5 flex flex-col justify-between h-full">
+    <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 flex flex-col justify-between h-full before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <BrainCircuit className="w-5 h-5 text-brand-400 shrink-0" />
-          <h2 className="text-base font-bold text-zinc-200">Wealth Advisory Recommendations</h2>
+          <BrainCircuit className="w-5 h-5 text-brand-600 shrink-0" />
+          <h2 className="text-base font-bold text-sb-ink">Wealth Advisory Recommendations</h2>
           {aiSource && (
-            <span className={`ml-auto text-xs uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border ${
+            <span className={`ml-auto text-xs uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border shadow-xs ${
               aiSource === 'gemini'
-                ? 'text-brand-400 border-brand-500/30 bg-brand-500/10'
-                : 'text-zinc-500 border-zinc-700 bg-zinc-800/50'
+                ? 'text-brand-700 border-brand-200 bg-brand-50'
+                : 'text-sb-ink-muted border-sb-hairline bg-surface-2'
             }`}>
               {aiSource === 'gemini' ? '✦ AI' : 'Rule-based'}
             </span>
@@ -51,13 +51,13 @@ export function AIInsights({
             )}
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
               {aiInsights.length > 0 ? aiInsights.map((insight, i) => (
-                <div key={i} className="p-3 bg-surface-2/30 border border-border-subtle/20 rounded-xl text-xs text-zinc-300 leading-relaxed italic relative">
-                  <span className="text-zinc-600 text-3xl font-serif absolute top-1 right-2 pointer-events-none select-none">"</span>
+                <div key={i} className="p-3.5 bg-surface-2/60 border border-sb-hairline rounded-xl text-xs text-sb-ink leading-relaxed italic relative shadow-xs">
+                  <span className="text-sb-ink-muted/30 text-3xl font-serif absolute top-1 right-2 pointer-events-none select-none">"</span>
                   <span>{insight}</span>
                 </div>
               )) : (
                 <EmptyState
-                  icon={<Lightbulb className="w-8 h-8 text-zinc-500" />}
+                  icon={<Lightbulb className="w-8 h-8 text-sb-ink-muted" />}
                   title="No advice yet"
                   description="Record income and expenses for the selected month to trigger the wealth advisor."
                 />

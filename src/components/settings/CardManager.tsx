@@ -177,23 +177,23 @@ export default function CardManager() {
         animate={{ opacity: 1, y: 0 }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
         transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-xl border border-border-subtle/50 bg-surface-2/50 p-4 transition-colors hover:border-border-hover"
+        className="rounded-xl border border-sb-hairline bg-surface-1 shadow-xs p-4 transition-all hover:border-brand-500/30 hover:shadow-card"
       >
         <div className="flex items-start gap-3">
           <span
             aria-hidden="true"
-            className="h-10 w-10 shrink-0 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center"
+            className="h-10 w-10 shrink-0 rounded-xl bg-brand-50 text-brand-700 border border-brand-200/70 flex items-center justify-center shadow-xs"
           >
             <CreditCard className="h-5 w-5" />
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-zinc-100 truncate">{card.name}</p>
-            <p className="mt-0.5 text-xs text-zinc-400 truncate tnum">
+            <p className="text-sm font-semibold text-sb-ink truncate">{card.name}</p>
+            <p className="mt-0.5 text-xs text-sb-ink-muted truncate tnum">
               {[card.issuer, card.brand, card.last4 && `•••• ${card.last4}`].filter(Boolean).join(' · ') ||
                 'No bank or digits yet'}
               {locked && (
-                <span className="inline-flex items-center gap-1 ml-2 align-middle text-zinc-500">
+                <span className="inline-flex items-center gap-1 ml-2 align-middle text-sb-ink-muted">
                   <Lock className="h-3 w-3" aria-hidden="true" />
                   <span className="sr-only">Bank and digits are fixed</span>
                 </span>
@@ -236,11 +236,9 @@ export default function CardManager() {
           </p>
         )}
 
-        <div className="mt-3 pt-3 border-t border-border-subtle/40">
+        <div className="mt-3 pt-3 border-t border-sb-hairline">
           {editingBalance ? (
             <div className="flex items-end gap-2">
-              {/* Input renders its own wrapper div and puts className on the
-                  <input>, so the flex sizing belongs out here. */}
               <div className="flex-1 min-w-0">
                 <Input
                   label="Outstanding balance today"
@@ -261,7 +259,7 @@ export default function CardManager() {
                 onClick={() => handleBalanceSave(card)}
                 loading={savingBalance}
                 aria-label={`Save balance for ${card.name}`}
-                className="shrink-0 gap-1.5"
+                className="shrink-0 gap-1.5 shadow-xs"
               >
                 <Check className="h-3.5 w-3.5" /> Save
               </Button>
@@ -278,11 +276,11 @@ export default function CardManager() {
           ) : (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-zinc-400">Outstanding today</p>
+                <p className="text-xs text-sb-ink-muted">Outstanding today</p>
                 {owed === undefined ? (
-                  <p className="text-sm text-zinc-500 mt-0.5">Not set yet</p>
+                  <p className="text-sm text-sb-ink-muted mt-0.5">Not set yet</p>
                 ) : (
-                  <p className="text-xl font-semibold text-zinc-50 tnum mt-0.5 tracking-tight">
+                  <p className="text-xl font-bold text-sb-ink tnum mt-0.5 tracking-tight">
                     {formatCurrency(owed)}
                   </p>
                 )}
@@ -291,7 +289,7 @@ export default function CardManager() {
                 size="sm"
                 variant="secondary"
                 onClick={() => startBalanceEdit(card)}
-                className="shrink-0"
+                className="shrink-0 shadow-xs"
               >
                 {owed === undefined ? 'Set balance' : 'Update'}
               </Button>
@@ -303,17 +301,17 @@ export default function CardManager() {
   }
 
   return (
-    <Card className="border-border-subtle bg-surface-1 shadow-md">
+    <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
       <div className="flex items-start justify-between gap-3 mb-1.5">
-        <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-brand-400 shrink-0" />
+        <h2 className="text-base font-bold text-sb-ink flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-brand-600 shrink-0" />
           <span>Credit Cards</span>
         </h2>
-        <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5 shrink-0">
+        <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5 shrink-0 shadow-xs">
           <Plus className="h-3.5 w-3.5" /> Add card
         </Button>
       </div>
-      <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+      <p className="text-xs text-sb-ink-muted mb-5 leading-relaxed">
         Track what each card owes, updated as you go. Optional — add nothing and nothing changes.
       </p>
 
@@ -340,7 +338,7 @@ export default function CardManager() {
 
           {archived.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+              <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider mb-2">
                 Archived — history kept
               </h3>
               <ul className="space-y-2.5 opacity-70">

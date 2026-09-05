@@ -48,12 +48,23 @@ export default function AdminPage() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in">
+      <div className="relative animate-fade-in">
+        {/* Ambient emerald backlight */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-72 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+        </div>
+
         <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 md:text-3xl">Admin</h1>
-          <p className="mt-1.5 text-sm text-zinc-400 max-w-2xl">
-            Overview, Scanner and AI are read-only. Users and Coupons can change access;
-            Feedback and Support can only be marked handled.
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Operations & Root Telemetry
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Admin Control Center</h1>
+          <p className="mt-1.5 text-sm text-sb-ink-secondary max-w-2xl leading-relaxed">
+            Overview, Scanner, and AI are read-only telemetry. Users and Coupons manage active subscriptions;
+            Feedback and Support route resolution flows.
           </p>
         </header>
 
@@ -82,14 +93,14 @@ export default function AdminPage() {
                     'relative flex items-center gap-2.5 rounded-xl px-3.5 h-11 text-sm font-medium',
                     'whitespace-nowrap cursor-pointer transition-colors md:w-full',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                    isActive ? 'text-brand-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-surface-2/70'
+                    isActive ? 'text-brand-700 font-semibold' : 'text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2/70'
                   )}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="admin-tab-indicator"
                       aria-hidden="true"
-                      className="absolute inset-0 rounded-xl bg-brand-500/10 border border-brand-500/30"
+                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/70 shadow-xs"
                       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
                     />
                   )}

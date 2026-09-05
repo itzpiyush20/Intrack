@@ -238,11 +238,22 @@ export default function ProfilePage() {
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-3xl">
+      <div className="relative mx-auto max-w-3xl animate-fade-in">
+        {/* Ambient emerald background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+        </div>
+
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Your account</h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          <div className="mb-2 flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Account Security Active
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Profile</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-sb-ink-muted">
             Your name and picture, your password, and the two ways to clear out what Intrack
             holds for you.
           </p>
@@ -251,7 +262,7 @@ export default function ProfilePage() {
         {error && (
           <div
             role="alert"
-            className="mt-6 flex items-start gap-2.5 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-4 text-sm leading-relaxed text-[var(--status-danger-text)]"
+            className="mt-6 flex items-start gap-2.5 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-4 text-sm leading-relaxed text-[var(--status-danger-text)] shadow-xs"
           >
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
@@ -260,19 +271,19 @@ export default function ProfilePage() {
 
         <div className="mt-6 flex flex-col gap-6 md:mt-8">
           {/* Profile */}
-          <Card>
-            <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
-              <UserRound className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+          <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 sm:p-6 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
+            <h2 className="flex items-center gap-2 text-base font-bold text-sb-ink">
+              <UserRound className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
               <span>Profile</span>
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
               Your name is what Intrack calls you around the app. Nothing here is shared with
               anyone.
             </p>
 
             <form onSubmit={handleProfileSave} className="mt-6 flex flex-col gap-5">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-default bg-surface-2 text-lg font-semibold text-zinc-300">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-sb-hairline bg-surface-2 text-lg font-bold text-sb-ink shadow-xs">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -280,10 +291,10 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-zinc-100">
+                  <p className="text-sm font-bold text-sb-ink">
                     {fullName.trim() || 'No name set'}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-400">{user?.email}</p>
+                  <p className="mt-0.5 truncate text-xs text-sb-ink-muted">{user?.email}</p>
                 </div>
               </div>
 
@@ -293,7 +304,7 @@ export default function ProfilePage() {
                 value={user?.email || ''}
                 disabled
               />
-              <p className="-mt-3 text-xs text-zinc-400">
+              <p className="-mt-3 text-xs text-sb-ink-muted">
                 This is how you sign in, so it cannot be changed here. Contact support if it
                 needs to move.
               </p>
@@ -316,7 +327,7 @@ export default function ProfilePage() {
                 placeholder="https://…"
                 disabled={profileLoading}
               />
-              <p className="-mt-3 text-xs text-zinc-400">
+              <p className="-mt-3 text-xs text-sb-ink-muted">
                 Must start with http:// or https://. The circle above previews it as you type.
               </p>
 
@@ -350,14 +361,14 @@ export default function ProfilePage() {
           </Card>
 
           {/* Password */}
-          <Card>
-            <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
-              <KeyRound className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+          <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 sm:p-6 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+            <h2 className="flex items-center gap-2 text-base font-bold text-sb-ink">
+              <KeyRound className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
               <span>Password</span>
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
               Forgotten your password? We'll email a reset link to{' '}
-              <strong className="font-semibold text-zinc-200">{user?.email}</strong>. If you still
+              <strong className="font-semibold text-sb-ink">{user?.email}</strong>. If you still
               know it, changing it from Settings is faster — no email involved.
             </p>
 
@@ -371,7 +382,7 @@ export default function ProfilePage() {
                     exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
                     transition={transition(reduce)}
                     role="status"
-                    className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)]"
+                    className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)] shadow-xs"
                   >
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>Reset link sent. Check your inbox, and your spam folder if it isn't there.</span>
@@ -384,7 +395,7 @@ export default function ProfilePage() {
                 block
                 loading={passwordLoading}
                 disabled={passwordLoading}
-                className="!h-11 justify-center"
+                className="!h-11 justify-center shadow-xs"
               >
                 Email me a reset link
               </Button>
@@ -398,7 +409,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => setShowDangerZone(true)}
               aria-expanded={false}
-              className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-1 text-sm font-medium text-zinc-300 transition-colors hover:border-border-hover hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-sb-hairline bg-surface-1 text-sm font-semibold text-sb-ink-muted shadow-xs transition-all hover:border-red-300 hover:text-red-600 hover:bg-red-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
             >
               <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
               Delete my data or my account
@@ -413,12 +424,12 @@ export default function ProfilePage() {
               className="flex flex-col gap-6"
             >
               {/* Reset data */}
-              <Card className="border-[var(--status-danger-border)]">
-                <h2 className="flex items-center gap-2 text-base font-bold text-[var(--status-danger-text)]">
-                  <TriangleAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <Card className="relative overflow-hidden border border-red-200 bg-surface-1 shadow-card rounded-2xl p-5 sm:p-6 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-red-500/30 before:to-transparent">
+                <h2 className="flex items-center gap-2 text-base font-bold text-red-700">
+                  <TriangleAlert className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
                   <span>Erase your transactions</span>
                 </h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
                   Deletes every transaction, budget and scan log on this account. Your learned
                   merchant rules and saved cards stay. Your login stays. This cannot be undone.
                 </p>
@@ -433,7 +444,7 @@ export default function ProfilePage() {
                         exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
                         transition={transition(reduce)}
                         role="status"
-                        className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)]"
+                        className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)] shadow-xs"
                       >
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>Done. Your transactions, budgets and scan logs are gone — reloading the app…</span>
@@ -446,7 +457,7 @@ export default function ProfilePage() {
                     onClick={() => setConfirmWipeOpen(true)}
                     loading={resetLoading}
                     disabled={resetLoading}
-                    className="!h-11 justify-center"
+                    className="!h-11 justify-center shadow-xs"
                   >
                     <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                     Erase my transactions
@@ -455,17 +466,17 @@ export default function ProfilePage() {
               </Card>
 
               {/* Delete account */}
-              <Card className="border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)]">
-                <h2 className="flex items-center gap-2 text-base font-bold text-[var(--status-danger-text)]">
-                  <TriangleAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <Card className="relative overflow-hidden border border-red-200/80 bg-red-50/40 shadow-card rounded-2xl p-5 sm:p-6 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-red-500/40 before:to-transparent">
+                <h2 className="flex items-center gap-2 text-base font-bold text-red-700">
+                  <TriangleAlert className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
                   <span>Delete your account</span>
                 </h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+                <p className="mt-1.5 text-sm leading-relaxed text-red-950/90 font-medium">
                   Deletes your login and everything attached to it — transactions, budgets,
                   learned rules, saved cards and scan logs.{' '}
-                  <strong className="font-semibold">This cannot be undone.</strong>
+                  <strong className="font-bold text-red-900">This cannot be undone.</strong>
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-3 text-sm leading-relaxed text-sb-ink-muted">
                   One thing survives, and only with your name taken off it: any feedback or
                   support message you sent is kept with your name and email replaced, so a
                   problem you reported does not vanish with you. The Privacy Policy sets this
@@ -484,39 +495,21 @@ export default function ProfilePage() {
                       onChange={(e) => setDeleteConfirmEmail(e.target.value)}
                       disabled={deleteLoading}
                       required
-                      className="border-[var(--status-danger-border)]"
+                      className="border-red-300"
                     />
-                    <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">
+                    <p className="mt-1.5 text-xs leading-relaxed text-sb-ink-muted">
                       {deleteConfirmEmail.trim() !== '' && !deleteConfirmMatches
                         ? 'That is not the email on this account yet, so the button below stays disabled.'
-                        : <>The address on this account is <span className="select-all break-all font-medium text-zinc-300">{user?.email}</span>.</>}
+                        : <>The address on this account is <span className="select-all break-all font-semibold text-sb-ink">{user?.email}</span>.</>}
                     </p>
                   </div>
-                  {/*
-                    The fill is --status-danger-solid and the label is forced
-                    white, together.
-
-                    This used to set the background to --status-danger-text
-                    while the `danger` variant sets the TEXT colour to that
-                    same variable — so the label was the exact colour of the
-                    fill and invisible, in both themes, enabled or disabled.
-                    The control rendered as a blank coloured bar and read as
-                    broken, on the one screen where someone is exercising
-                    their right to erasure.
-
-                    Simply forcing white on the old background was not enough:
-                    --status-danger-text is tuned to be READ as text on a dark
-                    surface (#f47174), so white on it measures ~2.6:1, under
-                    the 4.5:1 floor. --status-danger-solid exists for this —
-                    a fill dark enough in both themes to carry white.
-                  */}
                   <Button
                     variant="danger"
                     type="submit"
                     block
                     disabled={!deleteConfirmMatches || deleteLoading}
                     loading={deleteLoading}
-                    className="!h-11 justify-center bg-[var(--status-danger-solid)] text-static-white transition-all duration-200 hover:opacity-90 active:opacity-80 disabled:opacity-40"
+                    className="!h-11 justify-center bg-[var(--status-danger-solid)] text-static-white shadow-xs transition-all duration-200 hover:opacity-90 active:opacity-80 disabled:opacity-40"
                   >
                     Permanently delete my account
                   </Button>

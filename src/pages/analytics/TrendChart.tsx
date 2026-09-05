@@ -130,7 +130,7 @@ export function TrendChart({
           </div>
         ) : !hasTransactions ? (
           <EmptyState
-            icon={<BarChart3 className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            icon={<BarChart3 className="h-8 w-8 text-brand-600" aria-hidden="true" />}
             title="Nothing to chart yet"
             description="Once a few transactions are recorded in this period, this chart shows what came in against what went out."
           />
@@ -171,27 +171,27 @@ export function TrendChart({
                             open ? 'opacity-100' : 'opacity-0'
                           )}
                         >
-                          <p className="mb-1.5 border-b border-border-subtle pb-1.5 text-xs font-semibold text-zinc-50">
+                          <p className="mb-1.5 border-b border-sb-hairline pb-1.5 text-xs font-bold text-sb-ink">
                             {h.label}
                           </p>
                           <div className="flex items-center justify-between gap-4 text-xs">
-                            <span className="flex items-center gap-1.5 text-zinc-300">
+                            <span className="flex items-center gap-1.5 text-sb-ink-secondary">
                               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SERIES.income.color }} />
                               {SERIES.income.label}
                             </span>
-                            <span className="font-semibold text-zinc-50 tnum">{formatCurrencyCompact(h.income)}</span>
+                            <span className="font-bold text-sb-ink tnum">{formatCurrencyCompact(h.income)}</span>
                           </div>
                           <div className="flex items-center justify-between gap-4 text-xs">
-                            <span className="flex items-center gap-1.5 text-zinc-300">
+                            <span className="flex items-center gap-1.5 text-sb-ink-secondary">
                               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SERIES.expense.color }} />
                               {SERIES.expense.label}
                             </span>
-                            <span className="font-semibold text-zinc-50 tnum">{formatCurrencyCompact(h.expenses)}</span>
+                            <span className="font-bold text-sb-ink tnum">{formatCurrencyCompact(h.expenses)}</span>
                           </div>
-                          <div className="mt-1.5 flex items-center justify-between gap-4 border-t border-border-subtle pt-1.5 text-xs">
-                            <span className="font-medium text-zinc-300">Left over</span>
+                          <div className="mt-1.5 flex items-center justify-between gap-4 border-t border-sb-hairline pt-1.5 text-xs">
+                            <span className="font-medium text-sb-ink-secondary">Left over</span>
                             <span
-                              className="font-semibold tnum"
+                              className="font-bold tnum"
                               style={{ color: h.savings >= 0 ? SERIES.income.color : 'var(--status-danger-text)' }}
                             >
                               {formatCurrencyCompact(h.savings)}

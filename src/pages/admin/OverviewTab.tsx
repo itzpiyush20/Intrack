@@ -41,7 +41,7 @@ export default function OverviewTab() {
   }
 
   const s = stats.data?.[0]
-  if (!s) return <p className="py-8 text-sm text-zinc-500">No data yet.</p>
+  if (!s) return <p className="py-8 text-sm text-sb-ink-muted">No data yet.</p>
 
   const paying = s.paying_monthly + s.paying_annual
   const mrr = approximateMonthlyRevenue(s.paying_monthly, s.paying_annual)
@@ -64,8 +64,8 @@ export default function OverviewTab() {
         <StatCard label="Awaiting approval" value={String(s.transactions_pending)} hint="sitting in Pending" />
       </div>
 
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Signups per day (30 days)</h2>
+      <Card className="relative overflow-hidden p-5 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-3 text-sm font-semibold text-sb-ink">Signups per day (30 days)</h2>
         {growth.loading ? (
           <div className="skeleton h-40 rounded-xl" />
         ) : growth.error ? (
@@ -86,11 +86,11 @@ export default function OverviewTab() {
           while it was being collected. What is still true is narrower: this
           particular figure is a projection, and no view over `payments` has
           been built yet. */}
-      <p className="text-xs text-zinc-500 leading-relaxed border-t border-border-subtle/50 pt-4">
+      <p className="text-xs text-sb-ink-muted leading-relaxed border-t border-sb-hairline pt-4">
         Revenue is approximate — projected from the plans people hold today, not read from
         payment records. It counts every active plan at list price, so accounts on an admin
         grant or a coupon are included even though nothing was paid for them. Real receipts
-        are recorded in <code className="text-zinc-400">payments</code>; a historic view over
+        are recorded in <code className="text-sb-ink font-mono bg-surface-2 px-1.5 py-0.5 rounded border border-sb-hairline">payments</code>; a historic view over
         them is not built yet.
       </p>
     </div>

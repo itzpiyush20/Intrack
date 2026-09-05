@@ -551,19 +551,27 @@ export default function SettingsPage() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in">
+      <div className="relative animate-fade-in">
+        {/* Ambient emerald background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
+        </div>
+
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Settings</h1>
-          <p className="mt-1.5 text-sm text-zinc-400 max-w-2xl">
+          <div className="mb-2 flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Sync & Rules Active
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Settings</h1>
+          <p className="mt-1.5 text-sm text-sb-ink-muted max-w-2xl">
             Your categories and cards, how your inbox is read, and what happens to your data.
           </p>
         </div>
 
-        {/* Nav and panel sit side by side from md up — the shape every settings
-            screen a user has met uses — and stack on a phone, where a vertical
-            rail would eat the whole first screen. Below md the strip scrolls
-            sideways and bleeds to the viewport edge so it reads as scrollable. */}
+        {/* Nav and panel sit side by side from md up */}
         <div className="mt-6 flex flex-col gap-6 md:mt-8 md:flex-row md:items-start md:gap-8">
           <nav
             role="tablist"
@@ -586,20 +594,17 @@ export default function SettingsPage() {
                   aria-controls={`settings-panel-${t.id}`}
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    'relative flex items-center gap-2.5 rounded-xl px-3.5 h-11 text-sm font-medium',
+                    'relative flex items-center gap-2.5 rounded-xl px-3.5 h-11 text-sm font-semibold',
                     'whitespace-nowrap cursor-pointer transition-colors md:w-full',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                    isActive ? 'text-brand-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-surface-2/70'
+                    isActive ? 'text-brand-700' : 'text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/70'
                   )}
                 >
                   {isActive && (
-                    // One indicator that travels to whichever tab is active —
-                    // horizontally on a phone, vertically on the rail — instead
-                    // of four that blink on and off.
                     <motion.span
                       layoutId="settings-tab-indicator"
                       aria-hidden="true"
-                      className="absolute inset-0 rounded-xl bg-brand-500/10 border border-brand-500/30"
+                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
                       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
                     />
                   )}
@@ -610,8 +615,7 @@ export default function SettingsPage() {
             })}
           </nav>
 
-          {/* One column of sections. The old 7/5 split only ever applied above
-              md, and below it produced a single very long scroll. */}
+          {/* One column of sections */}
           <div className="min-w-0 flex-1 md:max-w-3xl">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -637,9 +641,9 @@ export default function SettingsPage() {
           {tab === 'scanning' && (
             <>
             {/* Gmail Connection Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-brand-400 shrink-0" />
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-brand-600 shrink-0" />
                 <span>Gmail Inbox Connection</span>
               </h2>
               {/* Connection state is said in words and shown with an icon, never
@@ -648,8 +652,8 @@ export default function SettingsPage() {
                 className={cn(
                   'mb-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold',
                   hasGoogleToken
-                    ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
-                    : 'bg-surface-2 text-zinc-400'
+                    ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] border border-emerald-200/80'
+                    : 'bg-surface-2 text-sb-ink-muted border border-sb-hairline'
                 )}
               >
                 {hasGoogleToken
@@ -658,7 +662,7 @@ export default function SettingsPage() {
               </p>
               {hasGoogleToken ? (
                 <>
-                  <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
+                  <p className="text-sm text-sb-ink-secondary mb-4 leading-relaxed">
                     Intrack reads bank transaction alerts from your Gmail when you run a scan,
                     and logs them as expenses for you to approve. Disconnecting revokes our access
                     at Google immediately, so no further scan can run. Your already-imported
@@ -676,7 +680,7 @@ export default function SettingsPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
+                  <p className="text-sm text-sb-ink-secondary mb-4 leading-relaxed">
                     Intrack has no access to your inbox. Connect it to let scans read your bank
                     transaction alerts and log them as expenses for you to approve.
                   </p>
@@ -693,22 +697,12 @@ export default function SettingsPage() {
               )}
             </Card>
             {/* Smart Merchant Rules Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
-                <Brain className="h-5 w-5 text-brand-400 shrink-0" />
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Brain className="h-5 w-5 text-brand-600 shrink-0" />
                 <span>Smart Merchant Rules</span>
               </h2>
-              {/* This used to promise that Intrack "auto-approves them when
-                  confidence is high", alongside a per-rule Auto-Approve
-                  checkbox. Neither was true: applyMerchantRulesFromRows returns
-                  approval_status 'pending' for every match regardless of
-                  confidence, auto_approve or times_confirmed, which is
-                  invariant 1 in CLAUDE.md. The checkbox wrote a column nothing
-                  reads, so it was a switch that changed nothing — and it
-                  implied a user could turn OFF a protection that is actually
-                  unconditional. Both are gone; the copy now says what the
-                  scanner does. */}
-              <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
+              <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
                 Rules learned from your manual approvals. Intrack applies the category
                 automatically to matching transactions — but every one still lands in
                 Pending for you to approve. Nothing is ever added to your accounts
@@ -718,7 +712,7 @@ export default function SettingsPage() {
               {/* Inline Rule Creator Form */}
               <form
                 onSubmit={handleAddCustomRule}
-                className="grid grid-cols-1 gap-3 mb-5 p-4 bg-surface-2/40 border border-border-subtle/40 rounded-xl sm:grid-cols-2"
+                className="grid grid-cols-1 gap-3 mb-5 p-4 bg-surface-2/60 border border-sb-hairline rounded-xl sm:grid-cols-2 shadow-xs"
               >
                 <Input
                   label="Keyword"
@@ -745,7 +739,7 @@ export default function SettingsPage() {
                   <option value="income">🟢 Income</option>
                 </Select>
                 <div className="flex items-end">
-                  <Button type="submit" block className="gap-1.5">
+                  <Button type="submit" block className="gap-1.5 shadow-xs">
                     <Plus className="h-4 w-4" /> Add rule
                   </Button>
                 </div>
@@ -768,14 +762,12 @@ export default function SettingsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
                         transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-                        className="flex flex-col gap-3 p-3 rounded-xl bg-surface-2/50 border border-border-subtle/40 transition-colors hover:border-border-hover sm:flex-row sm:items-center sm:gap-2"
+                        className="flex flex-col gap-3 p-3 rounded-xl bg-surface-1 border border-sb-hairline shadow-xs transition-all hover:border-brand-500/30 hover:shadow-card sm:flex-row sm:items-center sm:gap-2"
                       >
-                        <span className="text-sm font-semibold text-zinc-100 capitalize truncate sm:flex-1">
+                        <span className="text-sm font-semibold text-sb-ink capitalize truncate sm:flex-1">
                           {key}
                         </span>
                         <div className="flex items-center gap-2">
-                          {/* Select puts className on the <select> and renders
-                              its own wrapper, so widths go on the wrapper. */}
                           <div className="flex-1 min-w-0 sm:flex-none sm:w-40">
                             <Select
                               value={rule.category}
@@ -821,19 +813,19 @@ export default function SettingsPage() {
           {tab === 'data' && (
             <>
             {/* Encrypted Backup & Restore Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
-                <Lock className="h-5 w-5 text-brand-400 shrink-0" />
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-brand-600 shrink-0" />
                 <span>Privacy-First Encrypted Backup</span>
               </h2>
-              <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
-                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-zinc-200">AES-256-GCM</strong> before downloading.
+              <p className="text-sm text-sb-ink-muted mb-6 leading-relaxed">
+                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-sb-ink">AES-256-GCM</strong> before downloading.
               </p>
 
               <div className="space-y-6">
                 {/* Export Block */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Download Backup</h3>
+                  <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider">Download Backup</h3>
                   <form onSubmit={handleBackup} className="space-y-3">
                     {backupSuccess && (
                       <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-sm text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
@@ -849,15 +841,15 @@ export default function SettingsPage() {
                       onChange={(e) => setBackupPassword(e.target.value)}
                       required
                     />
-                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5">
+                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5 shadow-xs">
                       <Download className="h-4 w-4" /> Encrypt & Export Backup
                     </Button>
                   </form>
                 </div>
 
                 {/* Import Block */}
-                <div className="space-y-4 border-t border-border-subtle/30 pt-6">
-                  <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Restore Backup</h3>
+                <div className="space-y-4 border-t border-sb-hairline pt-6">
+                  <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider">Restore Backup</h3>
                   <form onSubmit={handleRestore} className="space-y-3">
                     {restoreError && (
                       <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-sm text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
@@ -872,16 +864,16 @@ export default function SettingsPage() {
                       </div>
                     )}
                     <div>
-                      <label htmlFor="restore-file-input" className="block text-sm font-medium text-zinc-300 mb-1.5 cursor-pointer">
+                      <label htmlFor="restore-file-input" className="block text-sm font-medium text-sb-ink mb-1.5 cursor-pointer">
                         Backup file (.drbak)
                       </label>
                       <input
                         id="restore-file-input"
                         type="file"
                         accept=".drbak"
-                        className="w-full text-sm text-zinc-400 rounded-lg border border-border-default bg-surface-1 p-2
+                        className="w-full text-sm text-sb-ink-muted rounded-lg border border-sb-hairline bg-surface-1 p-2
                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-semibold
-                          file:bg-surface-2 file:text-zinc-200 hover:file:bg-surface-3 file:cursor-pointer cursor-pointer
+                          file:bg-surface-2 file:text-sb-ink hover:file:bg-surface-3 file:cursor-pointer cursor-pointer
                           focus-within:ring-2 focus-within:ring-brand-500/30 focus-within:border-brand-500"
                       />
                     </div>
@@ -893,19 +885,19 @@ export default function SettingsPage() {
                       onChange={(e) => setRestorePassword(e.target.value)}
                       required
                     />
-                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5">
+                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5 shadow-xs">
                       <Upload className="h-4 w-4" /> Decrypt & Merge Backup
                     </Button>
                   </form>
                 </div>
               </div>
             </Card>
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
-                <Download className="h-5 w-5 text-brand-400 shrink-0" />
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Download className="h-5 w-5 text-brand-600 shrink-0" />
                 <span>Data Portability (Plain Export)</span>
               </h2>
-              <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
+              <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
                 Export your transactions — approved and pending — in standard, human-readable formats for tax filing, spreadsheets, or migrations.
               </p>
 
@@ -935,7 +927,7 @@ export default function SettingsPage() {
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-sb-ink-muted">
                   {exportFrom || exportTo
                     ? `Exporting ${exportFrom ? formatDate(exportFrom) : 'the beginning'} → ${exportTo ? formatDate(exportTo) : 'today'}`
                     : 'Leave both blank to export everything'}
@@ -943,7 +935,7 @@ export default function SettingsPage() {
                 {(exportFrom || exportTo) && (
                   <button
                     onClick={() => { setExportFrom(''); setExportTo(''); setExportRangeError('') }}
-                    className="text-sm font-medium text-brand-400 underline underline-offset-2 bg-transparent border-none cursor-pointer shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                    className="text-sm font-medium text-brand-600 hover:text-brand-700 underline underline-offset-2 bg-transparent border-none cursor-pointer shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                   >
                     Clear
                   </button>
@@ -954,7 +946,7 @@ export default function SettingsPage() {
                 <Button
                   onClick={() => handlePlainExport('csv')}
                   variant="secondary"
-                  className="justify-center gap-1.5"
+                  className="justify-center gap-1.5 shadow-xs"
                   disabled={exportLoading}
                 >
                   <FileSpreadsheet className="h-4 w-4 shrink-0" /> Export CSV
@@ -962,7 +954,7 @@ export default function SettingsPage() {
                 <Button
                   onClick={() => handlePlainExport('json')}
                   variant="secondary"
-                  className="justify-center gap-1.5"
+                  className="justify-center gap-1.5 shadow-xs"
                   disabled={exportLoading}
                 >
                   <FileJson className="h-4 w-4 shrink-0" /> Export JSON
@@ -970,15 +962,15 @@ export default function SettingsPage() {
               </div>
             </Card>
             {/* Change Password Card */}
-            <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
-                <Key className="h-5 w-5 text-brand-400 shrink-0" />
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Key className="h-5 w-5 text-brand-600 shrink-0" />
                 <span>Change Account Password</span>
               </h2>
-              <p className="text-sm text-zinc-400 mb-2 leading-relaxed">
+              <p className="text-sm text-sb-ink-muted mb-2 leading-relaxed">
                 Update your account password. Passwords must be at least 6 characters.
               </p>
-              <p className="text-sm text-zinc-500 mb-5 leading-relaxed">
+              <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
                 Forgotten it entirely? Use “Reset My Password” on your Profile page instead —
                 it emails you a reset link.
               </p>
@@ -1013,7 +1005,7 @@ export default function SettingsPage() {
                   required
                   disabled={changePasswordLoading}
                 />
-                <Button type="submit" block loading={changePasswordLoading} disabled={changePasswordLoading} className="gap-1.5">
+                <Button type="submit" block loading={changePasswordLoading} disabled={changePasswordLoading} className="gap-1.5 shadow-xs">
                   <Check className="h-4 w-4" /> Update Password
                 </Button>
               </form>

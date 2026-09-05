@@ -140,16 +140,16 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
         />
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Type</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-2">Type</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setType('expense')}
               className={cn(
-                'h-11 rounded-lg border text-sm font-semibold transition-colors',
+                'h-11 rounded-xl border text-sm font-semibold transition-all cursor-pointer shadow-xs',
                 type === 'expense'
-                  ? 'border-brand-500 bg-brand-500/10 text-brand-400'
-                  : 'border-border-default text-zinc-400 hover:border-border-hover'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700'
+                  : 'border-sb-hairline bg-surface-1 text-sb-ink-muted hover:text-sb-ink hover:border-brand-500/30'
               )}
             >
               🔴 Expense
@@ -158,10 +158,10 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
               type="button"
               onClick={() => setType('income')}
               className={cn(
-                'h-11 rounded-lg border text-sm font-semibold transition-colors',
+                'h-11 rounded-xl border text-sm font-semibold transition-all cursor-pointer shadow-xs',
                 type === 'income'
-                  ? 'border-brand-500 bg-brand-500/10 text-brand-400'
-                  : 'border-border-default text-zinc-400 hover:border-border-hover'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700'
+                  : 'border-sb-hairline bg-surface-1 text-sb-ink-muted hover:text-sb-ink hover:border-brand-500/30'
               )}
             >
               🟢 Income
@@ -170,7 +170,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Emoji</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-2">Emoji</label>
           <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
             {CATEGORY_EMOJI_CHOICES.map((e) => (
               <button
@@ -180,10 +180,10 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
                 aria-label={`Choose emoji ${e}`}
                 aria-pressed={emoji === e}
                 className={cn(
-                  'h-11 w-11 sm:h-9 sm:w-9 rounded-lg border text-base flex items-center justify-center transition-colors',
+                  'h-11 w-11 sm:h-9 sm:w-9 rounded-xl border text-base flex items-center justify-center transition-all cursor-pointer shadow-xs',
                   emoji === e
-                    ? 'border-brand-500 bg-brand-500/10'
-                    : 'border-border-default hover:border-border-hover'
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 ring-2 ring-brand-500/20'
+                    : 'border-sb-hairline bg-surface-1 hover:border-brand-500/30'
                 )}
               >
                 {e}
@@ -193,7 +193,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-2">Color</label>
           <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-12">
             {CATEGORY_COLOR_CHOICES.map((c) => (
               <button
@@ -203,14 +203,14 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
                 aria-label={`Choose color ${c}`}
                 aria-pressed={color === c}
                 className={cn(
-                  'h-11 w-11 sm:h-7 sm:w-7 rounded-full flex items-center justify-center transition-transform',
+                  'h-11 w-11 sm:h-7 sm:w-7 rounded-full flex items-center justify-center transition-transform cursor-pointer',
                   color === c ? 'scale-110' : 'hover:scale-105'
                 )}
               >
                 <span
                   className={cn(
-                    'h-7 w-7 rounded-full border-2 block',
-                    color === c ? 'border-white' : 'border-transparent'
+                    'h-7 w-7 rounded-full border-2 block shadow-xs',
+                    color === c ? 'border-brand-700 ring-2 ring-brand-500/30' : 'border-white/50'
                   )}
                   style={{ backgroundColor: c }}
                 />
@@ -220,20 +220,20 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
         </div>
 
         {type === 'expense' && (
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-sm font-medium text-sb-ink cursor-pointer select-none">
             <input
               type="checkbox"
               checked={budgetEligible}
               onChange={(e) => setBudgetEligible(e.target.checked)}
-              className="rounded border-zinc-700 bg-surface-2 text-brand-500 focus:ring-brand-500/25 h-4 w-4"
+              className="rounded border-sb-hairline bg-surface-1 text-brand-600 focus:ring-brand-500/25 h-4 w-4 cursor-pointer"
             />
             Allow budget limits for this category
           </label>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">Analytics tags (optional)</label>
-          <p className="text-xs text-zinc-500 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-1">Analytics tags (optional)</label>
+          <p className="text-xs text-sb-ink-muted mb-2">
             Controls how this category counts toward the Insights page — the 50/30/20 breakdown, income total, and subscription/credit-card-bill tracking.
             Pick only one of Needs, Wants, or Savings per category — Subscription can be added alongside Wants if it's also a recurring bill.
           </p>
@@ -245,10 +245,10 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
                 onClick={() => toggleTag(value)}
                 aria-pressed={analyticsTags.includes(value)}
                 className={cn(
-                  'px-3 h-8 rounded-full border text-xs font-semibold transition-colors',
+                  'px-3 h-8 rounded-full border text-xs font-semibold transition-all cursor-pointer shadow-xs',
                   analyticsTags.includes(value)
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-400'
-                    : 'border-border-default text-zinc-400 hover:border-border-hover'
+                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    : 'border-sb-hairline bg-surface-1 text-sb-ink-muted hover:text-sb-ink hover:border-brand-500/30'
                 )}
               >
                 {label}

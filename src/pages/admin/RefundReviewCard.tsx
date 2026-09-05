@@ -54,14 +54,14 @@ export default function RefundReviewCard() {
   if (loading) return null
   if (error) {
     return (
-      <Card className="border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] p-4">
-        <p className="text-sm text-[var(--status-warning-text)]">
+      <Card className="border-amber-200/80 bg-amber-50/70 p-4 shadow-card">
+        <p className="text-sm font-semibold text-amber-900">
           Could not check for double charges: {error}
         </p>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-sb-ink-muted">
           If this says the function does not exist, run supabase/041_flag_double_charges.sql.
         </p>
-        <button onClick={reload} className="mt-2 text-sm text-brand-400 underline">Retry</button>
+        <button onClick={reload} className="mt-2 text-sm font-semibold text-brand-600 underline hover:text-brand-700">Retry</button>
       </Card>
     )
   }
@@ -86,13 +86,13 @@ export default function RefundReviewCard() {
   }
 
   return (
-    <Card className="border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] p-4">
-      <h2 className="text-sm font-semibold text-[var(--status-warning-text)]">
+    <Card className="border-amber-200/80 bg-amber-50/50 p-4 shadow-card">
+      <h2 className="text-sm font-semibold text-amber-900">
         {rows.length === 1
           ? '1 payment may need refunding'
           : `${rows.length} payments may need refunding`}
       </h2>
-      <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+      <p className="mt-1 text-xs text-sb-ink-secondary leading-relaxed">
         These purchases arrived while a plan was already queued — almost always a double-click
         or gateway lag. The customer was charged and the time was added to their queued plan,
         so nobody lost anything. But your refund policy covers duplicate charges, and the
@@ -100,22 +100,22 @@ export default function RefundReviewCard() {
         if you have decided not to.
       </p>
 
-      {actionError && <p className="mt-3 text-sm text-red-400">{actionError}</p>}
+      {actionError && <p className="mt-3 text-sm text-rose-600 font-medium">{actionError}</p>}
 
       <div className="mt-4 space-y-2">
         {rows.map((row) => (
           <div
             key={row.id}
-            className="flex flex-col gap-2 rounded-xl border border-border-subtle/40 bg-surface-1 p-3 text-xs sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-2 rounded-xl border border-sb-hairline bg-surface-1 p-3 text-xs sm:flex-row sm:items-center sm:justify-between shadow-xs"
           >
             <div className="min-w-0">
-              <p className="font-medium text-zinc-200">{row.email}</p>
-              <p className="mt-0.5 text-zinc-500">
+              <p className="font-semibold text-sb-ink">{row.email}</p>
+              <p className="mt-0.5 text-sb-ink-muted">
                 ₹{Number(row.amount_inr).toLocaleString('en-IN')} · {row.plan_type} ·{' '}
                 {new Date(row.created_at).toLocaleString('en-IN')}
               </p>
               {/* Selectable and monospaced: this gets pasted into Razorpay. */}
-              <p className="mt-0.5 font-mono text-[11px] text-zinc-500 select-all break-all">
+              <p className="mt-0.5 font-mono text-[11px] text-sb-ink-muted select-all break-all">
                 {row.razorpay_order_id ?? 'no order id'}
                 {row.razorpay_payment_id ? ` · ${row.razorpay_payment_id}` : ''}
               </p>
@@ -123,7 +123,7 @@ export default function RefundReviewCard() {
             <button
               onClick={() => markReviewed(row)}
               disabled={busyId === row.id}
-              className="shrink-0 text-xs text-brand-400 underline disabled:opacity-40"
+              className="shrink-0 text-xs font-semibold text-brand-600 underline hover:text-brand-700 disabled:opacity-40 cursor-pointer"
             >
               {busyId === row.id ? 'Saving…' : 'Mark reviewed'}
             </button>

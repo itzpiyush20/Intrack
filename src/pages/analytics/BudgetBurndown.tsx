@@ -64,8 +64,8 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
           </div>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Gauge className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
-            title="No budgets set"
+            icon={<Gauge className="h-8 w-8 text-brand-600" aria-hidden="true" />}
+            title="No active budget set"
             description="Set a monthly limit on the Budgets page and this shows whether you are ahead of it or behind it."
           />
         ) : (
@@ -108,7 +108,7 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                 const body = (
                   <>
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-zinc-100">
+                      <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-sb-ink">
                         <span
                           aria-hidden="true"
                           className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-inset ring-black/10"
@@ -129,11 +129,7 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                       aria-hidden="true"
                       focusable="false"
                     >
-                      {/* Ideal even-pace line. This used to be stroked in
-                          `var(--zinc-600)`, which the light theme resolves to
-                          #dde1e8 — the reference line was invisible against the
-                          card, so the actual line had nothing to be read
-                          against. */}
+                      {/* Ideal even-pace line. */}
                       <polyline
                         points={idealPoints}
                         fill="none"
@@ -167,15 +163,15 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                     </svg>
 
                     <div className="mt-2 flex items-baseline justify-between gap-2 text-sm">
-                      <span className="text-zinc-300 tnum">
+                      <span className="text-sb-ink-secondary font-medium tnum">
                         {formatCurrencyCompact(item.spentSoFar)}
-                        <span className="text-zinc-400"> of {formatCurrencyCompact(item.budgetAmount)}</span>
+                        <span className="text-sb-ink-muted"> of {formatCurrencyCompact(item.budgetAmount)}</span>
                       </span>
-                      <span className="font-semibold text-zinc-50 tnum">{Math.round(pctUsed)}%</span>
+                      <span className="font-bold text-sb-ink tnum">{Math.round(pctUsed)}%</span>
                     </div>
 
                     {isOver && item.projectedOverDate && (
-                      <p className="mt-1.5 text-xs font-medium text-[var(--status-warning-text)]">
+                      <p className="mt-1.5 text-xs font-semibold text-[var(--status-warning-text)]">
                         {item.isPastOvershoot ? 'Crossed' : 'At this pace, crosses'} the limit around{' '}
                         {item.projectedOverDate} — about {formatCurrency(item.projectedOverBy)} over by month end.
                       </p>
@@ -190,19 +186,19 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                         type="button"
                         onClick={() => onCategoryClick(item.category)}
                         aria-label={`${cat.label}: ${formatCurrency(item.spentSoFar)} of ${formatCurrency(item.budgetAmount)} spent, ${status.label}. Open its transactions.`}
-                        className="w-full rounded-xl border border-border-subtle bg-surface-2/40 p-3.5 text-left transition-colors hover:border-border-hover hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                        className="w-full rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs p-3.5 text-left transition-all hover:border-brand-500/30 hover:bg-surface-2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 cursor-pointer"
                       >
                         {body}
                       </button>
                     ) : (
-                      <div className="rounded-xl border border-border-subtle bg-surface-2/40 p-3.5">{body}</div>
+                      <div className="rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs p-3.5">{body}</div>
                     )}
                   </li>
                 )
               })}
             </ul>
 
-            <p className="mt-4 text-xs text-zinc-400">
+            <p className="mt-4 text-xs text-sb-ink-muted">
               Dashed grey is an even daily pace; the solid line is what you have
               actually spent, and the faded dashes ahead of it are where that
               pace lands by month end.

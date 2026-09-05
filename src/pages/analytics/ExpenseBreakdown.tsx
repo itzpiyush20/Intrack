@@ -81,7 +81,7 @@ export function ExpenseBreakdown({
           </div>
         ) : !summary || summary.total_expenses === 0 ? (
           <EmptyState
-            icon={<PieChart className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+            icon={<PieChart className="h-8 w-8 text-brand-600" aria-hidden="true" />}
             title="No spending in this period"
             description="Record an expense in this range and the split by category appears here."
           />
@@ -96,9 +96,9 @@ export function ExpenseBreakdown({
               className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full sm:h-40 sm:w-40"
               style={{ backgroundImage: getConicGradientString() }}
             >
-              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-surface-1 sm:h-28 sm:w-28">
-                <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total out</p>
-                <p className="mt-0.5 text-base font-semibold text-zinc-50 tnum">
+              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-surface-1 shadow-inner sm:h-28 sm:w-28">
+                <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Total out</p>
+                <p className="mt-0.5 text-base font-bold text-sb-ink tnum">
                   {formatCurrencyCompact(summary.total_expenses)}
                 </p>
               </div>
@@ -115,7 +115,7 @@ export function ExpenseBreakdown({
                       disabled={!onCategoryClick}
                       onClick={onCategoryClick ? () => onCategoryClick(item.category) : undefined}
                       aria-label={`${cat.label}: ${amount}, ${item.percentage.toFixed(0)} percent of spending. Open its transactions.`}
-                      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-default disabled:hover:bg-transparent"
+                      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-default disabled:hover:bg-transparent"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <span
@@ -123,11 +123,11 @@ export function ExpenseBreakdown({
                           className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-inset ring-black/10"
                           style={{ backgroundColor: cat.color }}
                         />
-                        <span className="truncate text-sm font-medium text-zinc-100">{cat.label}</span>
+                        <span className="truncate text-sm font-semibold text-sb-ink">{cat.label}</span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold text-zinc-50 tnum">
+                      <span className="shrink-0 text-sm font-bold text-sb-ink tnum">
                         {formatCurrencyCompact(item.amount)}
-                        <span className="ml-1 font-normal text-zinc-400">
+                        <span className="ml-1 font-normal text-sb-ink-muted">
                           {item.percentage.toFixed(0)}%
                         </span>
                       </span>
@@ -136,8 +136,8 @@ export function ExpenseBreakdown({
                 )
               })}
               {restCount > 0 && (
-                <li className="flex items-center justify-between gap-3 border-t border-border-subtle px-2 pt-2.5 text-sm">
-                  <span className="flex min-w-0 items-center gap-2.5 text-zinc-400">
+                <li className="flex items-center justify-between gap-3 border-t border-sb-hairline px-2.5 pt-2.5 text-sm">
+                  <span className="flex min-w-0 items-center gap-2.5 text-sb-ink-muted">
                     <span
                       aria-hidden="true"
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -147,7 +147,7 @@ export function ExpenseBreakdown({
                       {restCount} more categor{restCount === 1 ? 'y' : 'ies'}
                     </span>
                   </span>
-                  <span className="shrink-0 font-medium text-zinc-300 tnum">
+                  <span className="shrink-0 font-semibold text-sb-ink-secondary tnum">
                     {formatCurrencyCompact(restAmount)}
                   </span>
                 </li>

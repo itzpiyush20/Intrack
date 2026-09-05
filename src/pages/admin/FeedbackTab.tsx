@@ -83,9 +83,9 @@ export default function FeedbackTab() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <StatCard label="Average rating" value={s.total === 0 ? '—' : `${s.average_rating} / 5`} />
           <StatCard label="Total feedback" value={String(s.total)} />
-          <Card className="p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Breakdown</p>
-            <p className="mt-2 text-sm text-zinc-300 tnum">
+          <Card className="relative overflow-hidden p-4 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+            <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Breakdown</p>
+            <p className="mt-2 text-sm text-sb-ink font-semibold tnum">
               {s.bug} bugs · {s.feature_request} features · {s.ui_ux} UI · {s.other} other
             </p>
           </Card>
@@ -99,8 +99,8 @@ export default function FeedbackTab() {
             onClick={() => setUnhandledOnly(only)}
             className={
               unhandledOnly === only
-                ? 'rounded-full bg-brand-500/15 border border-brand-500/30 px-3 py-1.5 text-xs font-semibold text-brand-500'
-                : 'rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-300'
+                ? 'rounded-full bg-brand-50 border border-brand-200/80 px-3.5 py-1 text-xs font-semibold text-brand-700 shadow-xs cursor-pointer'
+                : 'rounded-full border border-sb-hairline bg-surface-1 px-3.5 py-1 text-xs font-medium text-sb-ink-muted hover:text-sb-ink cursor-pointer transition-colors'
             }
           >
             {only ? 'Unhandled only' : 'All'}
@@ -135,26 +135,26 @@ export default function FeedbackTab() {
         return (
           <Card
             key={f.id}
-            className={handled ? 'opacity-60' : 'border-l-2 border-l-brand-500'}
+            className={`border border-sb-hairline bg-surface-1 shadow-card ${handled ? 'opacity-60' : 'border-l-4 border-l-brand-500'}`}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className={handled ? 'text-sm text-zinc-400' : 'text-sm font-semibold text-zinc-100'}>
+                <p className={handled ? 'text-sm text-sb-ink-muted' : 'text-sm font-semibold text-sb-ink'}>
                   {f.email}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-sb-ink-muted">
                   {f.category} · {new Date(f.created_at).toLocaleDateString('en-IN')}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-medium text-zinc-400 tnum">{f.rating}/5</span>
+              <span className="shrink-0 text-sm font-semibold text-sb-ink tnum">{f.rating}/5</span>
             </div>
 
-            <p className={handled ? 'mt-3 whitespace-pre-wrap text-sm text-zinc-400' : 'mt-3 whitespace-pre-wrap text-sm text-zinc-300'}>
+            <p className={handled ? 'mt-3 whitespace-pre-wrap text-sm text-sb-ink-muted' : 'mt-3 whitespace-pre-wrap text-sm text-sb-ink-secondary leading-relaxed'}>
               {f.message}
             </p>
 
             <div className="mt-3 flex items-center justify-between gap-4">
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-sb-ink-muted">
                 {handled && f.handled_at !== null
                   ? `Handled ${new Date(f.handled_at).toLocaleDateString('en-IN')}`
                   : 'Needs a reply'}

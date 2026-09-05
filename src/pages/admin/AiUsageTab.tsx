@@ -27,23 +27,23 @@ export default function AiUsageTab() {
         <StatCard label="Scan calls today" value={String(totalScan)} />
       </div>
 
-      <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Heaviest users</h2>
+      <Card className="relative overflow-hidden p-5 border-sb-hairline shadow-card before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+        <h2 className="mb-3 text-sm font-semibold text-sb-ink">Heaviest users</h2>
         {rows.length === 0 ? (
           <EmptyState icon="🤖" title="No AI calls recorded today" />
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1 divide-y divide-sb-hairline/60">
             {rows.map((r) => (
-              <li key={r.email} className="flex items-center justify-between gap-3 py-1 text-sm text-zinc-300">
+              <li key={r.email} className="flex items-center justify-between gap-3 py-2 text-sm text-sb-ink font-medium">
                 <span className="min-w-0 truncate">{r.email}</span>
-                <span className="shrink-0 tnum text-zinc-500">{r.ai_calls_count} insight · {r.ai_scan_calls_count} scan</span>
+                <span className="shrink-0 tnum text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-sb-ink-muted border border-sb-hairline">{r.ai_calls_count} insight · {r.ai_scan_calls_count} scan</span>
               </li>
             ))}
           </ul>
         )}
       </Card>
 
-      <p className="text-xs text-zinc-500 leading-relaxed">
+      <p className="text-xs text-sb-ink-muted leading-relaxed border-t border-sb-hairline pt-4">
         Counts reset daily. Percentages against the daily cap are not shown: the caps are
         constants inside the AI proxy, and duplicating them here would drift from the real
         limit.

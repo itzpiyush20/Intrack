@@ -28,7 +28,7 @@ export function ChartLegend({ items, className }: ChartLegendProps) {
   return (
     <ul className={cn('flex flex-wrap items-center justify-center gap-x-4 gap-y-2', className)}>
       {items.map((item) => (
-        <li key={item.label} className="flex items-center gap-2 text-xs font-medium text-zinc-300">
+        <li key={item.label} className="flex items-center gap-2 text-xs font-semibold text-sb-ink-secondary">
           <span
             aria-hidden="true"
             className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-inset ring-black/10"

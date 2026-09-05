@@ -47,13 +47,13 @@ export function SmartWealthTips({
 }: SmartWealthTipsProps) {
   const { getStyle } = useCategories()
   return (
-    <Card className="lg:col-span-6 flex flex-col min-h-[400px] p-5">
+    <Card className="relative overflow-hidden lg:col-span-6 flex flex-col min-h-[400px] p-5 border-sb-hairline bg-surface-1 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
       <div>
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Lightbulb className="w-5 h-5 text-brand-400 shrink-0" />
+        <h2 className="text-base font-bold text-sb-ink flex items-center gap-2">
+          <Lightbulb className="w-5 h-5 text-brand-600 shrink-0" />
           Smart Wealth Insights
         </h2>
-        <p className="text-xs text-zinc-500 mt-0.5">Automated cashflow tips and intelligence</p>
+        <p className="text-xs text-sb-ink-muted mt-0.5">Automated cashflow tips and intelligence</p>
       </div>
 
       <div className="flex-1 flex flex-col justify-center space-y-4 mt-6">
@@ -63,7 +63,7 @@ export function SmartWealthTips({
           ))
         ) : !summary || (summary.total_income === 0 && summary.total_expenses === 0) ? (
           <EmptyState
-            icon={<Lightbulb className="w-8 h-8 text-zinc-500" />}
+            icon={<Lightbulb className="w-8 h-8 text-sb-ink-muted" />}
             title="No advice yet"
             description="Record income and expenses for this period to trigger our personal wealth advisor."
           />
@@ -71,7 +71,7 @@ export function SmartWealthTips({
           <>
             {trend && (
               <div
-                className={`rounded-2xl border p-4 flex gap-3.5 animate-slide-up ${
+                className={`rounded-2xl border p-4 flex gap-3.5 shadow-xs animate-slide-up ${
                   trend.increased
                     ? 'bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)]'
                     : 'bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)]'
@@ -86,7 +86,7 @@ export function SmartWealthTips({
                   <h4 className={`font-bold ${trend.increased ? 'text-[var(--status-danger-text)]' : 'text-[var(--status-positive-text)]'}`}>
                     {trend.increased ? 'Discretionary Outflow Surge' : 'Excellent Budget Control'}
                   </h4>
-                  <p className="text-zinc-400 mt-1">
+                  <p className="text-sb-ink-muted mt-1">
                     {trend.increased
                       ? `Your outflow expanded by ${trend.pct.toFixed(0)}% (+${formatCurrency(
                           Math.abs(trend.diff)
@@ -100,11 +100,11 @@ export function SmartWealthTips({
             )}
 
             {summary.total_income === 0 ? (
-              <div className="rounded-2xl border border-border-default bg-surface-2/20 p-4 flex gap-3.5 animate-slide-up stagger-1">
+              <div className="rounded-2xl border border-sb-hairline bg-surface-2/60 p-4 flex gap-3.5 shadow-xs animate-slide-up stagger-1">
                 <TrendingUp className="w-6 h-6 text-[var(--status-info-icon)] shrink-0 mt-0.5" />
                 <div className="text-xs leading-relaxed">
-                  <h4 className="font-bold text-zinc-200">No income recorded this period</h4>
-                  <p className="text-zinc-400 mt-1">
+                  <h4 className="font-bold text-sb-ink">No income recorded this period</h4>
+                  <p className="text-sb-ink-muted mt-1">
                     We can't work out a savings rate without income to measure it against. Add
                     your salary or other credits for this period to unlock this reading.
                   </p>
@@ -112,11 +112,11 @@ export function SmartWealthTips({
               </div>
             ) : (
               <div
-                className={`rounded-2xl border p-4 flex gap-3.5 animate-slide-up stagger-1 ${
+                className={`rounded-2xl border p-4 flex gap-3.5 shadow-xs animate-slide-up stagger-1 ${
                   savingsRate >= 30
                     ? 'bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)]'
                     : savingsRate >= 10
-                    ? 'bg-zinc-800/20 border-border-subtle/50'
+                    ? 'bg-surface-2/60 border-sb-hairline'
                     : 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)]'
                 }`}
               >
@@ -133,7 +133,7 @@ export function SmartWealthTips({
                       savingsRate >= 30
                         ? 'text-[var(--status-positive-text)]'
                         : savingsRate >= 10
-                        ? 'text-zinc-200'
+                        ? 'text-sb-ink'
                         : 'text-[var(--status-warning-text)]'
                     }`}
                   >
@@ -143,7 +143,7 @@ export function SmartWealthTips({
                       ? 'Healthy Saving Pattern'
                       : 'Aggressive Outflow Impact'}
                   </h4>
-                  <p className="text-zinc-400 mt-1">
+                  <p className="text-sb-ink-muted mt-1">
                     {savingsRate >= 30
                       ? `You secured a magnificent ${savingsRate.toFixed(
                           0
@@ -163,11 +163,11 @@ export function SmartWealthTips({
             )}
 
             {summary.category_breakdown.length > 0 && (
-              <div className="rounded-2xl border border-border-default bg-surface-2/20 p-4 flex gap-3.5 animate-slide-up stagger-2">
-                <Target className="w-6 h-6 text-brand-400 shrink-0 mt-0.5" />
+              <div className="rounded-2xl border border-sb-hairline bg-surface-2/60 p-4 flex gap-3.5 shadow-xs animate-slide-up stagger-2">
+                <Target className="w-6 h-6 text-brand-600 shrink-0 mt-0.5" />
                 <div className="text-xs leading-relaxed">
-                  <h4 className="font-bold text-zinc-200">Discretionary Focus Target</h4>
-                  <p className="text-zinc-400 mt-1">
+                  <h4 className="font-bold text-sb-ink">Discretionary Focus Target</h4>
+                  <p className="text-sb-ink-muted mt-1">
                     {(() => {
                       const top = summary.category_breakdown[0]
                       const cat = getStyle(top.category)
@@ -175,11 +175,11 @@ export function SmartWealthTips({
                       return (
                         <span className="flex items-center flex-wrap gap-x-1 gap-y-0.5">
                           <CategoryIcon name={top.category} className="text-sm shrink-0 inline" />
-                          <strong>{cat.label}</strong>
+                          <strong className="text-sb-ink">{cat.label}</strong>
                           <span>was your largest outflow absorb, eating</span>
-                          <strong>{top.percentage.toFixed(0)}%</strong>
+                          <strong className="text-sb-ink">{top.percentage.toFixed(0)}%</strong>
                           <span>of your total expenses. Trimming this category limit by just 15% would secure an extra</span>
-                          <strong>{formatCurrency(savingsTarget)}</strong>
+                          <strong className="text-sb-ink">{formatCurrency(savingsTarget)}</strong>
                           <span>next period!</span>
                         </span>
                       )

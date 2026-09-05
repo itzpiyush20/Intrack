@@ -18,12 +18,12 @@ import { cn } from '@/utils'
 /** A dense metric tile: label, big tabular-figure value, optional hint. */
 export function StatCard({ label, value, hint, emphasis }: { label: string; value: string; hint?: string; emphasis?: boolean }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className={cn('mt-2 text-2xl font-bold tnum tracking-tight', emphasis ? 'text-brand-500' : 'text-zinc-100')}>
+    <Card className="relative overflow-hidden p-4 shadow-card border border-sb-hairline before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/25 before:to-transparent">
+      <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">{label}</p>
+      <p className={cn('mt-2 text-2xl font-bold tnum tracking-tight', emphasis ? 'text-brand-600' : 'text-sb-ink')}>
         {value}
       </p>
-      {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-sb-ink-muted">{hint}</p>}
     </Card>
   )
 }
@@ -47,7 +47,7 @@ const PILL_TONE: Record<PillTone, string> = {
   positive: 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] border-[var(--status-positive-border)]',
   danger: 'bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)] border-[var(--status-danger-border)]',
   warning: 'bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] border-[var(--status-warning-border)]',
-  neutral: 'bg-surface-2 text-zinc-400 border-border-default',
+  neutral: 'bg-surface-2 text-sb-ink-muted border-sb-hairline',
 }
 
 const PILL_ICON: Record<PillTone, ReactNode> = {
@@ -110,13 +110,13 @@ export function FeedCardSkeleton() {
 
 export const TABLE_WRAP = 'overflow-x-auto'
 export const TABLE = 'w-full text-left text-sm'
-export const TABLE_HEAD = 'border-b border-border-subtle text-xs uppercase tracking-wider text-zinc-500'
-export const TABLE_HEAD_CELL = 'px-4 py-3 font-medium'
-export const TABLE_HEAD_CELL_NUM = 'px-4 py-3 font-medium text-right'
-export const TABLE_ROW = 'border-b border-border-subtle/50 transition-colors hover:bg-surface-2/40'
-export const TABLE_CELL = 'px-4 py-3 text-zinc-300'
-export const TABLE_CELL_NUM = 'px-4 py-3 text-right text-zinc-300 tnum'
-export const TABLE_CELL_STRONG = 'px-4 py-3 text-zinc-100 font-medium'
+export const TABLE_HEAD = 'border-b border-sb-hairline text-xs uppercase tracking-wider text-sb-ink-muted'
+export const TABLE_HEAD_CELL = 'px-4 py-3 font-semibold'
+export const TABLE_HEAD_CELL_NUM = 'px-4 py-3 font-semibold text-right'
+export const TABLE_ROW = 'border-b border-sb-hairline/60 transition-colors hover:bg-surface-2/60'
+export const TABLE_CELL = 'px-4 py-3 text-sb-ink-secondary'
+export const TABLE_CELL_NUM = 'px-4 py-3 text-right text-sb-ink-secondary tnum'
+export const TABLE_CELL_STRONG = 'px-4 py-3 text-sb-ink font-semibold'
 
 /** Prev/Next pager shared by every paginated admin table. */
 export function Pager({ page, pages, total, noun, onPrev, onNext }: {
@@ -124,9 +124,9 @@ export function Pager({ page, pages, total, noun, onPrev, onNext }: {
 }) {
   if (pages <= 1) return null
   return (
-    <div className="flex items-center justify-between gap-3 text-sm text-zinc-400">
+    <div className="flex items-center justify-between gap-3 text-sm text-sb-ink-secondary">
       <Button size="sm" variant="ghost" disabled={page === 0} onClick={onPrev}>Previous</Button>
-      <span className="tnum text-xs">
+      <span className="tnum text-xs font-medium">
         Page {page + 1} of {pages} · {total} {noun}
       </span>
       <Button size="sm" variant="ghost" disabled={page + 1 >= pages} onClick={onNext}>Next</Button>

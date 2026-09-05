@@ -170,14 +170,14 @@ export default function CardFormModal({
 
       {confirming ? (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border-default bg-surface-2 p-4">
-            <p className="text-base font-semibold text-zinc-100">{name.trim()}</p>
-            <p className="mt-1 text-sm text-zinc-400 tnum">{summary}</p>
-            <p className="mt-3 text-sm text-zinc-300">
-              Owes <span className="font-semibold text-zinc-100 tnum">{formatCurrency(Number(owed))}</span> today
+          <div className="rounded-xl border border-sb-hairline bg-surface-1 shadow-card p-4">
+            <p className="text-base font-bold text-sb-ink">{name.trim()}</p>
+            <p className="mt-1 text-sm text-sb-ink-muted tnum">{summary}</p>
+            <p className="mt-3 text-sm text-sb-ink-secondary">
+              Owes <span className="font-bold text-sb-ink tnum">{formatCurrency(Number(owed))}</span> today
             </p>
           </div>
-          <p className="text-sm text-zinc-400 leading-relaxed">
+          <p className="text-sm text-sb-ink-muted leading-relaxed">
             Check those last 4 digits now. They and the bank name are how Intrack matches bank
             alerts to this card, so they stop being editable once it has its first transaction.
             The card’s name can be changed whenever you like.

@@ -18,12 +18,12 @@ export function ForecastPanel({ forecast }: ForecastPanelProps) {
   if (forecast.length === 0) return null
 
   return (
-    <Card className="p-5">
+    <Card className="relative overflow-hidden bg-surface-1 border border-sb-hairline p-5 shadow-card rounded-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
       <div className="flex items-center gap-3 mb-5">
-        <Calendar className="w-5 h-5 text-brand-400 shrink-0" />
+        <Calendar className="w-5 h-5 text-brand-600 shrink-0" />
         <div>
-          <h2 className="text-base font-bold text-white">3-Month Cash Flow Forecast</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Based on your last 6 months of spending patterns</p>
+          <h2 className="text-base font-bold text-sb-ink">3-Month Cash Flow Forecast</h2>
+          <p className="text-xs text-sb-ink-muted mt-0.5">Based on your last 6 months of spending patterns</p>
         </div>
         <Badge variant="info" className="ml-auto text-xs">Predictive</Badge>
       </div>
@@ -35,22 +35,22 @@ export function ForecastPanel({ forecast }: ForecastPanelProps) {
               : 'bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)]'
           }`}>
             <div className="flex items-center justify-between mb-3 gap-2">
-              <span className="text-sm font-bold text-white">{f.label}</span>
-              <span className="text-xs text-zinc-500 bg-zinc-800 rounded-full px-2 py-0.5 shrink-0">
+              <span className="text-sm font-bold text-sb-ink">{f.label}</span>
+              <span className="text-xs font-semibold text-sb-ink-muted bg-surface-1/80 border border-sb-hairline rounded-full px-2 py-0.5 shrink-0 shadow-xs">
                 {f.confidence}% confidence
               </span>
             </div>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-zinc-400">Expected Income</span>
+                <span className="text-sb-ink-muted">Expected Income</span>
                 <span className="text-[var(--status-positive-text)] font-semibold">{formatCurrency(f.forecastIncome)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400">Expected Expenses</span>
+                <span className="text-sb-ink-muted">Expected Expenses</span>
                 <span className="text-[var(--status-warning-text)] font-semibold">{formatCurrency(f.forecastExpenses)}</span>
               </div>
-              <div className="flex justify-between border-t border-zinc-700/50 pt-2 mt-2">
-                <span className="text-zinc-400 font-semibold">Net Savings</span>
+              <div className="flex justify-between border-t border-sb-hairline pt-2 mt-2">
+                <span className="text-sb-ink-muted font-semibold">Net Savings</span>
                 <span className={`font-bold text-sm ${
                   f.forecastSavings >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'
                 }`}>
@@ -59,7 +59,7 @@ export function ForecastPanel({ forecast }: ForecastPanelProps) {
               </div>
             </div>
             {/* Mini confidence bar */}
-            <div className="mt-3 h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="mt-3 h-1 bg-surface-2 rounded-full overflow-hidden">
               <div
                 className="h-full bg-brand-500 rounded-full transition-all"
                 style={{ width: `${f.confidence}%` }}
@@ -68,7 +68,7 @@ export function ForecastPanel({ forecast }: ForecastPanelProps) {
           </div>
         ))}
       </div>
-      <p className="text-xs text-zinc-400 mt-4 text-center">
+      <p className="text-xs text-sb-ink-muted mt-4 text-center">
         Forecast uses weighted moving average of your last 6 months. Confidence decreases for months further ahead.
       </p>
     </Card>

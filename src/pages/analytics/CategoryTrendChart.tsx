@@ -91,8 +91,8 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
           </div>
         ) : !hasTransactions ? (
           <EmptyState
-            icon={<LineChart className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
-            title="Not enough history yet"
+            icon={<LineChart className="h-8 w-8 text-brand-600" aria-hidden="true" />}
+            title="Not enough category data"
             description="This chart needs expenses across a few months before a trend means anything."
           />
         ) : (
@@ -124,20 +124,20 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
                             open ? 'opacity-100' : 'opacity-0'
                           )}
                         >
-                          <p className="mb-1.5 flex items-center justify-between gap-4 border-b border-border-subtle pb-1.5 text-xs font-semibold text-zinc-50">
+                          <p className="mb-1.5 flex items-center justify-between gap-4 border-b border-sb-hairline pb-1.5 text-xs font-bold text-sb-ink">
                             <span>{m.label}</span>
                             <span className="tnum">{formatCurrencyCompact(m.total)}</span>
                           </p>
                           {visible.map((s) => (
                             <span key={s.category} className="flex items-center justify-between gap-4 text-xs">
-                              <span className="flex min-w-0 items-center gap-1.5 text-zinc-300">
+                              <span className="flex min-w-0 items-center gap-1.5 text-sb-ink-secondary">
                                 <span
                                   className="h-2 w-2 shrink-0 rounded-full"
                                   style={{ backgroundColor: segmentColor(s.category) }}
                                 />
                                 <span className="truncate">{segmentLabel(s.category)}</span>
                               </span>
-                              <span className="shrink-0 font-semibold text-zinc-50 tnum">
+                              <span className="shrink-0 font-bold text-sb-ink tnum">
                                 {formatCurrencyCompact(s.amount)}
                               </span>
                             </span>
