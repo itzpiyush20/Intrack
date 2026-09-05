@@ -725,6 +725,16 @@ CREATE INDEX IF NOT EXISTS idx_transactions_card
 CREATE INDEX IF NOT EXISTS idx_transactions_settles_card
   ON public.transactions(settles_card_id) WHERE settles_card_id IS NOT NULL;
 
+-- 043 — a deliberately deleted budget, marked rather than removed. Budgets
+-- carry forward from the most recent month that has them, so removing the row
+-- would let the next read restore exactly what the user just deleted.
+ALTER TABLE public.budgets
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_budgets_user_month_live
+  ON public.budgets(user_id, month)
+  WHERE deleted_at IS NULL;
+
 -- 017 — rejected emails are remembered so a later scan never re-fetches them.
 ALTER TABLE public.email_scan_rejections
   ADD COLUMN IF NOT EXISTS email_message_id TEXT;
@@ -804,4 +814,9 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --                              transactions columns above, and the Loan
 --                              category — borrowing that is not income, whose
 --                              source separates a cash advance from a refund
+--   043_budget_deleted_at.sql  budgets.deleted_at — a deleted budget is
+--                              marked, not removed, so month-to-month
+--                              carry-forward cannot resurrect it. Replaces an
+--                              amount-0 convention that held only because the
+--                              one input writing amounts carries min="1"
 -- ==========================================
