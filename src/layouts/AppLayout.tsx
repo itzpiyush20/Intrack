@@ -893,7 +893,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           sat underneath the nav on a phone. md:pb-6 restores normal spacing from
           the breakpoint where that nav is hidden. */}
       <main
-        className="mx-auto flex-1 max-w-7xl w-full px-4 pt-6 pb-28 sm:px-6 md:pb-6 lg:px-8"
+        className="mx-auto flex-1 max-w-7xl w-full px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-6"
         id="main-content"
       >
         {user && isAppRoute && showPrivacyNote && (
@@ -1052,7 +1052,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* PWA Install Banner for Mobile Viewports */}
       {showInstallBanner && (
-        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 md:hidden animate-slide-up">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 lg:hidden animate-slide-up">
           <div className="bg-surface-1 border border-border-subtle/85 backdrop-blur-xl rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 shadow-[var(--shadow-sm)]">
@@ -1085,7 +1085,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* =========================================================== */}
       {user && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-surface-1/95 backdrop-blur-md border-t border-border-subtle safe-area-inset-bottom"
+          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface-1/95 backdrop-blur-md border-t border-border-subtle safe-area-inset-bottom"
           aria-label="Mobile navigation"
         >
           <div className="flex items-center justify-around h-16 px-1">

@@ -171,7 +171,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
 
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Emoji</label>
-          <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-10">
+          <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
             {CATEGORY_EMOJI_CHOICES.map((e) => (
               <button
                 key={e}
@@ -180,7 +180,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
                 aria-label={`Choose emoji ${e}`}
                 aria-pressed={emoji === e}
                 className={cn(
-                  'h-9 w-9 rounded-lg border text-base flex items-center justify-center transition-colors',
+                  'h-11 w-11 sm:h-9 sm:w-9 rounded-lg border text-base flex items-center justify-center transition-colors',
                   emoji === e
                     ? 'border-brand-500 bg-brand-500/10'
                     : 'border-border-default hover:border-border-hover'
@@ -194,7 +194,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
 
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
-          <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-12">
+          <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-12">
             {CATEGORY_COLOR_CHOICES.map((c) => (
               <button
                 key={c}
@@ -203,11 +203,18 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
                 aria-label={`Choose color ${c}`}
                 aria-pressed={color === c}
                 className={cn(
-                  'h-7 w-7 rounded-full border-2 transition-transform',
-                  color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'
+                  'h-11 w-11 sm:h-7 sm:w-7 rounded-full flex items-center justify-center transition-transform',
+                  color === c ? 'scale-110' : 'hover:scale-105'
                 )}
-                style={{ backgroundColor: c }}
-              />
+              >
+                <span
+                  className={cn(
+                    'h-7 w-7 rounded-full border-2 block',
+                    color === c ? 'border-white' : 'border-transparent'
+                  )}
+                  style={{ backgroundColor: c }}
+                />
+              </button>
             ))}
           </div>
         </div>
