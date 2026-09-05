@@ -283,7 +283,7 @@ export default function LandingPage() {
             <div ref={stepsRef} className="grid md:grid-cols-3 md:auto-rows-fr gap-6">
               {steps.map((s, i) => (
                 <div key={s.num} data-reveal data-delay={String(i * 150)} className="h-full flex flex-col">
-                  <div className="sb-card-light p-8 relative group transition-shadow duration-300 hover:shadow-md h-full flex flex-col justify-start">
+                  <div className="sb-card-light p-5 sm:p-8 relative group transition-shadow duration-300 hover:shadow-md h-full flex flex-col justify-start">
                     <div className="text-5xl font-black text-sb-ink-faint mb-6 leading-none group-hover:text-brand-500/40 transition-colors duration-300">{s.num}</div>
                     {i < steps.length - 1 && (
                       <svg className="hidden md:block absolute top-[60px] -right-[15px] w-8 h-6 text-brand-500/40 z-10" viewBox="0 0 32 16" fill="none">
@@ -341,7 +341,7 @@ export default function LandingPage() {
         {/* ── TRUST / PRIVACY ─────────────────────────────── */}
         <section className="py-10 md:py-20 border-b border-sb-hairline">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="sb-card-light p-10 md:p-12 flex flex-col md:flex-row items-center gap-10 justify-between">
+            <div data-reveal className="sb-card-light p-6 sm:p-10 md:p-12 flex flex-col md:flex-row items-center gap-10 justify-between">
               <div className="max-w-lg">
                 <h2 className="text-2xl font-bold text-sb-ink mb-4">Your money, your data. Your control.</h2>
                 <p className="text-sb-ink-secondary leading-relaxed text-sm">
@@ -398,7 +398,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="sb-card-light overflow-hidden" style={{ padding: 0 }} data-reveal="from-right">
+            <div className="sb-card-light overflow-hidden p-0" data-reveal="from-right">
               <div className="flex bg-sb-canvas border-b border-sb-hairline">
                 {(['android', 'ios'] as const).map((tab) => (
                   <button
@@ -479,7 +479,7 @@ export default function LandingPage() {
               {faqItems.map((item, idx) => {
                 const isOpen = expandedFaq === idx
                 return (
-                  <div key={idx} data-reveal data-delay={String(idx * 70)} className="sb-card-light overflow-hidden" style={{ padding: 0 }}>
+                  <div key={idx} data-reveal data-delay={String(idx * 70)} className="sb-card-light overflow-hidden p-0">
                     <button
                       onClick={() => setExpandedFaq(isOpen ? null : idx)}
                       className="w-full text-left px-6 py-5 flex items-center justify-between cursor-pointer border-none bg-transparent"

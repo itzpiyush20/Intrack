@@ -189,7 +189,7 @@ export default function SupportPage() {
             {/* Tab 1: Privacy Policy */}
             {activeTab === 'privacy' && (
               <div className="space-y-6 animate-scale-up" role="tabpanel" aria-label="Privacy Policy">
-                <div className="rounded-3xl sb-card-light p-8 shadow-md space-y-6">
+                <div className="rounded-3xl sb-card-light p-5 sm:p-8 shadow-md space-y-6">
                   <div className="flex items-center gap-3 border-b border-border-subtle pb-4">
                     <span className="text-3xl" aria-hidden="true">🛡️</span>
                     <div>
@@ -271,7 +271,7 @@ export default function SupportPage() {
             {/* Tab 2: FAQs */}
             {activeTab === 'faq' && (
               <div className="space-y-4 animate-scale-up" role="tabpanel" aria-label="Frequently Asked Questions">
-                <div className="rounded-3xl sb-card-light p-8 shadow-md space-y-4">
+                <div className="rounded-3xl sb-card-light p-5 sm:p-8 shadow-md space-y-4">
                   <div className="flex items-center gap-3 border-b border-border-subtle pb-4">
                     <span className="text-3xl" aria-hidden="true">❓</span>
                     <div>
@@ -322,7 +322,7 @@ export default function SupportPage() {
             {/* Tab 3: Help & Contact Form */}
             {activeTab === 'contact' && (
               <div className="space-y-6 animate-scale-up" role="tabpanel" aria-label="Help and Contact">
-                <div className="rounded-3xl sb-card-light p-8 shadow-md space-y-6">
+                <div className="rounded-3xl sb-card-light p-5 sm:p-8 shadow-md space-y-6">
                   <div className="flex items-center justify-between border-b border-border-subtle pb-4">
                     <div className="flex items-center gap-3">
                       <span className="text-3xl" aria-hidden="true">✉️</span>

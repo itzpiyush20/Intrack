@@ -48,7 +48,7 @@ export default function AboutPage() {
       </div>
 
       {/* Mission */}
-      <div data-reveal className="sb-card-light border-t-4 border-t-brand-500 p-8 mb-12">
+      <div data-reveal className="sb-card-light border-t-4 border-t-brand-500 p-5 sm:p-8 mb-12">
         <h2 className="text-xl font-bold text-sb-ink">Our Mission</h2>
         <p className="text-sm mt-3 leading-relaxed text-sb-ink-secondary">
           To give every Indian professional the financial intelligence of a personal CFO — without the ₹5,000/hour consulting fees.
@@ -141,7 +141,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <div className="text-center sb-card-light p-10 space-y-6">
+      <div className="text-center sb-card-light p-6 sm:p-10 space-y-6">
         <h2 className="text-xl font-bold text-sb-ink">Start Taking Control of Your Finances</h2>
         <p className="text-sm leading-relaxed text-sb-ink-secondary" style={{ maxWidth: 480, margin: '0 auto' }}>Connect your Gmail and let Intrack handle the tracking while you focus on the decisions.</p>
         {/* This used to link to /dashboard unconditionally, so the only call to
