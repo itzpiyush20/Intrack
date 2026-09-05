@@ -10,18 +10,20 @@
 /**
  * A square icon-only button in a list row: edit, archive, delete.
  *
- * 36px keeps a comfortable target without crowding a row, and the focus ring is
- * part of the recipe because a keyboard user loses these buttons entirely
- * without one.
+ * 44px on touch, 36px from `md` up. The first version was 36px everywhere,
+ * which is under the WCAG touch-target minimum — every screen that used it had
+ * to override the size at the call site, which is the signal that the recipe
+ * was wrong rather than the call sites. The focus ring is part of the recipe
+ * because a keyboard user loses these buttons entirely without one.
  */
 export const ACTION_BUTTON =
-  'h-9 w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
+  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
   'hover:text-zinc-100 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-brand-500/40 cursor-pointer'
 
 /** The same button where the action destroys something. */
 export const ACTION_BUTTON_DANGER =
-  'h-9 w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
+  'h-11 w-11 md:h-9 md:w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
   'hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-danger-border)] cursor-pointer'
 

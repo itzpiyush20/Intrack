@@ -1,7 +1,23 @@
+// ============================================
+// PaymentSuccessPage — the receipt for a purchase made in this tab
+//
+// Restyle only. The router-state guard, the redirect when there is no receipt,
+// the plan-name matching and the status polling are all untouched.
+//
+// The visual brief here is "receipt", not "celebration": this is the screen a
+// customer screenshots when something later goes wrong with their money, so it
+// reads as a record — a labelled list of what was bought, its state, and the
+// date that matters. The 👑 in a pinging halo and "Subscription Activated!"
+// went with the aurora era; an animated ring is also decoration, which the
+// motion rules ban outright.
+// ============================================
+
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { CheckCircle2, CalendarClock, Loader2 } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
 import AppLayout from '@/layouts/AppLayout'
-import { Button } from '@/components/ui'
+import { Button, Card, panelVariants, transition } from '@/components/ui'
 import { useAuth } from '@/context'
 
 export default function PaymentSuccessPage() {
@@ -86,6 +102,8 @@ export default function PaymentSuccessPage() {
     return () => clearInterval(interval)
   }, [profile, attempts, queued, hasReceipt])
 
+  const reduce = useReducedMotion()
+
   // Rendered nothing rather than a placeholder receipt: the effect above
   // redirects, and a frame of "Subscription Activated!" for a purchase that
   // did not happen is the whole bug.
@@ -101,83 +119,109 @@ export default function PaymentSuccessPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-md mx-auto py-12 px-4 text-center space-y-8 animate-scale-up">
-        {/* Animated Checkmark Container */}
-        <div className="relative flex items-center justify-center mx-auto h-24 w-24 rounded-full bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] shadow-[var(--shadow-md)]">
-          {/* Confetti Micro-animations */}
-          <div className="absolute inset-0 rounded-full animate-ping bg-[var(--status-positive-subtle)]/5 duration-1000" />
-          <span className="text-5xl" aria-hidden="true">{queued ? '🗓️' : '👑'}</span>
-        </div>
-
-        {/* Text Details */}
-        <div className="space-y-3">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            {queued ? 'Payment Received!' : 'Subscription Activated!'}
-          </h1>
-          <p className="text-zinc-400 text-sm">
+      <motion.div
+        variants={panelVariants(reduce)}
+        initial="initial"
+        animate="animate"
+        transition={transition(reduce)}
+        className="mx-auto max-w-md"
+      >
+        <div className="flex flex-col items-center text-center">
+          <span
+            className={
+              queued
+                ? 'flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)]'
+                : 'flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
+            }
+          >
             {queued
-              ? 'Your new plan is scheduled. It starts automatically when your current plan ends — nothing else to do.'
-              : 'Thank you for upgrading. Your account is now fully unlocked.'}
+              ? <CalendarClock className="h-7 w-7" aria-hidden="true" />
+              : <CheckCircle2 className="h-7 w-7" aria-hidden="true" />}
+          </span>
+
+          <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-50 text-balance md:text-3xl">
+            {queued ? 'Payment received' : 'You’re all set'}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            {queued
+              ? 'Your new plan is paid for and scheduled. It starts on its own the day your current plan ends — there is nothing else to do.'
+              : 'Your payment went through and your plan is on. Everything Intrack does is open to you.'}
           </p>
         </div>
 
-        {/* Details Card */}
-        <div className="bg-surface-1 border border-border-subtle rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-border-subtle/50">
-            <span className="text-zinc-500">Selected Plan</span>
-            <span className="font-bold text-white">{planName}</span>
-          </div>
+        {/* The receipt itself. A description list, not a stack of rows: these
+            are labelled facts about one purchase. */}
+        <Card className="mt-8">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Your purchase</h2>
+          <dl className="mt-4 flex flex-col">
+            <div className="flex items-center justify-between gap-4 border-b border-border-subtle py-3 first:pt-0">
+              <dt className="text-sm text-zinc-400">Plan</dt>
+              <dd className="text-sm font-semibold text-zinc-100">{planName}</dd>
+            </div>
 
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-border-subtle/50">
-            <span className="text-zinc-500">Subscription Status</span>
-            {queued ? (
-              <span className="px-2 py-0.5 rounded-full text-xs font-extrabold uppercase bg-[var(--status-warning-subtle)] border border-[var(--status-warning-border)] text-[var(--status-warning-text)]">
-                Scheduled
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full text-xs font-extrabold uppercase bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] text-[var(--status-positive-text)]">
-                Active
-              </span>
-            )}
-          </div>
+            <div className="flex items-center justify-between gap-4 border-b border-border-subtle py-3">
+              <dt className="text-sm text-zinc-400">Status</dt>
+              <dd>
+                {queued ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--status-warning-text)]">
+                    <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Scheduled
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--status-positive-text)]">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Active
+                  </span>
+                )}
+              </dd>
+            </div>
 
-          <div className="flex justify-between items-center text-xs">
-            {/* Not "Renewal Date". Both plans are one-time payments — no
-                mandate, nothing recurring — which is the promise the pricing
-                page is built around. Calling this a renewal date told the
-                customer to expect a charge that will never arrive. */}
-            <span className="text-zinc-500">{queued ? 'Starts On' : 'Access until'}</span>
-            <span className="font-semibold text-zinc-300">{formattedDate}</span>
-          </div>
-        </div>
+            <div className="flex items-center justify-between gap-4 py-3 last:pb-0">
+              {/* Not "Renewal Date". Both plans are one-time payments — no
+                  mandate, nothing recurring — which is the promise the pricing
+                  page is built around. Calling this a renewal date told the
+                  customer to expect a charge that will never arrive. */}
+              <dt className="text-sm text-zinc-400">{queued ? 'Starts on' : 'Access until'}</dt>
+              <dd className="text-sm font-semibold text-zinc-100 tnum">{formattedDate}</dd>
+            </div>
+          </dl>
+        </Card>
 
         {/* Verification Status */}
         {verifying ? (
-          <div className="flex items-center justify-center gap-2 text-xs text-brand-400 animate-pulse bg-brand-500/5 border border-brand-500/10 py-3 rounded-2xl">
-            <svg className="animate-spin h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            <span>Verifying subscription status...</span>
-          </div>
+          <p
+            role="status"
+            className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-border-subtle bg-surface-2 py-3 text-sm text-zinc-400"
+          >
+            <Loader2
+              className={reduce ? 'h-4 w-4 shrink-0' : 'h-4 w-4 shrink-0 animate-spin'}
+              aria-hidden="true"
+            />
+            Switching your plan on…
+          </p>
         ) : (
-          <div className="space-y-3">
-            <Button
-              onClick={() => navigate('/dashboard')}
-              block
-              size="lg"
-            >
-              Go to Dashboard
+          <div className="mt-6 flex flex-col gap-3">
+            <Button onClick={() => navigate('/dashboard')} block size="lg">
+              Go to my dashboard
             </Button>
-            
+
             {!queued && profile?.subscription_status !== 'active' && (
-              <p className="text-xs text-zinc-500 leading-normal">
-                Status syncing in background. If your Pro or Basic access doesn't unlock immediately, click return and refresh the page.
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Your payment is confirmed. Switching the plan on can take up to a minute — open
+                your dashboard, and reload the page once if anything still looks locked. If it
+                is still locked after that,{' '}
+                <Link
+                  to="/support"
+                  className="rounded font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                >
+                  tell support
+                </Link>{' '}
+                and we'll sort it out.
               </p>
             )}
           </div>
         )}
-      </div>
+      </motion.div>
     </AppLayout>
   )
 }

@@ -4,6 +4,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { PageSkeleton } from '@/components/ui'
 import AccessEnded from './AccessEnded'
 
 export default function ProtectedRoute() {
@@ -16,13 +17,14 @@ export default function ProtectedRoute() {
   // deliberate: isSubscriptionActive is false until proven otherwise, and
   // rendering the paywall on "not proven yet" would show every paying customer
   // an upgrade screen on each cold load.
+  //
+  // Shown as a skeleton of the page that is coming rather than a spinner on an
+  // empty canvas: a spinner says "wait" and nothing else, and this wait is on
+  // the critical path of every cold load.
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-0">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
-          <p className="text-sm text-zinc-400">Loading...</p>
-        </div>
+      <div className="min-h-svh bg-surface-0">
+        <PageSkeleton />
       </div>
     )
   }

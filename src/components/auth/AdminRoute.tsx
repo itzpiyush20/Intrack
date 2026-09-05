@@ -8,6 +8,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { canAccessAdmin } from '@/services/adminAccess'
+import { PageSkeleton } from '@/components/ui'
 
 export default function AdminRoute() {
   const { profile, loading } = useAuth()
@@ -17,8 +18,8 @@ export default function AdminRoute() {
   // is momentarily in flight — which is what minimising the window causes.
   if (loading || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-0">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+      <div className="min-h-svh bg-surface-0">
+        <PageSkeleton />
       </div>
     )
   }

@@ -4,18 +4,41 @@
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import AppLayout from '@/layouts/AppLayout'
-import { Card, DateFilterPicker } from '@/components/ui'
+import {
+  Card,
+  Button,
+  Select,
+  EmptyState,
+  Skeleton,
+  DateFilterPicker,
+  panelVariants,
+  staggerParent,
+  staggerChild,
+  transition,
+} from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { fetchAllTransactions } from '@/services/transactions'
 import { useAuth } from '@/context/AuthContext'
 import { useCategories } from '@/context/CategoriesContext'
-import { getCurrentMonth, withTimeout, resolveDateFilter, formatDateFilterLabel, resolveTransactionIdentity, creditCardBillCategoryNames, type DateFilter } from '@/utils'
+import { getCurrentMonth, withTimeout, resolveDateFilter, formatDateFilterLabel, resolveTransactionIdentity, creditCardBillCategoryNames, formatCurrency, cn, type DateFilter } from '@/utils'
 import { toISODateLocal } from '@/utils/dateFilter'
 import { completedMonthsWindow, computeEmergencyMonths } from './analytics/emergencyReserve'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Wallet,
+  AlertTriangle,
+  RotateCcw,
+  Target,
+  LineChart as LineChartIcon,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { detectAnomalies, generateForecast, generateAIInsights } from '@/services/aiService'
 import type { FinancialContext } from '@/services/aiService'
 import { getBudgets } from '@/services/budgets'
@@ -32,7 +55,6 @@ import {
   ExpenseBreakdown,
   CreditCardPaymentTrend,
   SmartWealthTips,
-  PeriodSelector,
   MerchantLeaderboard,
   CategoryTrendChart,
   BudgetBurndown,
@@ -42,6 +64,205 @@ import {
   type BudgetBurndownItem,
   type CreditCardPaymentTrendItem
 } from './analytics'
+
+/**
+ * The range control's options.
+ *
+ * These live here, on the shared `Select`, rather than in the old
+ * `PeriodSelector` — that component hand-rolled its own `<select>` with a
+ * `border-zinc-700` edge and a `md:text-xs` label at roughly 30px tall, which
+ * is both off the token system and under the 44px touch target this page's
+ * primary control has to clear. The values and their order are unchanged;
+ * `getRangeDates` still branches on exactly the same six strings.
+ */
+const RANGE_OPTIONS: ReadonlyArray<{ value: RangeType; label: string }> = [
+  { value: 'this-week', label: 'This week' },
+  { value: 'last-week', label: 'Last week' },
+  { value: 'last-15-days', label: 'Last 15 days' },
+  { value: 'this-month', label: 'This month' },
+  { value: 'last-month', label: 'Last month' },
+  { value: 'last-6-months', label: 'Last 6 months' },
+]
+
+const rangeLabel = (range: RangeType) =>
+  RANGE_OPTIONS.find((o) => o.value === range)?.label ?? 'this period'
+
+/**
+ * A `<Link>` dressed as a button.
+ *
+ * The shared `Button` renders a real `<button>`, so wrapping one in a `<Link>`
+ * nests a button inside an anchor — invalid HTML and a genuinely confusing
+ * thing for a screen reader to announce. These two recipes reproduce the
+ * primary and secondary Button surfaces on the anchor itself, at `h-11` so the
+ * target clears 44px on a phone. Local to this file on purpose; if a second
+ * screen needs them they belong in `components/ui/styles.ts`.
+ */
+const LINK_BUTTON_BASE =
+  'inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm no-underline ' +
+  'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+
+const LINK_BUTTON_PRIMARY =
+  `${LINK_BUTTON_BASE} font-semibold bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] ` +
+  'shadow-[var(--shadow-sm)] hover:bg-[var(--btn-primary-bg-hover)]'
+
+const LINK_BUTTON_SECONDARY =
+  `${LINK_BUTTON_BASE} font-medium border border-border-default bg-surface-1 text-zinc-100 ` +
+  'hover:bg-surface-2 hover:border-border-hover'
+
+/**
+ * A titled group of cards.
+ *
+ * The page used to be eight cards of equal weight stacked in one column, which
+ * gives a reader no way in — every card shouted the same volume and none of
+ * them said which question it answered. A heading and one plain sentence per
+ * group turn the scroll into a sequence: what happened, where it went, and
+ * (optionally) the deeper diagnostics.
+ */
+function Section({
+  title,
+  description,
+  icon: Icon,
+  action,
+  children,
+}: {
+  title: string
+  description?: string
+  icon?: LucideIcon
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-50 md:text-lg">
+            {Icon && <Icon className="h-4 w-4 shrink-0 text-brand-700" aria-hidden="true" />}
+            {title}
+          </h2>
+          {description && (
+            <p className="mt-1 text-sm leading-relaxed text-zinc-400">{description}</p>
+          )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      <div className="space-y-6">{children}</div>
+    </section>
+  )
+}
+
+/**
+ * The three numbers the page exists to answer, above everything else.
+ *
+ * Nothing here is recomputed: `summary` and `savingsRate` are the same values
+ * the charts below are drawn from, so the headline and the chart can never
+ * disagree. Every tile pairs its colour with an icon and a word — a reader who
+ * cannot separate the green from the amber still gets "Money in" and an arrow
+ * pointing the right way.
+ */
+function PeriodSummary({
+  loading,
+  summary,
+  savingsRate,
+  range,
+}: {
+  loading: boolean
+  summary: SummaryData
+  savingsRate: number
+  range: RangeType
+}) {
+  const reduce = useReducedMotion()
+  const periodWord = rangeLabel(range).toLowerCase()
+
+  if (loading) {
+    return (
+      <Card noPadding>
+        <div
+          role="status"
+          aria-label="Loading period totals"
+          className="grid divide-y divide-border-subtle sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="p-5 md:p-6">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="mt-3 h-7 w-32" />
+              <Skeleton className="mt-3 h-3 w-full max-w-[14rem]" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    )
+  }
+
+  const keptSomething = summary.savings >= 0
+  const leftOverNote =
+    summary.total_income > 0
+      ? keptSomething
+        ? `You kept ${Math.round(savingsRate)}% of what came in.`
+        : `You spent more than came in ${periodWord}.`
+      : `Nothing was recorded as money in ${periodWord}.`
+
+  const tiles = [
+    {
+      key: 'in',
+      label: 'Money in',
+      icon: ArrowDownLeft,
+      value: summary.total_income,
+      color: 'var(--status-positive-text)',
+      note: 'Every credit in this period — salary, refunds, transfers in.',
+    },
+    {
+      key: 'out',
+      label: 'Money out',
+      icon: ArrowUpRight,
+      value: summary.total_expenses,
+      color: 'var(--status-warning-text)',
+      note: 'Credit card bill payments are left out; that spending was counted the day you made it.',
+    },
+    {
+      key: 'left',
+      label: 'Left over',
+      icon: Wallet,
+      value: summary.savings,
+      color: keptSomething ? 'var(--status-positive-text)' : 'var(--status-danger-text)',
+      note: leftOverNote,
+    },
+  ]
+
+  return (
+    <Card noPadding>
+      <motion.div
+        variants={staggerParent(reduce, tiles.length)}
+        initial="initial"
+        animate="animate"
+        className="grid divide-y divide-border-subtle sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+      >
+        {tiles.map((tile) => {
+          const Icon = tile.icon
+          return (
+            <motion.div key={tile.key} variants={staggerChild(reduce)} className="min-w-0 p-5 md:p-6">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" style={{ color: tile.color }} />
+                {tile.label}
+              </p>
+              <p
+                // Steps down between 640px and 1024px, where three columns
+                // share the width and a lakh-sized figure would otherwise be
+                // clipped. Truncation is the last resort, with the full amount
+                // on the title attribute.
+                className="mt-2 truncate text-xl font-semibold tracking-tight tnum sm:text-2xl lg:text-3xl"
+                style={{ color: tile.color }}
+                title={formatCurrency(tile.value)}
+              >
+                {formatCurrency(tile.value)}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{tile.note}</p>
+            </motion.div>
+          )
+        })}
+      </motion.div>
+    </Card>
+  )
+}
 
 interface TrendItem {
   label: string
@@ -809,154 +1030,305 @@ export default function InsightsPage() {
       .finally(() => setAiLoading(false))
   }, [loading, transactions.length, dateFilter, showAdvanced, categoryMap])
 
+  // Motion on this page reports state changes only: three totals arriving on
+  // first paint, and the deeper-analysis panel handing over when it opens.
+  // Both collapse to nothing under prefers-reduced-motion.
+  const reduceMotion = useReducedMotion()
+
+  // Nothing was returned for the whole six-month window. Rendering eight cards
+  // that each explain their own emptiness is worse than saying it once, so the
+  // page says it once and points at the two ways data gets in.
+  const noData = !loading && !error && transactions.length === 0
+
+  const rangeControl = (
+    <div className="w-full sm:w-52">
+      <Select
+        id="insights-range"
+        label="Range"
+        value={range}
+        onChange={(e) => setRange(e.target.value as RangeType)}
+        options={RANGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+      />
+    </div>
+  )
+
   return (
     <AppLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Unified Main Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 bg-surface-2/10 border border-border-subtle/10 rounded-2xl backdrop-blur-xl">
-          <div>
+      <div className="animate-fade-in">
+        {/* Header — the same shape as Settings: a title, one sentence, and the
+            control that governs the screen. No tinted panel, no backdrop blur. */}
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
             <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Insights</h1>
-            <p className="mt-1 text-xs text-zinc-400">
-              Understand where your money went this period and whether your spending split is healthy.
+            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+              Where your money actually went, and whether the split between
+              essentials, extras and savings is one you would choose.
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-center shrink-0 bg-surface-2/40 border border-border-subtle/30 rounded-xl px-3 py-2">
-            <span className="text-xs text-zinc-500">Range:</span>
-            <PeriodSelector value={range} onChange={setRange} id="insights-range" />
-          </div>
-        </div>
-
-        <Link
-          to="/budgets"
-          className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle/40 bg-surface-2/30 px-4 py-2.5 text-xs text-zinc-400 hover:bg-surface-2/60 hover:text-zinc-200 transition-colors"
-        >
-          <span>Want spending limits with overspend alerts instead?</span>
-          <span className="font-semibold text-brand-400 shrink-0">Budgets →</span>
-        </Link>
+          {rangeControl}
+        </header>
 
         {error && (
-          <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-xs text-[var(--status-danger-text)]">
-            {error}
+          <div
+            role="alert"
+            className="mt-6 flex flex-col gap-3 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-[var(--status-danger-text)]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </p>
+            <Button
+              variant="secondary"
+              onClick={fetchAllData}
+              className="shrink-0 justify-center gap-1.5"
+            >
+              <RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Try again
+            </Button>
           </div>
         )}
 
-        <DrillDownProvider onDirtyClose={fetchAllData}>
-          {/* Core view: trend, breakdown, one tip — enough for most check-ins */}
-          <TrendChartWithDrillDown
-            range={range}
-            trendData={trendData}
-            loading={loading}
-            hasTransactions={transactions.length > 0}
-            ccBillCategories={ccBillCategories}
-          />
-
-          <CreditCardPaymentTrendWithDrillDown data={ccBillPaymentTrend} loading={loading} ccBillCategories={ccBillCategories} />
-
-          <div className="grid gap-6 lg:grid-cols-12">
-            <ExpenseBreakdownWithDrillDown summary={summary} loading={loading} range={range} />
-            <SmartWealthTips
-              loading={loading}
-              summary={summary}
-              trend={trend}
-              savingsRate={savingsRate}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-12">
-            <CategoryTrendChartWithDrillDown data={categoryTrendData} loading={loading} hasTransactions={categoryTrendData.some((m) => m.total > 0)} />
-            <MerchantLeaderboardWithDrillDown data={merchantLeaderboard} loading={loading} range={range} ccBillCategories={ccBillCategories} />
-          </div>
-
-          {/* Progressive disclosure toggle */}
-          {!loading && (
-            <button
-              onClick={toggleAdvanced}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border-subtle/50 bg-surface-2/40 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-surface-2 transition-colors"
-            >
-              {showAdvanced ? (
-                <>Hide advanced analysis <ChevronUp className="h-3.5 w-3.5" /></>
-              ) : (
-                <>Show advanced analysis — health score, AI insights, forecast, anomalies <ChevronDown className="h-3.5 w-3.5" /></>
-              )}
-            </button>
-          )}
-
-          {showAdvanced && (
-            <>
-              <div className="flex items-center justify-end gap-2 -mt-2">
-                <span className="text-xs text-zinc-500">Advisory period:</span>
-                <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
-              </div>
-
-              {/* Executive Diagnostic Summary */}
-              {loading ? (
-                <div className="grid gap-6 md:grid-cols-3">
-                  <Card className="h-60 skeleton"><div /></Card>
-                  <Card className="md:col-span-2 h-60 skeleton"><div /></Card>
+        {noData ? (
+          <Card className="mt-6">
+            <EmptyState
+              icon={<LineChartIcon className="h-8 w-8 text-zinc-400" aria-hidden="true" />}
+              title="No transactions to analyse yet"
+              description="Insights is built entirely from your transactions. Once the scanner imports a few — or you add them yourself — every chart on this page fills in automatically."
+              action={
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Link to="/pending" className={LINK_BUTTON_PRIMARY}>
+                    Scan my inbox
+                  </Link>
+                  <Link to="/expenses" className={LINK_BUTTON_SECONDARY}>
+                    Add a transaction
+                  </Link>
                 </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-3">
-                  <AdherenceDiagnosticWithDrillDown
-                    healthScore={healthScore}
-                    totalIncome={totalIncome}
-                    totalDebit={totalDebit}
-                    advisoryFrom={advisoryFrom}
-                    advisoryTo={advisoryTo}
+              }
+            />
+          </Card>
+        ) : (
+          <DrillDownProvider onDirtyClose={fetchAllData}>
+            <div className="mt-6 space-y-10 md:mt-8">
+              {/* Lead with the answer. Everything below it is the working. */}
+              <PeriodSummary
+                loading={loading}
+                summary={summary}
+                savingsRate={savingsRate}
+                range={range}
+              />
+
+              <Section
+                title="This period, in and out"
+                description={`${rangeLabel(range)}: what arrived, what left, and which categories took the largest share.`}
+                icon={Wallet}
+              >
+                <TrendChartWithDrillDown
+                  range={range}
+                  trendData={trendData}
+                  loading={loading}
+                  hasTransactions={transactions.length > 0}
+                  ccBillCategories={ccBillCategories}
+                />
+
+                <div className="grid gap-6 lg:grid-cols-12">
+                  <ExpenseBreakdownWithDrillDown summary={summary} loading={loading} range={range} />
+                  <SmartWealthTips
+                    loading={loading}
+                    summary={summary}
+                    trend={trend}
+                    savingsRate={savingsRate}
+                  />
+                </div>
+              </Section>
+
+              <Section
+                title="Where the money keeps going"
+                description="Your biggest categories month by month, the merchants taking the largest share, and the card bills deliberately left out of the totals above. Each card says which window it covers."
+                icon={LineChartIcon}
+              >
+                <div className="grid gap-6 lg:grid-cols-12">
+                  <CategoryTrendChartWithDrillDown
+                    data={categoryTrendData}
+                    loading={loading}
+                    hasTransactions={categoryTrendData.some((m) => m.total > 0)}
+                  />
+                  <MerchantLeaderboardWithDrillDown
+                    data={merchantLeaderboard}
+                    loading={loading}
+                    range={range}
                     ccBillCategories={ccBillCategories}
                   />
-                  <BudgetVisualizerWithDrillDown
-                    needsSpent={needsSpent}
-                    needsPct={needsPct}
-                    wantsSpent={wantsSpent}
-                    wantsPct={wantsPct}
-                    savingsSpent={savingsSpent}
-                    finalSavingsPct={finalSavingsPct}
-                    emergencyMonths={emergencyMonths}
-                    isEmergencyFundReady={isEmergencyFundReady}
-                    advisoryFrom={advisoryFrom}
-                    advisoryTo={advisoryTo}
-                    needsCategoryNames={needsCategoryNames}
-                    wantsCategoryNames={wantsCategoryNames}
-                    savingsCategoryNames={savingsCategoryNames}
-                  />
                 </div>
-              )}
 
+                <CreditCardPaymentTrendWithDrillDown
+                  data={ccBillPaymentTrend}
+                  loading={loading}
+                  ccBillCategories={ccBillCategories}
+                />
+              </Section>
+
+              {/* Progressive disclosure. Eight analytics modules at once is how
+                  a mixed-literacy audience bounces off this page, so the deeper
+                  set stays folded until it is asked for. */}
               {!loading && (
-                <BudgetBurndownWithDrillDown data={budgetBurndownData} loading={loading} dateFilter={dateFilter} />
+                <section className="space-y-6">
+                  <button
+                    type="button"
+                    onClick={toggleAdvanced}
+                    aria-expanded={showAdvanced}
+                    aria-controls="insights-advanced"
+                    className={cn(
+                      'flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-2xl',
+                      'border border-border-subtle bg-surface-1 px-4 py-3 text-left transition-colors',
+                      'hover:border-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-zinc-50">
+                        {showAdvanced ? 'Hide the deeper analysis' : 'Show the deeper analysis'}
+                      </span>
+                      <span className="mt-0.5 block text-sm leading-relaxed text-zinc-400">
+                        Your 50/30/20 split, budget burn-down, unusual spending, a written read
+                        of the month, and a forecast.
+                      </span>
+                    </span>
+                    {showAdvanced ? (
+                      <ChevronUp className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                    )}
+                  </button>
+
+                  {showAdvanced && (
+                    <motion.div
+                      id="insights-advanced"
+                      variants={panelVariants(reduceMotion)}
+                      initial="initial"
+                      animate="animate"
+                      transition={transition(reduceMotion)}
+                      className="space-y-10"
+                    >
+                      <Section
+                        title="How the split is holding up"
+                        description="Scored against the 50/30/20 rule of thumb — half to essentials, a third to extras, a fifth put away. It is a reference point, not a verdict."
+                        icon={Target}
+                        action={
+                          <div className="flex flex-col gap-1.5">
+                            <span
+                              id="insights-advisory-period-label"
+                              className="text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                            >
+                              Advisory period
+                            </span>
+                            <div
+                              role="group"
+                              aria-labelledby="insights-advisory-period-label"
+                              className="min-w-0"
+                            >
+                              <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+                            </div>
+                          </div>
+                        }
+                      >
+                        {loading ? (
+                          <div role="status" aria-label="Loading diagnostics" className="grid gap-6 md:grid-cols-3">
+                            <Skeleton shape="block" className="h-60" />
+                            <Skeleton shape="block" className="h-60 md:col-span-2" />
+                          </div>
+                        ) : (
+                          <div className="grid gap-6 md:grid-cols-3">
+                            <AdherenceDiagnosticWithDrillDown
+                              healthScore={healthScore}
+                              totalIncome={totalIncome}
+                              totalDebit={totalDebit}
+                              advisoryFrom={advisoryFrom}
+                              advisoryTo={advisoryTo}
+                              ccBillCategories={ccBillCategories}
+                            />
+                            <BudgetVisualizerWithDrillDown
+                              needsSpent={needsSpent}
+                              needsPct={needsPct}
+                              wantsSpent={wantsSpent}
+                              wantsPct={wantsPct}
+                              savingsSpent={savingsSpent}
+                              finalSavingsPct={finalSavingsPct}
+                              emergencyMonths={emergencyMonths}
+                              isEmergencyFundReady={isEmergencyFundReady}
+                              advisoryFrom={advisoryFrom}
+                              advisoryTo={advisoryTo}
+                              needsCategoryNames={needsCategoryNames}
+                              wantsCategoryNames={wantsCategoryNames}
+                              savingsCategoryNames={savingsCategoryNames}
+                            />
+                          </div>
+                        )}
+
+                        {!loading && (
+                          <BudgetBurndownWithDrillDown
+                            data={budgetBurndownData}
+                            loading={loading}
+                            dateFilter={dateFilter}
+                          />
+                        )}
+                      </Section>
+
+                      {!loading && (
+                        <Section
+                          title="What to look at next"
+                          description="Spending that broke its own pattern, a written read of the period, and what the months ahead look like if nothing changes."
+                          icon={AlertTriangle}
+                        >
+                          <AnomalyAlertsWithDrillDown anomalies={anomalies} />
+
+                          <div className="grid gap-6 md:grid-cols-2">
+                            <AIInsights
+                              aiSource={aiSource}
+                              aiLoading={aiLoading}
+                              aiAlerts={aiAlerts}
+                              aiInsights={aiInsights}
+                            />
+                            <ScenarioSimulator
+                              simSalary={simSalary}
+                              setSimSalary={setSimSalary}
+                              simWants={simWants}
+                              setSimWants={setSimWants}
+                              totalIncome={totalIncome}
+                              wantsSpent={wantsSpent}
+                              needsSpent={needsSpent}
+                            />
+                          </div>
+
+                          <ForecastPanel forecast={forecast} />
+                        </Section>
+                      )}
+                    </motion.div>
+                  )}
+                </section>
               )}
 
-              {/* AI Wealth Advisory + Anomalies + Scenario Simulator */}
-              {!loading && (
-                <div className="space-y-6">
-                  <AnomalyAlertsWithDrillDown anomalies={anomalies} />
+              {/* A next step, not a banner. It sat above the charts before,
+                  pushing the numbers a scroll further down. */}
+              <Link
+                to="/budgets"
+                className={cn(
+                  'flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border-subtle',
+                  'bg-surface-1 px-4 py-3 no-underline transition-colors hover:border-border-hover',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+                )}
+              >
+                <span className="text-sm leading-relaxed text-zinc-400">
+                  Insights explains what already happened. Budgets set a limit and tell you
+                  before you pass it.
+                </span>
+                <span className="shrink-0 text-sm font-semibold text-brand-700">
+                  Budgets <span aria-hidden="true">→</span>
+                </span>
+              </Link>
 
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <AIInsights
-                      aiSource={aiSource}
-                      aiLoading={aiLoading}
-                      aiAlerts={aiAlerts}
-                      aiInsights={aiInsights}
-                    />
-                    <ScenarioSimulator
-                      simSalary={simSalary}
-                      setSimSalary={setSimSalary}
-                      simWants={simWants}
-                      setSimWants={setSimWants}
-                      totalIncome={totalIncome}
-                      wantsSpent={wantsSpent}
-                      needsSpent={needsSpent}
-                    />
-                  </div>
-
-                  <ForecastPanel forecast={forecast} />
-                </div>
-              )}
-            </>
-          )}
-
-          <DrillDownModal transactions={transactions} />
-        </DrillDownProvider>
+              <DrillDownModal transactions={transactions} />
+            </div>
+          </DrillDownProvider>
+        )}
       </div>
     </AppLayout>
   )

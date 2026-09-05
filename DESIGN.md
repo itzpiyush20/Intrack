@@ -74,9 +74,12 @@ component styles the `<input>` and does nothing to the layout. Hand-rolled
 (`ring-1 brand-400`) for a year before anyone noticed.
 
 **Icon-only row actions** (edit / archive / delete) come from `ACTION_BUTTON` and
-`ACTION_BUTTON_DANGER` in `components/ui/styles.ts`. 36px, `rounded-lg`, with a
-focus ring in the recipe. Before it existed, Settings alone had three sizes and
-three hover colours.
+`ACTION_BUTTON_DANGER` in `components/ui/styles.ts`. 44px on touch, 36px from
+`md` up, `rounded-lg`, with a focus ring in the recipe. Before it existed,
+Settings alone had three sizes and three hover colours — and the first version
+of the recipe was 36px everywhere, under the WCAG touch minimum, which every
+screen then overrode at the call site. When call sites all override the same
+thing, the recipe is what's wrong.
 
 **Body copy in app UI is `text-sm`; `text-xs` is for field labels, metadata and
 badges only.** Settings was 12px throughout and read as small print.

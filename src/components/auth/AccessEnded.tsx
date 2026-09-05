@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context'
+import { PauseCircle, ShieldCheck } from 'lucide-react'
 import { Card, Button, BrandMark } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { formatDate } from '@/utils'
@@ -53,50 +54,52 @@ export default function AccessEnded() {
     : null
 
   return (
-    <main className="min-h-screen bg-surface-0 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg flex flex-col gap-6">
+    <main className="flex min-h-svh items-center justify-center bg-surface-0 px-4 py-12 sm:px-6">
+      <div className="flex w-full max-w-lg flex-col gap-6">
         <div className="flex justify-center">
-          <BrandMark />
+          <BrandMark className="text-brand-500" />
         </div>
 
-        <Card className="p-8 flex flex-col gap-6">
+        <Card className="flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex flex-col gap-2">
-            <span className="inline-flex self-start items-center bg-[var(--status-warning-subtle)] border border-[var(--status-warning-border)] px-2.5 py-0.5 rounded-full text-xs font-semibold text-[var(--status-warning-text)]">
+            <span className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--status-warning-text)]">
+              <PauseCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               Access paused
             </span>
-            <h1 className="text-2xl font-bold text-sb-ink tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 text-balance">
               {endedFromTrial ? 'Your 7-day trial has ended' : 'Your plan has ended'}
             </h1>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              {expiredOn
-                ? `Access ended on ${expiredOn}. `
-                : ''}
-              Intrack does not have a free version — a plan is what keeps scanning,
-              budgets and insights switched on.
+            <p className="text-sm leading-relaxed text-zinc-400">
+              {expiredOn ? `Access ended on ${expiredOn}. ` : ''}
+              Intrack has no free version — a plan is what keeps scanning, budgets and insights
+              switched on.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4 flex flex-col gap-1">
-            <p className="text-sm font-bold text-sb-ink">Nothing has been deleted</p>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+          <div className="flex flex-col gap-1 rounded-xl border border-border-subtle bg-surface-2/50 p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-brand-400" aria-hidden="true" />
+              Nothing has been deleted
+            </p>
+            <p className="text-sm leading-relaxed text-zinc-400">
               {txCount != null && txCount > 0
-                ? `All ${txCount} transaction${txCount === 1 ? '' : 's'} you logged are still here, exactly as you left them. Pay and everything is back where it was.`
+                ? <>All <span className="font-medium text-zinc-200 tnum">{txCount}</span> transaction{txCount === 1 ? '' : 's'} you logged are still here, exactly as you left them. Pay and everything is back where it was.</>
                 : 'Everything you logged is still here, exactly as you left it. Pay and everything is back where it was.'}
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link to="/pricing" className="w-full">
-              <Button className="w-full justify-center">See plans — from ₹31</Button>
+            <Link to="/pricing" className="block w-full">
+              <Button block className="!h-11 justify-center">See plans — from ₹31</Button>
             </Link>
-            <div className="grid grid-cols-2 gap-3">
-              <Link to="/settings" className="w-full">
-                <Button variant="secondary" className="w-full justify-center text-xs">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Link to="/settings" className="block w-full">
+                <Button variant="secondary" block className="!h-11 justify-center">
                   Export my data
                 </Button>
               </Link>
-              <Link to="/support" className="w-full">
-                <Button variant="secondary" className="w-full justify-center text-xs">
+              <Link to="/support" className="block w-full">
+                <Button variant="secondary" block className="!h-11 justify-center">
                   Contact support
                 </Button>
               </Link>
@@ -105,8 +108,9 @@ export default function AccessEnded() {
         </Card>
 
         <button
+          type="button"
           onClick={() => { void signOut() }}
-          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors self-center cursor-pointer py-2"
+          className="mx-auto cursor-pointer rounded px-3 py-2 text-sm text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
         >
           Sign out
         </button>

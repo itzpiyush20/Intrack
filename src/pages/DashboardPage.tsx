@@ -1,14 +1,30 @@
 // ============================================
-// DashboardPage — Premium Financial Dashboard
-// Displays stats, spending breakdown, recent txns
+// DashboardPage — the money screen
+//
+// Composition rule this page follows: the numbers come first. A person opens
+// Intrack to answer "where did my money go", so the period totals sit directly
+// under the greeting, and everything that is an action (quick add, a
+// receivable to settle) or a detail (breakdown, recent rows) sits below them.
+//
+// Two things moved for correctness rather than taste:
+//  - The foreign-currency note says "not included in the totals above". It used
+//    to render ABOVE the totals it was talking about, so "above" pointed at the
+//    greeting. It now sits directly under the stats it annotates.
+//  - The credit-card-bill tile and the Insights teaser were two identical
+//    full-width strips stacked on each other. They are one two-up row now; they
+//    are the same kind of object — a one-line finding that links somewhere else.
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
-import { Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity } from '@/components/ui'
+import {
+  Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity, Skeleton,
+  staggerParent, staggerChild, rowVariants, transition, SECTION_LABEL, ROW_TILE,
+} from '@/components/ui'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
 import QuickAddWidget from '@/components/dashboard/QuickAddWidget'
 import ReceivablesCard from '@/components/dashboard/ReceivablesCard'
@@ -32,7 +48,6 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { useToast } from '@/context'
 import { getTransactions, fetchAllTransactions, getMonthlySummary, getSummary, getLoggingStreak } from '@/services/transactions'
 import { getBudgets } from '@/services/budgets'
 import { detectAnomalies } from '@/services/aiService'
@@ -74,6 +89,92 @@ interface SyncSummary {
  * spelled out by hand and silently fell behind when the function gained fields. */
 type DetectedAnomaly = ReturnType<typeof detectAnomalies>[number]
 
+/**
+ * A page-level notice: an error, a scan reminder, the result of a scan.
+ *
+ * Local to this file on purpose — the brief for this pass forbids adding to
+ * `components/ui`. Three banners were being hand-rolled here with three
+ * different paddings, two different dismiss-button sizes and an icon that was
+ * sometimes decorative and sometimes the only thing carrying the status. One
+ * shape, and the status is always said in words as well as shown in colour.
+ */
+const NOTICE_TONES = {
+  danger: {
+    surface: 'bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)]',
+    ink: 'text-[var(--status-danger-text)]',
+  },
+  warning: {
+    surface: 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)]',
+    ink: 'text-[var(--status-warning-text)]',
+  },
+  positive: {
+    surface: 'bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)]',
+    ink: 'text-[var(--status-positive-text)]',
+  },
+} as const
+
+interface NoticeProps {
+  tone: keyof typeof NOTICE_TONES
+  icon: typeof AlertTriangle
+  title: string
+  children?: ReactNode
+  /** Buttons and links; laid out under the text on a phone, beside it from sm. */
+  actions?: ReactNode
+  onDismiss?: () => void
+  dismissLabel?: string
+  role?: 'alert' | 'status' | 'note'
+}
+
+function Notice({ tone, icon: Icon, title, children, actions, onDismiss, dismissLabel, role }: NoticeProps) {
+  const t = NOTICE_TONES[tone]
+  return (
+    <div role={role} className={`relative rounded-2xl border p-4 sm:p-5 ${t.surface}`}>
+      {/* Top-right, out of the flow: in the row it used to sit in, a phone
+          stacked it under the text and the close button landed on the left. */}
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label={dismissLabel || 'Dismiss'}
+          className={`absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-lg opacity-70 transition-opacity hover:opacity-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${t.ink}`}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between ${onDismiss ? 'pr-10 sm:pr-0' : ''}`}>
+        <div className="flex min-w-0 items-start gap-3">
+          <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${t.ink}`} aria-hidden="true" />
+          <div className="min-w-0 space-y-1.5">
+            <p className={`text-sm font-semibold ${t.ink}`}>{title}</p>
+            {children}
+          </div>
+        </div>
+        {actions && (
+          <div className={`flex w-full shrink-0 flex-col gap-2 self-start sm:w-auto sm:flex-row sm:items-center ${onDismiss ? 'sm:mr-10' : ''}`}>
+            {actions}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The dashboard's optional sections, in the order they appear on the page.
+ *
+ * Driven from data so the customise modal cannot drift out of step with what
+ * the page actually renders — it previously repeated the same 16-line block six
+ * times, and each copy had to be edited by hand when a widget was added.
+ */
+const WIDGET_OPTIONS = [
+  { key: 'stats', icon: Wallet, label: 'Income, expenses and savings', hint: 'The three period totals at the top' },
+  { key: 'insights', icon: Sparkles, label: 'Insights finding', hint: 'Your biggest spending change, if there is one' },
+  { key: 'ccbills', icon: CreditCard, label: 'Credit card bills paid', hint: 'Bill payments in the selected period' },
+  { key: 'breakdown', icon: BarChart2, label: 'Spending breakdown', hint: 'Where the money went, by category' },
+  { key: 'recent', icon: DollarSign, label: 'Recent activity', hint: 'Your five most recent transactions' },
+  { key: 'subscriptions', icon: RefreshCw, label: 'Active subscriptions', hint: 'Recurring payments detected from your history' },
+] as const
+
 export default function DashboardPage() {
   const { user, profile, hasGoogleToken, notifyGoogleTokenCleared } = useAuth()
   const { getStyle, categories, loading: categoriesLoading } = useCategories()
@@ -86,7 +187,11 @@ export default function DashboardPage() {
     [categories, categoriesLoading]
   )
   const isCreditCardBill = useMemo(() => makeIsCreditCardBill(ccBillCategories), [ccBillCategories])
-  const { showToast } = useToast()
+
+  // Motion on this page reports one of three things: the sections arriving on
+  // first paint, a list row appearing, or a value's bar moving. Every one of
+  // them collapses to nothing when the visitor has asked for reduced motion.
+  const reduce = useReducedMotion()
 
   // Helper to extract first name of the user, ignoring standard titles
   const getFirstName = (fullName?: string) => {
@@ -627,638 +732,766 @@ export default function DashboardPage() {
     .slice(0, 4)
     .map((c) => c.category)
 
+  // What the period is called, once, so the greeting, the stat cards and the
+  // tiles all name it the same way instead of three variations on "this month".
+  const periodLabel = formatDateFilterLabel(dateFilter)
+
+  // The two link tiles sit side by side; with only one turned on it takes the
+  // full width rather than leaving a hole where the other one would be.
+  const linkTileCount = (widgets.insights ? 1 : 0) + (widgets.ccbills ? 1 : 0)
+  const linkTileSpan = linkTileCount === 1 ? 'sm:col-span-2' : ''
+
   return (
     <AppLayout>
-      <div className="space-y-8 animate-fade-in">
-        {/* Top welcome & Month selector */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary md:text-3xl">
+      <motion.div
+        variants={staggerParent(reduce, 8)}
+        initial="initial"
+        animate="animate"
+        className="space-y-6 md:space-y-8"
+      >
+        {/* ── Greeting and period controls ───────────────────────────────
+            The controls wrap under the greeting on a phone. DateFilterPicker
+            already wraps internally, so at 360px it breaks onto its own lines
+            rather than pushing the page wider. */}
+        <motion.header variants={staggerChild(reduce)} className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">
               Hello, {getFirstName()}
             </h1>
-            <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
               <p className="text-sm text-zinc-400">
-                Here is your wealth overview{dateFilter.mode === 'month' ? ' for this month' : ''}.
+                {/* A month reads as "in September 2026"; a custom range is a
+                    span, not a place, so it takes a comma instead. */}
+                What your money did{dateFilter.mode === 'month' ? ' in ' : ', '}
+                {periodLabel}.
               </p>
               {streakInfo.streak > 1 && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-2 border border-border-subtle/50 text-xs font-semibold text-zinc-400">
-                  <Flame className="h-3 w-3 shrink-0" /> {streakInfo.streak} day streak
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle/50 bg-surface-2 px-2 py-0.5 text-xs font-semibold text-zinc-400">
+                  <Flame className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="tnum">{streakInfo.streak}</span> days logged in a row
                 </span>
               )}
             </div>
           </div>
 
-          {/* Month Navigator & Customize Controls */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowConfigModal(true)}
-              className="hover:bg-surface-2 h-11 px-3.5 rounded-xl border border-border-subtle/50 text-xs font-semibold text-zinc-300 gap-1.5 flex items-center justify-center cursor-pointer"
-              title="Configure Dashboard Widgets"
-            >
-              <Settings className="h-3.5 w-3.5" /> Customize
-            </Button>
-
+          <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
             <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+            <Button
+              variant="secondary"
+              onClick={() => setShowConfigModal(true)}
+              className="h-11 gap-1.5 rounded-xl"
+            >
+              <Settings className="h-4 w-4 shrink-0" aria-hidden="true" /> Customise
+            </Button>
           </div>
-        </div>
+        </motion.header>
 
+        {/* ── Notices ────────────────────────────────────────────────── */}
         {error && (
-          <div className="rounded-2xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-sm text-[var(--status-danger-text)]">
-            {error}
-          </div>
+          <motion.div variants={staggerChild(reduce)}>
+            <Notice
+              tone="danger"
+              role="alert"
+              icon={AlertTriangle}
+              title="Your dashboard could not be loaded"
+            >
+              <p className="text-sm text-[var(--status-danger-text)] leading-relaxed">{error}</p>
+            </Notice>
+          </motion.div>
         )}
 
         {syncSummary && (
-          <div role="status" className="rounded-2xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-4 text-sm text-[var(--status-positive-text)] flex items-start justify-between gap-3 animate-fade-in shadow-md">
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">
-                  {syncSummary.total === 0
-                    ? 'Sync complete — no new transactions found.'
-                    : `${syncSummary.total} new transaction${syncSummary.total === 1 ? '' : 's'} found.`}
-                </p>
-                {syncSummary.total > 0 && (
-                  <p className="text-xs opacity-80 mt-1">
-                    {syncSummary.autoApproved} auto-approved
-                    {syncSummary.pendingReview > 0 ? `, ${syncSummary.pendingReview} waiting for your review` : ''}
-                    {syncSummary.topCategory
-                      ? ` · biggest category: ${syncSummary.topCategory.label} (${formatCurrency(syncSummary.topCategory.amount)})`
-                      : ''}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setSyncSummary(null)}
-              className="shrink-0 h-10 w-10 flex items-center justify-center -m-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-surface-2/60 transition-all"
-              aria-label="Dismiss sync summary"
+          <motion.div variants={staggerChild(reduce)}>
+            <Notice
+              tone="positive"
+              role="status"
+              icon={CheckCircle2}
+              title={
+                syncSummary.total === 0
+                  ? 'Scan finished — nothing new in your inbox'
+                  : `Scan finished — ${syncSummary.total} new transaction${syncSummary.total === 1 ? '' : 's'}`
+              }
+              onDismiss={() => setSyncSummary(null)}
+              dismissLabel="Dismiss scan result"
+              actions={
+                syncSummary.pendingReview > 0 ? (
+                  <Link to="/pending" className="w-full sm:w-auto">
+                    <Button variant="secondary" block className="h-11 gap-1.5 sm:w-auto">
+                      Review them <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    </Button>
+                  </Link>
+                ) : undefined
+              }
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+              {syncSummary.total > 0 && (
+                <p className="text-sm text-[var(--status-positive-text)] opacity-90 leading-relaxed">
+                  <span className="tnum">{syncSummary.autoApproved}</span> filed automatically
+                  {syncSummary.pendingReview > 0 && (
+                    <>
+                      , <span className="tnum">{syncSummary.pendingReview}</span> waiting for you in Pending
+                    </>
+                  )}
+                  {syncSummary.topCategory && (
+                    <>
+                      {' · '}biggest category {syncSummary.topCategory.label}{' '}
+                      <span className="tnum">{formatCurrency(syncSummary.topCategory.amount)}</span>
+                    </>
+                  )}
+                </p>
+              )}
+            </Notice>
+          </motion.div>
         )}
 
-        {/* Current month only: monthBudgetTotal follows the period picker, so
-            browsing an older month with no budget set used to bring the whole
-            first-run checklist back for an established user. */}
-        {!checklistDismissed && isCurrentMonth && (recentTransactions.length === 0 || monthBudgetTotal === 0) && (
-          <Card className="relative overflow-hidden shadow-md animate-fade-in">
-            <button
-              onClick={dismissChecklist}
-              className="absolute top-2 right-2 h-10 w-10 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-2/60 transition-colors"
-              aria-label="Dismiss checklist"
+        {/* Nothing scans on its own — automatic scanning was removed on
+            2026-08-27 — so this is a reminder, not an error. The old copy read
+            "Refresh Alert — Action Required", and its trial variant claimed
+            Gmail sync was "unlocked", which reads like a free tier. There is
+            no free tier: the trial ends and access stops. */}
+        {showInactivityBanner && (
+          <motion.div variants={staggerChild(reduce)}>
+            <Notice
+              tone="warning"
+              role="status"
+              icon={RefreshCw}
+              title="Your inbox hasn’t been scanned recently"
+              actions={
+                <Button
+                  onClick={handleManualBannerSync}
+                  loading={syncingBackground}
+                  block
+                  disabled={syncingBackground}
+                  className="h-11 gap-1.5 sm:w-auto"
+                >
+                  {syncingBackground ? 'Scanning…' : 'Scan now'}
+                </Button>
+              }
             >
-              <X className="h-4 w-4" />
-            </button>
-            <h2 className="text-sm font-bold text-text-primary">Get set up in 3 steps</h2>
-            <p className="text-xs text-zinc-500 mt-0.5 mb-4">A quick tour of what makes Intrack useful.</p>
-            <div className="space-y-3">
-              {[
-                {
-                  done: recentTransactions.length > 0,
-                  label: 'Add your first transaction',
-                  hint: 'Connect Gmail on Pending Alerts, or add one manually.',
-                  to: recentTransactions.length > 0 ? null : '/expenses',
-                },
-                {
-                  done: monthBudgetTotal > 0,
-                  label: 'Set a monthly budget',
-                  hint: 'Pick one category to start — you can add more later.',
-                  to: monthBudgetTotal > 0 ? null : '/budgets',
-                },
-                {
-                  done: visitedAnalytics,
-                  label: 'Explore your Insights',
-                  hint: 'See trends, forecasts, and where your money goes.',
-                  // '/analytics' is not a route — App.tsx's catch-all redirected
-                  // this straight out of the app to the marketing landing page.
-                  to: visitedAnalytics ? null : '/insights',
-                },
-              ].map((step) => (
-                <div key={step.label} className="flex items-center gap-3">
-                  {step.done ? (
-                    <CheckCircle2 className="h-4.5 w-4.5 text-[var(--status-positive-text)] shrink-0" />
-                  ) : (
-                    <Circle className="h-4.5 w-4.5 text-zinc-600 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${step.done ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
-                      {step.label}
-                    </p>
-                    {!step.done && <p className="text-xs text-zinc-500">{step.hint}</p>}
-                  </div>
-                  {step.to && (
-                    <Link to={step.to}>
-                      <Button size="md" variant="secondary" className="shrink-0 text-xs">
-                        Go
-                      </Button>
+              <p className="text-sm text-[var(--status-warning-text)] opacity-90 leading-relaxed">
+                Intrack only reads your Gmail when you ask it to. Last scan:{' '}
+                <span className="tnum font-medium">
+                  {lastScanTime ? lastScanTime.toLocaleString('en-IN') : 'never'}
+                </span>
+                .
+              </p>
+
+              {syncingBackground && (scanProgress || scanTakingLong) && (
+                <p role="status" className="text-sm text-[var(--status-warning-text)] opacity-75">
+                  {scanProgress ?? 'Still scanning — a large inbox can take up to a minute.'}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
+                {nextScanAt && (
+                  <span className="text-xs text-[var(--status-warning-text)] opacity-80">
+                    Next scan available {formatNextScanTime(nextScanAt)}
+                    {quotaExhausted ? ' — today’s scans are used up' : ' — scans are four hours apart'}
+                  </span>
+                )}
+                {(profile?.subscription_status === 'trial' ||
+                  (profile?.subscription_status === 'active' && profile?.subscription_plan_type === 'monthly')) && (
+                  <Link
+                    to="/pricing"
+                    className="inline-flex items-center gap-1 rounded text-xs font-semibold text-[var(--status-warning-text)] underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-warning-border)]"
+                  >
+                    <Crown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Switch to yearly
+                  </Link>
+                )}
+              </div>
+
+              {syncError && (
+                <div
+                  role="alert"
+                  className="mt-2 flex flex-col gap-2 rounded-xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] px-3 py-2.5 text-sm text-[var(--status-danger-text)] sm:flex-row sm:items-center"
+                >
+                  <span className="flex flex-1 items-start gap-2 leading-relaxed">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                    {syncError}
+                  </span>
+                  {(syncError.includes('expired') || syncError.includes('connected')) && (
+                    <Link
+                      to="/pending"
+                      className="shrink-0 rounded text-sm font-semibold text-[var(--status-danger-text)] underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-danger-border)]"
+                    >
+                      Go to Pending
                     </Link>
                   )}
                 </div>
-              ))}
-            </div>
-          </Card>
+              )}
+            </Notice>
+          </motion.div>
         )}
 
-        {/* Foreign spend is deliberately excluded from the INR figures above —
-            the app holds no exchange rates, and summing mixed currencies would
-            produce a meaningless number. Excluding it silently would be its own
-            kind of wrong, so it is reported here instead. */}
+        {/* ── First-run checklist ──────────────────────────────────────
+            Current month only: monthBudgetTotal follows the period picker, so
+            browsing an older month with no budget set used to bring the whole
+            checklist back for an established user. */}
+        {!checklistDismissed && isCurrentMonth && (recentTransactions.length === 0 || monthBudgetTotal === 0) && (
+          <motion.div variants={staggerChild(reduce)}>
+            <Card>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-zinc-100">Three things to set up</h2>
+                  <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                    Each one takes under a minute, and the dashboard fills in as you go.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissChecklist}
+                  aria-label="Dismiss the setup checklist"
+                  className="h-11 w-11 -mr-2 -mt-2 flex shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-surface-2 hover:text-zinc-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <ul className="mt-5 space-y-2.5">
+                {[
+                  {
+                    done: recentTransactions.length > 0,
+                    label: 'Record your first transaction',
+                    hint: 'Connect Gmail on Pending, or add one by hand below.',
+                    to: recentTransactions.length > 0 ? null : '/expenses',
+                  },
+                  {
+                    done: monthBudgetTotal > 0,
+                    label: 'Set a monthly budget',
+                    hint: 'One category is enough to start — add more later.',
+                    to: monthBudgetTotal > 0 ? null : '/budgets',
+                  },
+                  {
+                    done: visitedAnalytics,
+                    label: 'Look at your Insights',
+                    hint: 'Trends, forecasts and where the money actually goes.',
+                    // '/analytics' is not a route — App.tsx's catch-all
+                    // redirected this straight out of the app.
+                    to: visitedAnalytics ? null : '/insights',
+                  },
+                ].map((step) => (
+                  <li key={step.label} className={`${ROW_TILE} flex items-center gap-3 p-3.5`}>
+                    {step.done ? (
+                      <CheckCircle2
+                        className="h-5 w-5 shrink-0 text-[var(--status-positive-text)]"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Circle className="h-5 w-5 shrink-0 text-zinc-400" aria-hidden="true" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium ${step.done ? 'text-zinc-400 line-through' : 'text-zinc-100'}`}>
+                        {step.label}
+                        <span className="sr-only">{step.done ? ' — done' : ' — not done yet'}</span>
+                      </p>
+                      {!step.done && <p className="mt-0.5 text-xs text-zinc-400 leading-relaxed">{step.hint}</p>}
+                    </div>
+                    {step.to && (
+                      <Link to={step.to} className="shrink-0">
+                        <Button variant="secondary" className="h-11">Start</Button>
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* ── The numbers ─────────────────────────────────────────────
+            First, because this is what a person opened the app to read. */}
+        {widgets.stats && (
+          <motion.section variants={staggerChild(reduce)} aria-label={`Totals for ${periodLabel}`}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {loading ? (
+                [0, 1, 2].map((i) => (
+                  <Card key={i} className={i === 2 ? 'sm:col-span-2 lg:col-span-1' : undefined}>
+                    <div role="status" aria-label="Loading totals">
+                      <div className="flex items-center gap-2.5">
+                        <Skeleton shape="block" className="h-9 w-9" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="mt-4 h-8 w-36" />
+                      <Skeleton className="mt-3 h-3 w-28" />
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <>
+                  <Card>
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]"
+                      >
+                        <TrendingUp className="h-4.5 w-4.5" />
+                      </span>
+                      <h2 className={SECTION_LABEL}>Money in</h2>
+                    </div>
+                    <p className="mt-4 text-3xl font-semibold tracking-tight tnum text-[var(--status-positive-text)]">
+                      {formatCurrency(summary?.total_income || 0)}
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-400">Received in {periodLabel}</p>
+                  </Card>
+
+                  {/* Expenses are a neutral fact, not a warning — no red. */}
+                  <Card>
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-zinc-300"
+                      >
+                        <TrendingDown className="h-4.5 w-4.5" />
+                      </span>
+                      <h2 className={SECTION_LABEL}>Money out</h2>
+                    </div>
+                    <p className="mt-4 text-3xl font-semibold tracking-tight tnum text-zinc-50">
+                      {formatCurrency(summary?.total_expenses || 0)}
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-400">Spent in {periodLabel}</p>
+                  </Card>
+
+                  <Card className="sm:col-span-2 lg:col-span-1">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
+                      >
+                        <Shield className="h-4.5 w-4.5" />
+                      </span>
+                      <h2 className={SECTION_LABEL}>Kept</h2>
+                    </div>
+                    <p
+                      className={`mt-4 text-3xl font-semibold tracking-tight tnum ${
+                        (summary?.savings || 0) >= 0
+                          ? 'text-[var(--status-positive-text)]'
+                          : 'text-[var(--status-danger-text)]'
+                      }`}
+                    >
+                      {formatCurrency(summary?.savings || 0)}
+                    </p>
+                    <div className="mt-3">
+                      <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                        {/* Said in words as well as colour: a negative rate is
+                            "overspent", not just a red number. */}
+                        <span className="text-zinc-400">
+                          {(summary?.savings || 0) >= 0 ? 'Of what came in' : 'Overspent'}
+                        </span>
+                        <span
+                          className={`font-semibold tnum ${
+                            (summary?.savings || 0) >= 0
+                              ? 'text-[var(--status-positive-text)]'
+                              : 'text-[var(--status-danger-text)]'
+                          }`}
+                        >
+                          {savingsRate.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-valuenow={Math.round(Math.max(0, Math.min(100, savingsRate)))}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Share of income kept"
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
+                      >
+                        <div
+                          className={`h-full rounded-full ${
+                            reduce ? '' : 'transition-[width] duration-500 ease-out'
+                          } ${(summary?.savings || 0) >= 0 ? 'bg-brand-500' : 'bg-[var(--status-danger-text)]'}`}
+                          style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                </>
+              )}
+            </div>
+          </motion.section>
+        )}
+
+        {/* Foreign spend is deliberately excluded from the INR figures — the app
+            holds no exchange rates, and summing mixed currencies would produce
+            a meaningless number. It sits directly under the totals it is
+            qualifying; it used to render above them, where "the totals above"
+            pointed at the page heading. */}
         {summary?.other_currency_totals && Object.keys(summary.other_currency_totals).length > 0 && (
-          <div role="note" className="rounded-2xl border border-border-subtle bg-surface-1 p-4 text-sm animate-fade-in">
-            <p className="font-semibold text-zinc-200">Also spent in other currencies</p>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Not included in the totals above — Intrack does not convert between currencies.
+          <motion.aside
+            variants={staggerChild(reduce)}
+            className="rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5"
+          >
+            <p className="text-sm font-semibold text-zinc-100">Also spent in other currencies</p>
+            <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+              Left out of the totals above — Intrack does not convert between currencies.
             </p>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
               {Object.entries(summary.other_currency_totals).map(([code, totals]) => (
-                <span key={code} className="text-sm font-mono text-zinc-300">
+                <li key={code} className="text-sm tnum text-zinc-300">
                   {totals.expenses > 0 && <>{formatCurrency(totals.expenses, code)} spent</>}
                   {totals.expenses > 0 && totals.income > 0 && ' · '}
                   {totals.income > 0 && <>{formatCurrency(totals.income, code)} received</>}
-                </span>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </motion.aside>
         )}
 
-        {showInactivityBanner && (
-          <div role="alert" className="rounded-2xl bg-[var(--status-warning-subtle)] border border-[var(--status-warning-border)] p-4 text-sm text-[var(--status-warning-text)] flex flex-col gap-3 animate-fade-in shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="h-5 w-5 text-status-warning shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-text-primary">
-                    {profile?.subscription_status === 'trial' ? 'Trial Active — Gmail Sync Unlocked' : 'Refresh Alert — Action Required'}
-                  </p>
-                  <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                    {profile?.subscription_status === 'trial'
-                      ? `Your transaction tracker is active in full trial mode. Last sync: ${lastScanTime ? lastScanTime.toLocaleString('en-IN') : 'Never'}. Click Sync Now to fetch new alerts.`
-                      : `Your transaction tracker has not refreshed in the last 24 hours (last sync: ${lastScanTime ? lastScanTime.toLocaleString('en-IN') : 'Never'}). Click Sync Now to import the latest bank alerts.`}
-                  </p>
-                  {syncingBackground && (scanProgress || scanTakingLong) && (
-                    <p role="status" className="text-xs text-zinc-500 mt-1">
-                      {scanProgress ?? 'Still syncing — large inboxes can take up to a minute…'}
+        {/* ── Two findings, side by side ───────────────────────────────
+            Both are the same object: one sentence about the period, and a way
+            through to the screen that explains it. They were two stacked
+            full-width strips, which read as two unrelated banners. */}
+        {linkTileCount > 0 && (
+          <motion.section variants={staggerChild(reduce)} className="grid gap-4 sm:grid-cols-2">
+            {widgets.insights && (
+              <Link
+                to="/insights"
+                className={`group flex items-start gap-4 rounded-2xl border border-border-subtle bg-surface-1 p-5 shadow-[var(--shadow-sm)] transition-colors hover:border-border-hover hover:bg-surface-2/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className={SECTION_LABEL}>Worth knowing</h2>
+                  {insightsTeaser === 'loading' ? (
+                    <div role="status" aria-label="Looking for unusual spending">
+                      <Skeleton className="mt-2 h-4 w-full" />
+                      <Skeleton className="mt-1.5 h-4 w-2/3" />
+                    </div>
+                  ) : insightsTeaser === 'none' ? (
+                    <p className="mt-1.5 text-sm text-zinc-200 leading-relaxed">
+                      Nothing unusual this month — your spending is steady.
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-zinc-200 leading-relaxed">
+                      {(() => {
+                        const cat = getStyle(insightsTeaser.category)
+                        return (
+                          <>
+                            <span className="font-semibold">{cat.emoji} {cat.label}</span> spending is
+                            {insightsTeaser.isProjection ? ' on track to be up ' : ' up '}
+                            <span className="font-semibold tnum text-[var(--status-warning-text)]">
+                              {Math.round(insightsTeaser.spike)}%
+                            </span>{' '}
+                            this month — <span className="tnum">{formatCurrency(insightsTeaser.projectedMonth)}</span>
+                            {insightsTeaser.isProjection ? ' projected' : ''} against a{' '}
+                            <span className="tnum">{formatCurrency(insightsTeaser.baseline)}</span> average.
+                          </>
+                        )
+                      })()}
                     </p>
                   )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="text-[var(--status-warning-text)] border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] hover:bg-[var(--status-warning-border)] hover:border-[var(--status-warning-text)]/40 transition-all text-xs justify-center gap-1.5"
-                  onClick={handleManualBannerSync}
-                  loading={syncingBackground}
-                  disabled={syncingBackground}
-                >
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" /> Sync Now
-                </Button>
-                {nextScanAt && (
-                  <span className="text-xs font-semibold text-brand-300 bg-surface-2 border border-border-subtle/50 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
-                    Next scan {formatNextScanTime(nextScanAt)}
-                    <span className="text-zinc-500 font-normal">
-                      {quotaExhausted ? "· today's scans used" : '· 4-hour gap'}
-                    </span>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
+                    See all insights
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
-                )}
-                {(profile?.subscription_status === 'trial' || (profile?.subscription_status === 'active' && profile?.subscription_plan_type === 'monthly')) && (
-                  <Link to="/pricing" className="shrink-0">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="text-brand-300 border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 hover:border-brand-500/35 transition-all text-xs justify-center font-bold gap-1.5"
-                    >
-                      <Crown className="h-3.5 w-3.5" /> Upgrade to Yearly
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
-            {syncError && (
-              <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] px-3 py-2 text-xs text-[var(--status-danger-text)] flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="flex-1 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-status-danger shrink-0" />
-                  {syncError}
-                </span>
-                {(syncError.includes('expired') || syncError.includes('connected')) && (
-                  <Link
-                    to="/pending"
-                    className="shrink-0 text-xs font-semibold text-[var(--status-danger-text)] underline underline-offset-2 hover:opacity-80 transition-colors"
-                  >
-                    Go to Pending Alerts →
-                  </Link>
-                )}
-              </div>
+                </div>
+              </Link>
             )}
-          </div>
+
+            {widgets.ccbills && (
+              <button
+                type="button"
+                onClick={() => setShowCcBillModal(true)}
+                className={`group flex items-start gap-4 rounded-2xl border border-border-subtle bg-surface-1 p-5 text-left shadow-[var(--shadow-sm)] transition-colors hover:border-border-hover hover:bg-surface-2/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
+                >
+                  <CreditCard className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className={SECTION_LABEL}>Credit card bills paid</h2>
+                  {ccBillLoading ? (
+                    <div role="status" aria-label="Loading credit card bill payments">
+                      <Skeleton className="mt-2 h-6 w-32" />
+                      <Skeleton className="mt-2 h-4 w-2/3" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                        {formatCurrency(ccBillTotal)}
+                      </p>
+                      <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                        {ccBillHomeTxns.length === 0
+                          ? ccBillTxns.length > 0
+                            // Foreign-currency payments only: ₹0 with a flat
+                            // "none" would contradict the list the modal shows.
+                            ? `Only foreign-currency payments in ${periodLabel}.`
+                            : `No bill payments in ${periodLabel}.`
+                          : `${ccBillHomeTxns.length} payment${ccBillHomeTxns.length === 1 ? '' : 's'} in ${periodLabel}, kept out of Money out — the purchases behind them were already counted.`}
+                      </p>
+                    </>
+                  )}
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
+                    View payments
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </span>
+                </div>
+              </button>
+            )}
+          </motion.section>
         )}
 
+        {/* ── Act on it ───────────────────────────────────────────────
+            Quick add and anything owed back are the two things a person does
+            on this screen rather than reads. They sit together, below the
+            figures they change. */}
         {isCurrentMonth && (
-          <>
+          <motion.section variants={staggerChild(reduce)} className="space-y-4">
             <QuickAddWidget
               topCategories={topCategories}
               onAdded={() => {
                 fetchDashboardData(dateFilter)
                 refreshStreak()
               }}
+              footnote={
+                !loading && !streakInfo.loggedToday
+                  ? `Log something today to ${streakInfo.streak > 0 ? 'keep' : 'start'} your streak.`
+                  : undefined
+              }
             />
-
-            {!loading && !streakInfo.loggedToday && (
-              <p className="text-xs text-zinc-500 -mt-4">
-                Log an expense today to {streakInfo.streak > 0 ? 'keep' : 'start'} your streak.
-              </p>
-            )}
-
             <ReceivablesCard onSettled={() => fetchDashboardData(dateFilter)} />
-          </>
+          </motion.section>
         )}
 
-        {/* Stats summary section */}
-        {widgets.stats && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {loading ? (
-              // Skeleton for stats
-              [1, 2, 3].map((i) => (
-                <Card key={i} className="relative overflow-hidden h-32">
-                  <div className="skeleton absolute inset-0 opacity-70" />
-                </Card>
-              ))
-            ) : (
-              <>
-                {/* Income card */}
-                <Card className="relative overflow-hidden bg-surface-1 group shadow-md">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <TrendingUp className="h-10 w-10 text-status-positive" />
-                  </div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    Total Income
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-[var(--status-positive-text)] animate-slide-up stagger-1">
-                    {formatCurrency(summary?.total_income || 0)}
-                  </p>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
-                    <span>Earned {dateFilter.mode === 'month' ? 'this month' : 'in this period'}</span>
-                  </div>
-                </Card>
-
-                {/* Expenses card — a neutral fact, not a warning */}
-                <Card className="relative overflow-hidden bg-surface-1 group shadow-md">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <TrendingDown className="h-10 w-10 text-zinc-400" />
-                  </div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    Total Expenses
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-text-primary animate-slide-up stagger-2">
-                    {formatCurrency(summary?.total_expenses || 0)}
-                  </p>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
-                    <span>Spent {dateFilter.mode === 'month' ? 'this month' : 'in this period'}</span>
-                  </div>
-                </Card>
-
-                {/* Savings card */}
-                <Card className="relative overflow-hidden bg-surface-1 group shadow-md sm:col-span-2 lg:col-span-1">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <Shield className="h-10 w-10 text-brand-400" />
-                  </div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    Net Savings
-                  </p>
-                  <p
-                    className={`mt-2 text-3xl font-bold tracking-tight animate-slide-up stagger-3 ${
-                      (summary?.savings || 0) >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'
-                    }`}
-                  >
-                    {formatCurrency(summary?.savings || 0)}
-                  </p>
-                  {/* Savings progress bar */}
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-zinc-500">Savings Rate</span>
-                      <span className={`font-semibold ${(summary?.savings || 0) >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'}`}>
-                        {savingsRate.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full bg-surface-3 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ease-out ${(summary?.savings || 0) >= 0 ? 'aurora-progress-fill' : 'bg-[var(--status-danger-text)]'}`}
-                        style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Credit card bills tile — opens the full list in a modal */}
-        {widgets.ccbills && (
-          <button
-            type="button"
-            onClick={() => setShowCcBillModal(true)}
-            className="w-full text-left flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface-1 shadow-md px-5 py-4 transition-colors hover:bg-surface-2/40 group cursor-pointer"
-          >
-            <div className="shrink-0 h-10 w-10 rounded-full bg-brand-500/10 flex items-center justify-center">
-              <CreditCard className="h-5 w-5 text-brand-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                Credit Card Bills Paid
-              </p>
-              {ccBillLoading ? (
-                <div className="skeleton h-4 w-2/3 mt-1.5 rounded" />
-              ) : (
-                <>
-                  <p className="text-xl font-bold tracking-tight text-text-primary mt-0.5">
-                    {formatCurrency(ccBillTotal)}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-0.5 truncate">
-                    {ccBillHomeTxns.length === 0
-                      ? ccBillTxns.length > 0
-                        // Foreign-currency payments only: ₹0 with a flat "none"
-                        // would contradict the list the modal is about to show.
-                        ? `Only foreign-currency payments in ${formatDateFilterLabel(dateFilter)} — open to view`
-                        : `No bill payments in ${formatDateFilterLabel(dateFilter)}`
-                      : `${ccBillHomeTxns.length} payment${ccBillHomeTxns.length === 1 ? '' : 's'} in ${formatDateFilterLabel(dateFilter)} · not counted in Total Expenses`}
-                  </p>
-                </>
-              )}
-            </div>
-            <div className="shrink-0 flex items-center gap-1 text-xs font-semibold text-brand-400 group-hover:text-brand-300">
-              <span className="hidden sm:inline">View payments</span>
-              <ArrowRight className="h-4 w-4" />
-            </div>
-          </button>
-        )}
-
-        {/* Insights teaser — surfaces the top Insights finding here so most
-            users never need to leave the Dashboard to catch it. Always
-            renders something once resolved (an anomaly, or a "nothing
-            unusual" reassurance) rather than disappearing when there's
-            nothing to flag — a card that vanishes reads as broken. */}
-        {widgets.insights && (
-          <Link
-            to="/insights"
-            className="flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface-1 shadow-md px-5 py-4 transition-colors hover:bg-surface-2/40 group"
-          >
-            <div className="shrink-0 h-10 w-10 rounded-full bg-brand-500/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-brand-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Insights</p>
-              {insightsTeaser === 'loading' ? (
-                <div className="skeleton h-4 w-2/3 mt-1.5 rounded" />
-              ) : insightsTeaser === 'none' ? (
-                <p className="text-sm text-zinc-200 mt-0.5 truncate">
-                  No unusual spending detected this month — nice and steady.
-                </p>
-              ) : (
-                <p className="text-sm text-zinc-200 mt-0.5 truncate">
-                  {(() => {
-                    const cat = getStyle(insightsTeaser.category)
-                    return (
-                      <>
-                        <span className="font-semibold">{cat.emoji} {cat.label}</span> spending is
-                        {insightsTeaser.isProjection ? ' on track to be up ' : ' up '}
-                        <span className="font-semibold text-[var(--status-warning-text)]">
-                          {Math.round(insightsTeaser.spike)}%
-                        </span>{' '}
-                        this month — {formatCurrency(insightsTeaser.projectedMonth)}
-                        {insightsTeaser.isProjection ? ' projected' : ''} vs a{' '}
-                        {formatCurrency(insightsTeaser.baseline)} average.
-                      </>
-                    )
-                  })()}
-                </p>
-              )}
-            </div>
-            <div className="shrink-0 flex items-center gap-1 text-xs font-semibold text-brand-400 group-hover:text-brand-300">
-              <span className="hidden sm:inline">View Insights</span>
-              <ArrowRight className="h-4 w-4" />
-            </div>
-          </Link>
-        )}
-
-        {/* Details breakdown */}
+        {/* ── The detail ──────────────────────────────────────────────── */}
         {(widgets.breakdown || widgets.recent) && (
-          <div className="grid gap-6 lg:grid-cols-12">
-            {/* Left panel: Category breakdown */}
+          <motion.section variants={staggerChild(reduce)} className="grid gap-4 lg:grid-cols-12 lg:gap-6">
             {widgets.breakdown && (
-              <Card className={`${widgets.recent ? 'lg:col-span-7' : 'lg:col-span-12'} flex flex-col h-auto`}>
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-lg font-bold text-text-primary">Spending Breakdown</h2>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      Where your money went{dateFilter.mode === 'month' ? ' this month' : ' in this period'}
-                    </p>
+              <Card className={`flex flex-col ${widgets.recent ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-zinc-100">Where it went</h2>
+                    <p className="mt-1 text-sm text-zinc-400">By category, {periodLabel}</p>
                   </div>
                   {summary && summary.category_breakdown.length > CATEGORY_BREAKDOWN_PREVIEW_COUNT && (
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="text-brand-400 hover:text-brand-300 font-semibold h-10 px-2"
                       onClick={() => setShowAllCategories((prev) => !prev)}
+                      className="h-11 shrink-0 px-3"
                     >
-                      {showAllCategories ? 'Show Less' : 'View All'}
+                      {showAllCategories
+                        ? 'Show fewer'
+                        : `All ${summary.category_breakdown.length}`}
                     </Button>
                   )}
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center">
+                <div className="mt-5 flex-1">
                   {loading ? (
-                    // Skeleton breakdown
-                    <div className="space-y-6 py-2">
-                      {[1, 2, 3, 4].map((i) => (
+                    <div role="status" aria-label="Loading spending breakdown" className="space-y-5">
+                      {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="space-y-2">
-                          <div className="flex justify-between">
-                            <div className="skeleton h-4 w-1/3" />
-                            <div className="skeleton h-4 w-12" />
+                          <div className="flex items-center justify-between gap-3">
+                            <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-4 w-16" />
                           </div>
-                          <div className="skeleton h-2 w-full" />
+                          <Skeleton shape="block" className="h-2 w-full" />
                         </div>
                       ))}
                     </div>
                   ) : !summary || summary.category_breakdown.length === 0 ? (
                     <EmptyState
-                      icon={<BarChart2 className="h-8 w-8 text-zinc-500" />}
-                      title="No expenses tracked"
-                      description={dateFilter.mode === 'month'
-                        ? 'Add an expense in the selected month to see your breakdown chart.'
-                        : 'No expenses fall in this date range yet.'}
+                      icon={<BarChart2 className="h-8 w-8 text-zinc-400" />}
+                      title="Nothing spent in this period"
+                      description={
+                        isCurrentMonth
+                          ? 'Add an expense below, or scan your inbox, and your categories appear here ranked by size.'
+                          : `No expenses fall in ${periodLabel}. Pick another period to see its breakdown.`
+                      }
+                      action={
+                        isCurrentMonth ? undefined : (
+                          <Button
+                            variant="secondary"
+                            onClick={() => setDateFilter({ mode: 'month', month: getCurrentMonth() })}
+                            className="h-11"
+                          >
+                            Back to this month
+                          </Button>
+                        )
+                      }
                     />
                   ) : (
-                    <div className="space-y-5 py-2">
+                    <motion.ul
+                      key={`${periodLabel}-${showAllCategories}`}
+                      variants={staggerParent(reduce, CATEGORY_BREAKDOWN_PREVIEW_COUNT)}
+                      initial="initial"
+                      animate="animate"
+                      className="space-y-1"
+                    >
                       {(showAllCategories
                         ? summary.category_breakdown
                         : summary.category_breakdown.slice(0, CATEGORY_BREAKDOWN_PREVIEW_COUNT)
-                      ).map((item, idx) => {
+                      ).map((item) => {
                         const cat = getStyle(item.category)
                         return (
-                          <button
+                          <motion.li
                             key={item.category}
-                            onClick={() => handleCategoryClick(item.category)}
-                            className="w-full text-left block space-y-1.5 p-2 -mx-2 rounded-xl transition-all duration-200 cursor-pointer hover:bg-surface-2/45 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700/60 animate-slide-up"
-                            style={{ animationDelay: `${idx * 0.05}s` }}
+                            variants={rowVariants(reduce)}
+                            transition={transition(reduce)}
                           >
-                            <div className="flex items-center justify-between">
-                              {/* Label & Icon */}
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{cat.emoji}</span>
-                                <span className="text-sm font-medium text-zinc-200">
-                                  {cat.label}
+                            <button
+                              type="button"
+                              onClick={() => handleCategoryClick(item.category)}
+                              aria-label={`${cat.label}: ${formatCurrency(item.amount)} across ${item.count} transactions`}
+                              className="-mx-2 w-full space-y-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-surface-2/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                            >
+                              <div className="flex items-baseline justify-between gap-3">
+                                <span className="flex min-w-0 items-baseline gap-2">
+                                  <span aria-hidden="true" className="text-base leading-none">{cat.emoji}</span>
+                                  <span className="truncate text-sm font-medium text-zinc-100">{cat.label}</span>
+                                  <span className="shrink-0 text-xs tnum text-zinc-400">
+                                    {item.count}
+                                  </span>
                                 </span>
-                                <span className="text-xs text-zinc-500 font-normal">
-                                  ({item.count}txn)
+                                <span className="shrink-0 text-right">
+                                  <span className="text-sm font-semibold tnum text-zinc-100">
+                                    {formatCurrency(item.amount)}
+                                  </span>
+                                  <span className="ml-2 text-xs tnum text-zinc-400">
+                                    {item.percentage.toFixed(0)}%
+                                  </span>
                                 </span>
                               </div>
-
-                              {/* Amount & Percentage */}
-                              <div className="text-right">
-                                <span className="text-sm font-semibold text-zinc-200">
-                                  {formatCurrency(item.amount)}
-                                </span>
-                                <span className="text-xs text-zinc-500 ml-2 font-normal">
-                                  {item.percentage.toFixed(0)}%
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Progress bar */}
-                            <div className="h-2 w-full bg-surface-3 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-700 ease-out"
-                                style={{
-                                  width: `${item.percentage}%`,
-                                  backgroundColor: cat.color,
-                                }}
-                              />
-                            </div>
-                          </button>
+                              <span
+                                role="progressbar"
+                                aria-valuenow={Math.round(item.percentage)}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label={`${cat.label} share of spending`}
+                                className="block h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                              >
+                                <span
+                                  className={`block h-full rounded-full ${reduce ? '' : 'transition-[width] duration-500 ease-out'}`}
+                                  style={{ width: `${item.percentage}%`, backgroundColor: cat.color }}
+                                />
+                              </span>
+                            </button>
+                          </motion.li>
                         )
                       })}
-                    </div>
+                    </motion.ul>
                   )}
                 </div>
               </Card>
             )}
 
-            {/* Right panel: Recent Transactions */}
             {widgets.recent && (
-              <Card className={`${widgets.breakdown ? 'lg:col-span-5' : 'lg:col-span-12'} flex flex-col h-auto`} noPadding>
-                <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                  <div>
-                    <h2 className="text-lg font-bold text-text-primary">Recent Activity</h2>
-                    <p className="text-xs text-zinc-500 mt-0.5">Your globally recent transactions</p>
+              <Card
+                noPadding
+                className={`flex flex-col ${widgets.breakdown ? 'lg:col-span-5' : 'lg:col-span-12'}`}
+              >
+                <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 md:px-6 md:pt-6">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-zinc-100">Latest activity</h2>
+                    <p className="mt-1 text-sm text-zinc-400">Across every period</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-brand-400 hover:text-brand-300 font-semibold h-10 px-2"
-                    onClick={handleOpenRecentModal}
-                  >
-                    View All
+                  <Button variant="ghost" onClick={handleOpenRecentModal} className="h-11 shrink-0 px-3">
+                    View more
                   </Button>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center border-t border-border-subtle">
+                <div className="flex-1 border-t border-border-subtle">
                   {loading ? (
-                    // Skeleton Transactions
-                    <div className="space-y-4 p-5">
-                      {[1, 2, 3, 4].map((i) => (
+                    <div role="status" aria-label="Loading recent activity" className="space-y-4 p-5 md:p-6">
+                      {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="flex items-center gap-3">
-                          <div className="skeleton h-9 w-9 rounded-xl shrink-0" />
+                          <Skeleton shape="block" className="h-9 w-9 shrink-0" />
                           <div className="flex-1 space-y-1.5">
-                            <div className="skeleton h-3.5 w-2/3" />
-                            <div className="skeleton h-2.5 w-1/3" />
+                            <Skeleton className="h-3.5 w-2/3" />
+                            <Skeleton className="h-3 w-1/3" />
                           </div>
-                          <div className="skeleton h-4 w-14" />
+                          <Skeleton className="h-4 w-16 shrink-0" />
                         </div>
                       ))}
                     </div>
                   ) : recentTransactions.length === 0 ? (
-                    <div className="p-5 flex-1 flex flex-col justify-center items-center">
+                    <div className="px-5 md:px-6">
                       <EmptyState
-                        icon={<DollarSign className="h-8 w-8 text-zinc-500" />}
+                        icon={<DollarSign className="h-8 w-8 text-zinc-400" />}
                         title="No transactions yet"
-                        description="Record a transaction to see your recent activity."
+                        description="Every transaction you add or approve shows up here, newest first — so you can check at a glance that nothing is missing."
+                        action={
+                          <Link to="/expenses">
+                            <Button>Add a transaction</Button>
+                          </Link>
+                        }
                       />
-                      <Link to="/expenses" className="mt-4">
-                        <Button size="sm">Add First Transaction</Button>
-                      </Link>
                     </div>
                   ) : (
-                    <div className="divide-y divide-border-subtle flex-1 flex flex-col justify-between">
-                      <div>
-                        {recentTransactions.map((txn, idx) => {
-                          const cat = getStyle(txn.category)
-                          const isDebit = txn.type === 'debit'
-
-                          return (
-                            <div
-                              key={txn.id}
-                              className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2/40 animate-slide-up"
-                              style={{ animationDelay: `${idx * 0.05}s` }}
+                    <motion.ul
+                      variants={staggerParent(reduce, recentTransactions.length)}
+                      initial="initial"
+                      animate="animate"
+                      className="divide-y divide-border-subtle"
+                    >
+                      {recentTransactions.map((txn) => {
+                        const cat = getStyle(txn.category)
+                        const isDebit = txn.type === 'debit'
+                        return (
+                          <motion.li
+                            key={txn.id}
+                            variants={rowVariants(reduce)}
+                            transition={transition(reduce)}
+                            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2/40 md:px-6"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base"
+                              style={{ backgroundColor: `${cat.color}15` }}
                             >
-                              {/* Category icon */}
-                              <div
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-md"
-                                style={{ backgroundColor: `${cat.color}15` }}
-                              >
-                                {cat.emoji}
-                              </div>
+                              {cat.emoji}
+                            </span>
 
-                              {/* Details — resolved identity, never raw narration.
-                                  This list used to print txn.description, so the
-                                  same payment read "Swiggy" in the modals below
-                                  and "UPI/4412/SWIGGY-ORDER-BLR" here. */}
-                              <div className="flex-1 min-w-0">
-                                <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                                <span className="text-xs text-zinc-500 block mt-0.5">
-                                  {formatDate(txn.date)}
-                                </span>
-                              </div>
-
-                              {/* Amount */}
-                              <div className="text-right shrink-0">
-                                <p
-                                  className={`text-xs font-bold ${
-                                    isDebit ? 'text-[var(--status-danger-text)]' : 'text-[var(--status-positive-text)]'
-                                  }`}
-                                >
-                                  {/* Pass the row's own currency — without it a $200
-                                      charge renders as "-₹200" here while the
-                                      "View All" modal below shows "-$200". */}
-                                  {isDebit ? '-' : '+'}{formatCurrencyCompact(Number(txn.amount), txn.currency)}
-                                </p>
-                              </div>
+                            {/* Resolved identity, never raw narration. This list
+                                used to print txn.description, so one payment read
+                                "Swiggy" in the modal and "UPI/4412/SWIGGY-BLR"
+                                here. */}
+                            <div className="min-w-0 flex-1">
+                              <TransactionIdentity {...resolveTransactionIdentity(txn)} size="md" />
+                              <span className="mt-0.5 block text-xs tnum text-zinc-400">
+                                {formatDate(txn.date)}
+                              </span>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </div>
+
+                            <p
+                              className={`shrink-0 text-sm font-semibold tnum ${
+                                isDebit ? 'text-zinc-100' : 'text-[var(--status-positive-text)]'
+                              }`}
+                            >
+                              {/* The row's own currency — without it a $200
+                                  charge renders as "-₹200" here and "-$200" in
+                                  the modal below. */}
+                              {isDebit ? '−' : '+'}
+                              {formatCurrencyCompact(Number(txn.amount), txn.currency)}
+                              <span className="sr-only">{isDebit ? ' spent' : ' received'}</span>
+                            </p>
+                          </motion.li>
+                        )
+                      })}
+                    </motion.ul>
                   )}
                 </div>
               </Card>
             )}
-          </div>
+          </motion.section>
         )}
 
-        {/* 🔄 Subscription Intelligence Widget */}
         {/* Fetches its own 24 months of history — detection needs two charges
-            from one merchant, which the 5 recent rows above can never show. */}
+            from one merchant, which the 5 recent rows above can never show.
+            Deliberately NOT wrapped in a motion.div: it returns null whenever
+            it has nothing to show, and an empty wrapper would still take a
+            `space-y` margin, leaving a gap at the bottom of the page. */}
         <ActiveSubscriptionsWidget isVisible={widgets.subscriptions} />
 
-        {/* 📋 Recent Activity View All Modal */}
+        {/* ── Modals ─────────────────────────────────────────────────── */}
         <Modal
           isOpen={showAllRecentModal}
           onClose={() => setShowAllRecentModal(false)}
-          title="Recent Activity"
+          title="Latest activity"
           footer={
             <Button variant="secondary" onClick={() => setShowAllRecentModal(false)}>
               Close
@@ -1266,58 +1499,61 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4">
-            <p className="text-xs text-zinc-400">Your past 15 transaction records</p>
+            <p className="text-sm text-zinc-400">Your fifteen most recent transactions.</p>
             {loadingAllRecent ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface-2 animate-pulse">
-                    <div className="h-4 w-1/3 bg-zinc-700 rounded" />
-                    <div className="h-4 w-12 bg-zinc-700 rounded" />
+              <div role="status" aria-label="Loading transactions" className="space-y-4">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-4 w-20 shrink-0" />
                   </div>
                 ))}
               </div>
             ) : allRecentTransactions.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-8">No transactions found.</p>
+              <EmptyState
+                icon={<DollarSign className="h-8 w-8 text-zinc-400" />}
+                title="Nothing recorded yet"
+                description="Add a transaction, or scan your inbox from Pending, and it will appear here."
+              />
             ) : (
-              <div className="divide-y divide-border-subtle/40">
+              <ul className="divide-y divide-border-subtle/40">
                 {allRecentTransactions.map((txn) => {
                   const cat = getStyle(txn.category)
                   const isDebit = txn.type === 'debit'
                   return (
-                    <div key={txn.id} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xl shrink-0">{cat.emoji}</span>
+                    <li key={txn.id} className="flex items-center justify-between gap-3 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span aria-hidden="true" className="shrink-0 text-xl">{cat.emoji}</span>
                         <div className="min-w-0">
                           <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                          <span className="text-xs text-zinc-500">
-                            {new Date(txn.date).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
+                          <span className="mt-0.5 block text-xs tnum text-zinc-400">
+                            {formatDate(txn.date)}
                           </span>
                         </div>
                       </div>
                       <span
-                        className={`text-xs font-bold shrink-0 ${
-                          isDebit ? 'text-[var(--status-danger-text)]' : 'text-[var(--status-positive-text)]'
+                        className={`shrink-0 text-sm font-semibold tnum ${
+                          isDebit ? 'text-zinc-100' : 'text-[var(--status-positive-text)]'
                         }`}
                       >
-                        {isDebit ? '-' : '+'}{formatCurrency(Number(txn.amount), txn.currency)}
+                        {isDebit ? '−' : '+'}{formatCurrency(Number(txn.amount), txn.currency)}
+                        <span className="sr-only">{isDebit ? ' spent' : ' received'}</span>
                       </span>
-                    </div>
+                    </li>
                   )
                 })}
-              </div>
+              </ul>
             )}
           </div>
         </Modal>
 
-        {/* 💳 Credit Card Bill Payments Modal */}
         <Modal
           isOpen={showCcBillModal}
           onClose={() => setShowCcBillModal(false)}
-          title="Credit Card Bill Payments"
+          title="Credit card bills paid"
           footer={
             <Button variant="secondary" onClick={() => setShowCcBillModal(false)}>
               Close
@@ -1325,292 +1561,269 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4">
-            <p className="text-xs text-zinc-400">
-              {formatDateFilterLabel(dateFilter)} · {formatCurrency(ccBillTotal)} across{' '}
-              {ccBillHomeTxns.length} payment{ccBillHomeTxns.length === 1 ? '' : 's'}
-            </p>
-            {Object.keys(ccBillForeignTotals).length > 0 && (
-              <p className="text-xs text-zinc-500">
-                Also paid in other currencies, not added to the total above:{' '}
-                {Object.entries(ccBillForeignTotals)
-                  .map(([code, amount]) => formatCurrency(amount, code))
-                  .join(' · ')}
+            <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+              <p className={SECTION_LABEL}>{periodLabel}</p>
+              <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                {formatCurrency(ccBillTotal)}
               </p>
-            )}
-            <p className="text-xs text-zinc-500">
-              These are tracked separately from Total Expenses — the purchases behind
-              each bill were already counted when they happened.
+              <p className="mt-1 text-sm text-zinc-400">
+                across <span className="tnum">{ccBillHomeTxns.length}</span> payment
+                {ccBillHomeTxns.length === 1 ? '' : 's'}
+              </p>
+              {Object.keys(ccBillForeignTotals).length > 0 && (
+                <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                  Also paid in other currencies, not added to the figure above:{' '}
+                  <span className="tnum">
+                    {Object.entries(ccBillForeignTotals)
+                      .map(([code, amount]) => formatCurrency(amount, code))
+                      .join(' · ')}
+                  </span>
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              These sit outside Money out. Paying a card bill is not new spending — the
+              purchases behind it were counted the day each one happened.
             </p>
             {ccBillLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface-2 animate-pulse">
-                    <div className="h-4 w-1/3 bg-zinc-700 rounded" />
-                    <div className="h-4 w-12 bg-zinc-700 rounded" />
+              <div role="status" aria-label="Loading bill payments" className="space-y-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-4 w-20 shrink-0" />
                   </div>
                 ))}
               </div>
             ) : ccBillTxns.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-8">
-                No credit card bill payments in this period. Categorize a transaction as
-                a credit card bill to see it here.
-              </p>
+              <EmptyState
+                icon={<CreditCard className="h-8 w-8 text-zinc-400" />}
+                title="No bill payments in this period"
+                description="Tag a transaction with a credit-card-bill category and it is counted here instead of in Money out."
+              />
             ) : (
-              <div className="divide-y divide-border-subtle/40">
+              <ul className="divide-y divide-border-subtle/40">
                 {ccBillTxns.map((txn) => (
-                  <div key={txn.id} className="flex items-center justify-between py-3">
-                    <div className="flex flex-col min-w-0 pr-3">
+                  <li key={txn.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex min-w-0 flex-col">
                       <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                      <span className="text-xs text-zinc-500 mt-1">{formatDate(txn.date)}</span>
+                      <span className="mt-0.5 text-xs tnum text-zinc-400">{formatDate(txn.date)}</span>
                     </div>
-                    <span className="text-xs font-bold shrink-0 text-text-primary">
+                    <span className="shrink-0 text-sm font-semibold tnum text-zinc-100">
                       {formatCurrency(Number(txn.amount), txn.currency)}
                     </span>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </Modal>
 
-        {/* 📊 Category Spending Breakdown Details Modal */}
         {showCategoryModal && selectedCategoryCode && (() => {
           const cat = getStyle(selectedCategoryCode)
-          const matchedSummaryItem = summary?.category_breakdown.find(item => item.category === selectedCategoryCode)
+          const matchedSummaryItem = summary?.category_breakdown.find((item) => item.category === selectedCategoryCode)
           const totalAmount = matchedSummaryItem?.amount || 0
           const totalCount = matchedSummaryItem?.count || 0
-          
-          const monthLabel = formatDateFilterLabel(dateFilter)
-          
+
+          const closeCategoryModal = () => {
+            setShowCategoryModal(false)
+            setSelectedCategoryCode(null)
+            setCategoryTransactions([])
+          }
+
           return (
             <Modal
               isOpen={showCategoryModal}
-              onClose={() => {
-                setShowCategoryModal(false)
-                setSelectedCategoryCode(null)
-                setCategoryTransactions([])
-              }}
-              title={`${cat.label} Spending`}
+              onClose={closeCategoryModal}
+              title={`${cat.label} spending`}
               footer={
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowCategoryModal(false)
-                    setSelectedCategoryCode(null)
-                    setCategoryTransactions([])
-                  }}
-                  className="font-bold text-xs"
-                >
+                <Button variant="secondary" onClick={closeCategoryModal}>
                   Close
                 </Button>
               }
             >
               <div className="space-y-4">
-                <p className="text-xs text-zinc-400">
-                  {monthLabel} · {formatCurrency(totalAmount)} total over {totalCount} transaction
-                  {totalCount > 1 ? 's' : ''}
-                </p>
+                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                  <p className={SECTION_LABEL}>{periodLabel}</p>
+                  <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                    {formatCurrency(totalAmount)}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    across <span className="tnum">{totalCount}</span> transaction
+                    {totalCount === 1 ? '' : 's'}
+                  </p>
+                </div>
                 {loadingCategoryTxns ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface-2 animate-pulse">
-                        <div className="space-y-2 w-1/3">
-                          <div className="h-4 bg-zinc-700 rounded" />
-                          <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                  <div role="status" aria-label="Loading transactions" className="space-y-4">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="flex items-center justify-between gap-3">
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-3 w-24" />
                         </div>
-                        <div className="h-4 w-12 bg-zinc-700 rounded" />
+                        <Skeleton className="h-4 w-20 shrink-0" />
                       </div>
                     ))}
                   </div>
                 ) : categoryTransactions.length === 0 ? (
-                  <p className="text-xs text-zinc-500 text-center py-8">No transactions found for this category.</p>
+                  <EmptyState
+                    icon={<BarChart2 className="h-8 w-8 text-zinc-400" />}
+                    title="Nothing to list"
+                    description="No transactions in this category fall inside the selected period."
+                  />
                 ) : (
-                  <div className="divide-y divide-border-subtle/40">
+                  <ul className="divide-y divide-border-subtle/40">
                     {categoryTransactions.map((txn) => (
-                      <div key={txn.id} className="flex items-center justify-between py-3">
-                        <div className="flex flex-col min-w-0 pr-3">
+                      <li key={txn.id} className="flex items-center justify-between gap-3 py-3">
+                        <div className="flex min-w-0 flex-col">
                           <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                          <span className="text-xs text-zinc-500 mt-1">
-                            {new Date(txn.date).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </span>
+                          <span className="mt-0.5 text-xs tnum text-zinc-400">{formatDate(txn.date)}</span>
                         </div>
-                        <span className="text-xs font-bold shrink-0 text-[var(--status-danger-text)]">
-                          -{formatCurrency(Number(txn.amount), txn.currency)}
+                        <span className="shrink-0 text-sm font-semibold tnum text-zinc-100">
+                          −{formatCurrency(Number(txn.amount), txn.currency)}
+                          <span className="sr-only"> spent</span>
                         </span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </div>
             </Modal>
           )
         })()}
 
-        {/* Widget Customization Modal */}
+        {/* Customise — one switch per optional section, listed in the order
+            they appear on the page. Each row is the target, not a 16px
+            checkbox floating at the end of it. */}
         <Modal
           isOpen={showConfigModal}
           onClose={() => setShowConfigModal(false)}
-          title="Customize Dashboard"
+          title="Customise dashboard"
           footer={
             <Button variant="secondary" onClick={() => setShowConfigModal(false)}>
-              Close
+              Done
             </Button>
           }
         >
           <div className="space-y-4">
-            <p className="text-xs text-zinc-400 mb-4">Toggle widgets on or off</p>
-
-            {/* Stats Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Income, Expense & Savings Cards</p>
-                  <p className="text-xs text-zinc-500">Summary stats at the top</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.stats}
-                onChange={() => toggleWidget('stats')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
-
-            {/* Spending Breakdown Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <BarChart2 className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Spending Breakdown</p>
-                  <p className="text-xs text-zinc-500">Category breakdown for the selected period</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.breakdown}
-                onChange={() => toggleWidget('breakdown')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
-
-            {/* Recent Activity Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Recent Activity List</p>
-                  <p className="text-xs text-zinc-500">Show last 5 recorded transactions</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.recent}
-                onChange={() => toggleWidget('recent')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
-
-            {/* Subscription Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <RefreshCw className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Active Subscriptions</p>
-                  <p className="text-xs text-zinc-500">Auto-detected recurring services</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.subscriptions}
-                onChange={() => toggleWidget('subscriptions')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
-
-            {/* Credit Card Bills Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Credit Card Bills Paid</p>
-                  <p className="text-xs text-zinc-500">Bill payments for the selected period</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.ccbills}
-                onChange={() => toggleWidget('ccbills')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
-
-            {/* Insights Teaser Widget */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-2/40 border border-border-subtle/30">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-brand-400 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-text-primary">Insights Teaser</p>
-                  <p className="text-xs text-zinc-500">Surfaces your top spending anomaly, if any</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={widgets.insights}
-                onChange={() => toggleWidget('insights')}
-                className="h-4 w-4 rounded border-zinc-700 bg-surface-1 text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
-            </div>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              Turn off anything you do not use. This is saved on this device only, and
+              hiding a section never deletes the data behind it.
+            </p>
+            <ul className="space-y-2">
+              {WIDGET_OPTIONS.map(({ key, icon: WidgetIcon, label, hint }) => {
+                const on = !!widgets[key]
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      onClick={() => toggleWidget(key)}
+                      className={`${ROW_TILE} flex min-h-14 w-full items-center gap-3 p-3.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                          on ? 'bg-brand-500/10 text-brand-700' : 'bg-surface-3 text-zinc-400'
+                        }`}
+                      >
+                        <WidgetIcon className="h-4.5 w-4.5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-zinc-100">{label}</span>
+                        <span className="mt-0.5 block text-xs text-zinc-400 leading-relaxed">{hint}</span>
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={`flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors ${
+                          on ? 'border-brand-500/40 bg-brand-500' : 'border-border-default bg-surface-3'
+                        }`}
+                      >
+                        <span
+                          className={`h-4.5 w-4.5 rounded-full bg-static-white shadow-[var(--shadow-sm)] ${
+                            reduce ? '' : 'transition-transform duration-150 ease-out'
+                          } ${on ? 'translate-x-5' : 'translate-x-0'}`}
+                        />
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         </Modal>
 
-        {/* Month-end recap */}
+        {/* Month-end recap — a session that closes on a summary is remembered
+            better, and it is a reason to open the app again next month. */}
         <Modal
           isOpen={!!monthEndRecap}
           onClose={() => setMonthEndRecap(null)}
-          title={monthEndRecap ? `${formatMonthName(monthEndRecap.month)} recap` : 'Recap'}
+          title={monthEndRecap ? `${formatMonthName(monthEndRecap.month)} in review` : 'Recap'}
           footer={
-            <Button block onClick={() => setMonthEndRecap(null)} className="justify-center">
+            <Button block onClick={() => setMonthEndRecap(null)}>
               Got it
             </Button>
           }
         >
           {monthEndRecap && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-xl bg-surface-2/40 border border-border-subtle/30 p-3.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total spent</p>
-                  <p className="text-xl font-bold text-text-primary mt-1">{formatCurrency(monthEndRecap.totalExpenses)}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                  <p className={SECTION_LABEL}>Money out</p>
+                  <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                    {formatCurrency(monthEndRecap.totalExpenses)}
+                  </p>
                 </div>
-                <div className="rounded-xl bg-surface-2/40 border border-border-subtle/30 p-3.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net saved</p>
-                  <p className={`text-xl font-bold mt-1 ${monthEndRecap.totalIncome - monthEndRecap.totalExpenses >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'}`}>
+                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                  <p className={SECTION_LABEL}>Kept</p>
+                  <p
+                    className={`mt-1.5 text-2xl font-semibold tracking-tight tnum ${
+                      monthEndRecap.totalIncome - monthEndRecap.totalExpenses >= 0
+                        ? 'text-[var(--status-positive-text)]'
+                        : 'text-[var(--status-danger-text)]'
+                    }`}
+                  >
                     {formatCurrency(monthEndRecap.totalIncome - monthEndRecap.totalExpenses)}
                   </p>
                 </div>
               </div>
 
               {monthEndRecap.topCategory && (
-                <p className="text-sm text-zinc-300">
-                  Biggest category: <strong className="text-text-primary">{monthEndRecap.topCategory.label}</strong> ({formatCurrency(monthEndRecap.topCategory.amount)})
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  Biggest category:{' '}
+                  <strong className="font-semibold text-zinc-100">{monthEndRecap.topCategory.label}</strong>{' '}
+                  <span className="tnum">({formatCurrency(monthEndRecap.topCategory.amount)})</span>
                 </p>
               )}
 
               {monthEndRecap.priorExpenses !== null && monthEndRecap.priorExpenses > 0 && (
-                <p className="text-sm text-zinc-300">
-                  {monthEndRecap.totalExpenses < monthEndRecap.priorExpenses
-                    ? `You spent ${formatCurrency(monthEndRecap.priorExpenses - monthEndRecap.totalExpenses)} less than the month before — nice work.`
-                    : `You spent ${formatCurrency(monthEndRecap.totalExpenses - monthEndRecap.priorExpenses)} more than the month before.`}
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  {monthEndRecap.totalExpenses < monthEndRecap.priorExpenses ? (
+                    <>
+                      That is{' '}
+                      <span className="tnum font-semibold text-zinc-100">
+                        {formatCurrency(monthEndRecap.priorExpenses - monthEndRecap.totalExpenses)}
+                      </span>{' '}
+                      less than the month before.
+                    </>
+                  ) : (
+                    <>
+                      That is{' '}
+                      <span className="tnum font-semibold text-zinc-100">
+                        {formatCurrency(monthEndRecap.totalExpenses - monthEndRecap.priorExpenses)}
+                      </span>{' '}
+                      more than the month before.
+                    </>
+                  )}
                 </p>
               )}
             </div>
           )}
         </Modal>
-      </div>
+      </motion.div>
     </AppLayout>
   )
 }

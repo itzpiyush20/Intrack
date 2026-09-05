@@ -1,24 +1,43 @@
 // ============================================
-// BudgetsPage — Category Budget Management
-// Set monthly limits and monitor spending limits
+// BudgetsPage — per-category monthly limits
+//
+// Restyle and recompose only. The merge across months, the carry-forward
+// tombstone on delete, the pace projection and every service call behave
+// exactly as before.
+//
+// What changed is legibility. The page used to speak in emoji and bold
+// sentences ("Budget Exceeded: Your expenses in 🍔 Food have exceeded your
+// established limit!") and set money in proportional figures that never lined
+// up. Now every amount is `.tnum` and right-aligned in a column of its own,
+// every status carries an icon and a word as well as a colour, and the alert
+// copy says the number rather than shouting about it.
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
-import { Card, Button, Input, Select, Badge, EmptyState, ConfirmDialog, DateFilterPicker } from '@/components/ui'
+import {
+  Card, Button, Input, Select, Badge, EmptyState, ConfirmDialog, DateFilterPicker,
+  Skeleton, SECTION_LABEL, ACTION_BUTTON_DANGER, transition, rowVariants, staggerParent, staggerChild,
+} from '@/components/ui'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { getBudgets, upsertBudget, deleteBudget } from '@/services/budgets'
 import { getSummary } from '@/services/transactions'
-import { formatCurrency, getCurrentMonth, withTimeout, resolveDateFilter, getMonthsInRange, formatDateFilterLabel, creditCardBillCategoryNames, type DateFilter } from '@/utils'
+import { cn, formatCurrency, getCurrentMonth, withTimeout, resolveDateFilter, getMonthsInRange, formatDateFilterLabel, creditCardBillCategoryNames, type DateFilter } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import type { Database } from '@/types/database'
 import { useToast, useAuth } from '@/context'
+import {
+  AlertTriangle, AlertCircle, CheckCircle2, Bell, Trash2, TrendingDown,
+  ArrowRight, Target, Wallet, PiggyBank,
+} from 'lucide-react'
 
 type BudgetRow = Database['public']['Tables']['budgets']['Row']
 
 export default function BudgetsPage() {
   const { currencySymbol } = useAuth()
+  const reduceMotion = useReducedMotion()
   const { categories, getStyle, loading: categoriesLoading } = useCategories()
   // See DashboardPage for why this is undefined rather than [] while loading.
   const ccBillCategories = useMemo(
@@ -175,301 +194,391 @@ export default function BudgetsPage() {
   const projectPace = (spent: number) =>
     daysElapsed > 0 ? (spent / daysElapsed) * daysInSelectedMonth : spent
 
+  const summaryCards = [
+    {
+      key: 'budgeted',
+      label: 'Budgeted',
+      value: totalBudgeted,
+      icon: Target,
+      tone: 'text-zinc-50',
+      note: 'Every limit you have set, added up',
+    },
+    {
+      key: 'spent',
+      label: 'Spent against it',
+      value: totalSpent,
+      icon: Wallet,
+      tone: 'text-zinc-50',
+      note: 'Only spending in categories you budgeted',
+    },
+    {
+      key: 'remaining',
+      label: remainingBudget >= 0 ? 'Still available' : 'Over by',
+      value: Math.abs(remainingBudget),
+      icon: PiggyBank,
+      tone: remainingBudget >= 0
+        ? 'text-[var(--status-positive-text)]'
+        : 'text-[var(--status-danger-text)]',
+      note: remainingBudget >= 0 ? 'Left before you hit your limits' : 'Spent past your limits',
+    },
+  ] as const
+
   return (
     <AppLayout>
-      <div className="space-y-8 animate-fade-in">
-        {/* Header Section */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Budgets</h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Set per-category monthly limits and get overspend warnings before they happen.
-              Limits you set carry over to the next month on their own — set them once.
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Budgets</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-400">
+              Set a monthly limit per category and Intrack warns you before you pass it. A limit
+              carries into next month on its own — set it once.
             </p>
           </div>
 
-          <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+          <div className="md:shrink-0">
+            <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+          </div>
         </div>
 
-        <Link
-          to="/insights"
-          className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle/40 bg-surface-2/30 px-4 py-2.5 text-xs text-zinc-400 hover:bg-surface-2/60 hover:text-zinc-200 transition-colors"
-        >
-          <span>Want the full picture of this month's spending, not just limits?</span>
-          <span className="font-semibold text-brand-400 shrink-0">Insights →</span>
-        </Link>
-
         {error && (
-          <div className="rounded-2xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-sm text-[var(--status-danger-text)]">
-            {error}
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-4 text-sm text-[var(--status-danger-text)]"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Positive reinforcement — same visual weight as the warning banner
-            below, shown only when every budget is genuinely on track. */}
+        {/* Where each budget stands. Under budget is reported as loudly as over
+            budget — an app that only ever speaks up to scold you is an app
+            people stop opening. */}
         {allOnTrack && (
-          <div className="rounded-2xl border p-4 text-xs font-semibold leading-relaxed flex items-center gap-3 animate-fade-in bg-[var(--status-positive-subtle)] border-[var(--status-positive-border)] text-[var(--status-positive-text)]">
-            <span className="text-base select-none">✅</span>
+          <p className="flex items-start gap-2.5 rounded-2xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-4 text-sm leading-relaxed text-[var(--status-positive-text)]">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>
-              Nice — all {budgets.length} budget{budgets.length === 1 ? '' : 's'} on track this month, {formatCurrency(remainingBudget)} left overall.
+              All {budgets.length} budget{budgets.length === 1 ? '' : 's'} on track, with{' '}
+              <strong className="tnum font-semibold">{formatCurrency(remainingBudget)}</strong> left
+              across them.
             </span>
-          </div>
+          </p>
         )}
 
-        {/* Dynamic Budget Warnings / Exceeded Banners */}
         {warningBudgets.length > 0 && (
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {warningBudgets.map((b) => {
               const spent = spentMap[b.category] || 0
               const isExceeded = spent >= b.amount
               const cat = getStyle(b.category)
+              const Icon = isExceeded ? AlertTriangle : Bell
               return (
-                <div
+                <li
                   key={b.id}
-                  className={`rounded-2xl border p-4 text-xs font-semibold leading-relaxed flex items-center gap-3 animate-fade-in ${
+                  className={cn(
+                    'flex items-start gap-2.5 rounded-2xl border p-4 text-sm leading-relaxed',
                     isExceeded
-                      ? 'bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
-                      : 'bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
-                  }`}
+                      ? 'border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)]'
+                      : 'border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)]'
+                  )}
                 >
-                  <span className="text-base select-none">{isExceeded ? '⚠️' : '🔔'}</span>
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>
-                    {isExceeded
-                      ? `Budget Exceeded: Your expenses in ${cat.emoji} ${cat.label} (${formatCurrency(spent)}) have exceeded your established limit of ${formatCurrency(b.amount)}!`
-                      : `Budget Limit Reached: Your expenses in ${cat.emoji} ${cat.label} (${formatCurrency(spent)}) have reached ${Math.round((spent / b.amount) * 100)}% of your established limit of ${formatCurrency(b.amount)}.`}
+                    {isExceeded ? (
+                      <>
+                        <strong className="font-semibold">{cat.label}</strong> is over its limit —{' '}
+                        <strong className="tnum font-semibold">{formatCurrency(spent)}</strong> spent
+                        against <span className="tnum">{formatCurrency(b.amount)}</span>.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="font-semibold">{cat.label}</strong> is at{' '}
+                        <strong className="tnum font-semibold">
+                          {Math.round((spent / b.amount) * 100)}%
+                        </strong>{' '}
+                        of its limit — <span className="tnum">{formatCurrency(spent)}</span> of{' '}
+                        <span className="tnum">{formatCurrency(b.amount)}</span>.
+                      </>
+                    )}
                   </span>
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
 
-        {/* Budget summary metrics */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Total Budgeted
-            </p>
-            <p className="mt-1.5 text-2xl font-bold text-white">
-              {formatCurrency(totalBudgeted)}
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">Sum of active limit caps</p>
-          </Card>
-          <Card>
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-medium">
-              Spent in Budgeted
-            </p>
-            <p className="mt-1.5 text-2xl font-bold text-[var(--status-warning-text)]">
-              {formatCurrency(totalSpent)}
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">Expenses in budgeted categories</p>
-          </Card>
-          <Card>
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Remaining Balance
-            </p>
-            <p
-              className={`mt-1.5 text-2xl font-bold ${
-                remainingBudget >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'
-              }`}
-            >
-              {formatCurrency(remainingBudget)}
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">
-              {remainingBudget >= 0 ? 'Within budget limit' : 'Limit exceeded!'}
-            </p>
-          </Card>
-        </div>
+        {/* The three figures for the whole range */}
+        <motion.div
+          className="grid gap-3 sm:grid-cols-3"
+          variants={staggerParent(reduceMotion, 3)}
+          initial="initial"
+          animate="animate"
+        >
+          {summaryCards.map(({ key, label, value, icon: Icon, tone, note }) => (
+            <motion.div key={key} variants={staggerChild(reduceMotion)}>
+              <Card className="h-full p-4 sm:p-5">
+                <p className={SECTION_LABEL}>{label}</p>
+                <p className={cn('mt-2 flex items-center gap-1.5 text-2xl font-semibold tracking-tight tnum', tone)}>
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {formatCurrency(value)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-400">{note}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
 
-        {/* Layout details split */}
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left column: budgets list */}
-          <Card className="lg:col-span-8 flex flex-col h-auto">
-            <h2 className="text-lg font-bold text-white mb-6">Limits Overview</h2>
+          {/* Left column: the limits themselves */}
+          <Card className="lg:col-span-8">
+            <h2 className="text-base font-semibold tracking-tight text-zinc-50">Your limits</h2>
+            <p className="mt-1 text-xs text-zinc-400">
+              {formatDateFilterLabel(dateFilter)}
+            </p>
 
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="mt-5">
               {loading ? (
-                // Skeletons
-                <div className="space-y-6">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="flex justify-between">
-                        <div className="skeleton h-4 w-1/3" />
-                        <div className="skeleton h-4 w-20" />
+                <ul role="status" aria-label="Loading your budgets" className="space-y-5">
+                  {[0, 1, 2].map((i) => (
+                    <li key={i} className="space-y-2.5">
+                      <div className="flex items-center gap-3">
+                        <Skeleton shape="block" className="h-10 w-10 shrink-0 rounded-xl" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-4 w-32 max-w-full" />
+                          <Skeleton className="h-3 w-24 max-w-full" />
+                        </div>
+                        <div className="hidden w-32 space-y-1.5 sm:block">
+                          <Skeleton className="ml-auto h-4 w-24" />
+                          <Skeleton className="ml-auto h-3 w-20" />
+                        </div>
                       </div>
-                      <div className="skeleton h-2 w-full" />
-                    </div>
+                      <Skeleton className="h-2 w-full rounded-full" />
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : budgets.length === 0 ? (
                 <EmptyState
-                  icon="🛡️"
-                  title="No limits set"
-                  description="Establish spending targets to keep your personal wealth secure."
+                  icon="🎯"
+                  title="No limits set yet"
+                  description="Pick a category and a monthly cap to start. Intrack tells you where you stand as the month goes on, and warns you before you pass it."
                 />
               ) : (
-                <div className="space-y-6">
-                  {budgets.map((budget, idx) => {
-                    const cat = getStyle(budget.category)
-                    const spent = spentMap[budget.category] || 0
-                    const remaining = budget.amount - spent
-                    const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
+                <motion.ul
+                  className="divide-y divide-border-subtle"
+                  variants={staggerParent(reduceMotion, budgets.length)}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <AnimatePresence initial={false}>
+                    {budgets.map((budget) => {
+                      const cat = getStyle(budget.category)
+                      const spent = spentMap[budget.category] || 0
+                      const remaining = budget.amount - spent
+                      const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
 
-                    // Dynamic colors for safety status
-                    let progressColor = cat.color
-                    if (pct >= 90) {
-                      progressColor = '#ef4444' // Red alert
-                    } else if (pct >= 70) {
-                      progressColor = '#f59e0b' // Amber caution
-                    }
+                      // The bar agrees with the badge beside it. It used to turn
+                      // red at 90% while the badge still read "Warning", which
+                      // asked the user to reconcile two different verdicts on
+                      // the same number.
+                      const barColor =
+                        pct >= 100 ? 'var(--status-danger-text)'
+                        : pct >= 70 ? 'var(--status-warning-text)'
+                        : 'var(--brand-500)'
 
-                    return (
-                      <div
-                        key={budget.id}
-                        className="space-y-2 border-b border-border-subtle/50 pb-5 last:border-0 last:pb-0 animate-slide-up"
-                        style={{ animationDelay: `${idx * 0.05}s` }}
-                      >
-                        {/* Upper row: Emoji + Category details */}
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
-                              style={{ backgroundColor: `${cat.color}15` }}
-                            >
-                              {cat.emoji}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-semibold text-zinc-200">
-                                  {cat.label}
-                                </h3>
-                                {pct >= 100 ? (
-                                  <Badge variant="danger">Exceeded</Badge>
-                                ) : pct >= 70 ? (
-                                  <Badge variant="warning">Warning</Badge>
-                                ) : (
-                                  <Badge variant="success">Safe</Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-zinc-500 mt-0.5">
-                                Limit: <span className="text-zinc-400 font-medium">{formatCurrency(budget.amount)}</span>
-                              </p>
-                            </div>
-                          </div>
+                      const projected = projectPace(spent)
+                      const projectedOver = projected - budget.amount
+                      const showPace = isCurrentMonth && daysElapsed >= 4 && pct < 100 && projectedOver > 0
 
-                          {/* Spent & delete action */}
-                          <div className="flex items-center gap-4 w-full sm:w-auto sm:justify-end">
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-zinc-200">
-                                {formatCurrency(spent)} <span className="text-xs font-normal text-zinc-500">spent</span>
-                              </p>
-                              <p
-                                className={`text-xs mt-0.5 font-medium ${
-                                  remaining >= 0 ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]'
-                                }`}
+                      return (
+                        <motion.li
+                          key={budget.id}
+                          layout={!reduceMotion}
+                          variants={rowVariants(reduceMotion)}
+                          exit="exit"
+                          transition={transition(reduceMotion)}
+                          className="space-y-3 py-4 first:pt-0 last:pb-0"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span
+                                aria-hidden="true"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
+                                style={{ backgroundColor: `${cat.color}15` }}
                               >
-                                {remaining >= 0
-                                  ? `${formatCurrency(remaining)} remaining`
-                                  : `${formatCurrency(Math.abs(remaining))} overspent!`}
-                              </p>
+                                {cat.emoji}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <h3 className="truncate text-sm font-semibold text-zinc-100">
+                                    {cat.label}
+                                  </h3>
+                                  {/* Icon and word, so the verdict never rests
+                                      on the badge's colour alone. */}
+                                  {pct >= 100 ? (
+                                    <Badge variant="danger">
+                                      <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                      Over limit
+                                    </Badge>
+                                  ) : pct >= 70 ? (
+                                    <Badge variant="warning">
+                                      <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                      Close
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="success">
+                                      <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                      On track
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-xs text-zinc-400">
+                                  Limit <span className="tnum font-medium text-zinc-300">{formatCurrency(budget.amount)}</span>
+                                  {budget.monthCount > 1 && (
+                                    <span> · across {budget.monthCount} months</span>
+                                  )}
+                                </p>
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-zinc-500 hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] h-11 w-11 p-0 shrink-0"
-                              onClick={() => setDeleteTarget({ rows: budget.rows ?? [{ id: budget.id, month: budget.month }], categoryLabel: cat.label, monthCount: budget.monthCount })}
-                              disabled={actionLoading}
-                              title={budget.monthCount > 1 ? `Delete limit across ${budget.monthCount} months` : 'Delete budget limit'}
-                            >
-                              🗑️
-                            </Button>
-                          </div>
-                        </div>
 
-                        {/* Progress Bar */}
-                        <div className="relative space-y-1">
-                          <div className="h-2 w-full bg-surface-3 rounded-full overflow-hidden flex">
+                            {/* Fixed-width figures column so the amounts read
+                                straight down the list instead of drifting with
+                                the length of each category name. */}
+                            <div className="flex items-start justify-between gap-3 sm:justify-end">
+                              <div className="min-w-0 sm:w-40 sm:text-right">
+                                <p className="tnum text-sm font-semibold text-zinc-100">
+                                  {formatCurrency(spent)}{' '}
+                                  <span className="text-xs font-normal text-zinc-400">spent</span>
+                                </p>
+                                <p
+                                  className={cn(
+                                    'tnum mt-0.5 text-xs font-medium',
+                                    remaining >= 0
+                                      ? 'text-[var(--status-positive-text)]'
+                                      : 'text-[var(--status-danger-text)]'
+                                  )}
+                                >
+                                  {remaining >= 0
+                                    ? `${formatCurrency(remaining)} left`
+                                    : `${formatCurrency(Math.abs(remaining))} over`}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget({
+                                  rows: budget.rows ?? [{ id: budget.id, month: budget.month }],
+                                  categoryLabel: cat.label,
+                                  monthCount: budget.monthCount,
+                                })}
+                                disabled={actionLoading}
+                                aria-label={`Remove the ${cat.label} limit`}
+                                title={budget.monthCount > 1
+                                  ? `Remove this limit across ${budget.monthCount} months`
+                                  : 'Remove this limit'}
+                                className={cn(ACTION_BUTTON_DANGER, 'h-11 w-11 shrink-0 sm:h-9 sm:w-9 disabled:opacity-50')}
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(Math.min(100, pct))}
+                            aria-label={`${cat.label}: ${Math.round(pct)}% of the limit spent`}
+                            className="h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                          >
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ease-out ${pct < 70 ? 'aurora-progress-fill' : ''}`}
-                              style={{
-                                width: `${Math.min(100, pct)}%`,
-                                ...(pct >= 70 ? { backgroundColor: progressColor } : {}),
-                              }}
+                              className="h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                              style={{ width: `${Math.min(100, pct)}%`, backgroundColor: barColor }}
                             />
                           </div>
+
                           {pct > 100 && (
-                            <p className="text-[10px] text-[var(--status-danger-text)] font-bold text-right">
-                              ⚠️ {Math.round(pct - 100)}% over established cap
+                            <p className="tnum text-right text-xs font-medium text-[var(--status-danger-text)]">
+                              {Math.round(pct - 100)}% past the limit
                             </p>
                           )}
-                        </div>
 
-                        {/* Pace projection — requires at least 4 days elapsed mid-month to avoid Day 1-3 false alarms */}
-                        {isCurrentMonth && daysElapsed >= 4 && pct < 100 && (() => {
-                          const projected = projectPace(spent)
-                          const projectedOver = projected - budget.amount
-                          if (projectedOver <= 0) return null
-                          return (
-                            <p className="text-[11px] text-[var(--status-warning-text)] font-medium flex items-center gap-1">
-                              <span aria-hidden="true">📉</span>
-                              At this pace, ends the month {formatCurrency(projectedOver)} over budget.
+                          {/* Pace projection — needs at least 4 days elapsed so
+                              a single big buy on the 2nd does not raise an alarm. */}
+                          {showPace && (
+                            <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--status-warning-text)]">
+                              <TrendingDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              <span>
+                                At this pace it ends the month{' '}
+                                <span className="tnum">{formatCurrency(projectedOver)}</span> over.
+                              </span>
                             </p>
-                          )
-                        })()}
-                      </div>
-                    )
-                  })}
-                </div>
+                          )}
+                        </motion.li>
+                      )
+                    })}
+                  </AnimatePresence>
+                </motion.ul>
               )}
             </div>
           </Card>
 
-          {/* Right column: Form to add/update */}
-          <Card className="lg:col-span-4 self-start">
-            <h2 className="text-lg font-bold text-white mb-6">Set Limit Target</h2>
-            {dateFilter.mode === 'custom' && (
-              <p className="text-xs text-zinc-500 -mt-4 mb-5">
-                Setting a limit for <span className="text-zinc-300 font-semibold">{formatDateFilterLabel({ mode: 'month', month: targetMonth })}</span>
-              </p>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                  Category Target
-                </label>
-                <Select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  disabled={actionLoading}
-                  required
-                >
-                  {budgetEligible.map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.emoji} {c.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+          {/* Right column: set or update a limit. Sticky from lg so it stays
+              reachable beside a long list, the way the Settings rail does. */}
+          <Card className="self-start lg:col-span-4 lg:sticky lg:top-20">
+            <h2 className="text-base font-semibold tracking-tight text-zinc-50">Set a limit</h2>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+              Setting a limit for a category that already has one replaces it.
+              {dateFilter.mode === 'custom' && (
+                <>
+                  {' '}Applies to{' '}
+                  <span className="font-medium text-zinc-300">
+                    {formatDateFilterLabel({ mode: 'month', month: targetMonth })}
+                  </span>.
+                </>
+              )}
+            </p>
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                  Limit Amount ({currencySymbol})
-                </label>
-                <Input
-                  type="number"
-                  placeholder="5000"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  disabled={actionLoading}
-                  min="1"
-                  required
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+              <Select
+                label="Category"
+                id="budget-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={actionLoading}
+                required
+              >
+                {budgetEligible.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.emoji} {c.name}
+                  </option>
+                ))}
+              </Select>
 
-              <Button type="submit" block loading={actionLoading} disabled={actionLoading}>
-                Set Limit
+              <Input
+                label={`Monthly limit (${currencySymbol})`}
+                id="budget-amount"
+                type="number"
+                inputMode="decimal"
+                placeholder="5000"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={actionLoading}
+                min="1"
+                className="tnum"
+                required
+              />
+
+              <Button type="submit" block loading={actionLoading} disabled={actionLoading} className="h-11">
+                Save limit
               </Button>
             </form>
+
+            <Link
+              to="/insights"
+              className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface-2/50 px-3.5 py-3 text-sm text-zinc-400 transition-colors hover:border-border-hover hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+            >
+              <span>See where the money actually went</span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true" />
+            </Link>
           </Card>
         </div>
       </div>
@@ -481,13 +590,13 @@ export default function BudgetsPage() {
           if (deleteTarget) await handleDelete(deleteTarget.rows)
           setDeleteTarget(null)
         }}
-        title="Remove budget limit"
+        title="Remove this limit?"
         message={
           deleteTarget && deleteTarget.monthCount > 1
-            ? `Remove the budget limit for ${deleteTarget.categoryLabel} across all ${deleteTarget.monthCount} months in this view?`
-            : `Remove the budget limit for ${deleteTarget?.categoryLabel || 'this category'}? It won't carry into next month. You can set a new one anytime.`
+            ? `The ${deleteTarget.categoryLabel} limit will be removed from all ${deleteTarget.monthCount} months in this view. Your transactions are untouched, and you can set a new limit any time.`
+            : `The ${deleteTarget?.categoryLabel || 'category'} limit will be removed and will not carry into next month. Your transactions are untouched, and you can set a new limit any time.`
         }
-        confirmLabel="Remove"
+        confirmLabel="Remove limit"
       />
     </AppLayout>
   )

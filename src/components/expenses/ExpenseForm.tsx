@@ -225,8 +225,11 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
             </div>
           </div>
 
+          {/* Explicit id: Input derives one from the label otherwise, and
+              "Amount (₹)" makes an id with a currency symbol in it. */}
           <Input
             label={`Amount (${currencySymbol})`}
+            id="txn-amount"
             type="number"
             inputMode="decimal"
             placeholder="0.00"
@@ -247,6 +250,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
             <div>
               <Input
                 label="Merchant"
+                id="txn-merchant"
                 placeholder="e.g. Swiggy"
                 value={merchant}
                 onChange={(e) => setMerchant(e.target.value)}
@@ -261,6 +265,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
 
             <Select
               label="Category"
+              id="txn-category"
               options={categoryOptions}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -271,6 +276,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Description"
+              id="txn-description"
               placeholder="What was this for?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -279,6 +285,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
 
             <Input
               label="Date"
+              id="txn-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -295,6 +302,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
           <div className="space-y-2">
             <Input
               label="Tags"
+              id="txn-tags"
               placeholder="e.g. food, vacation, work"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
@@ -340,6 +348,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
                 <div className="mt-4 grid gap-4 border-t border-border-subtle/60 pt-4 sm:grid-cols-2">
                   <Input
                     label="Who owes it"
+                    id="txn-counterparty"
                     placeholder="e.g. Rahul"
                     value={counterparty}
                     onChange={(e) => setCounterparty(e.target.value)}
@@ -347,6 +356,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
                   />
                   <Input
                     label="Expected back by"
+                    id="txn-expected-return"
                     type="date"
                     value={expectedReturnDate}
                     onChange={(e) => setExpectedReturnDate(e.target.value)}
@@ -362,6 +372,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
           {(isReturnable || notes) && (
             <Input
               label="Remarks"
+              id="txn-notes"
               placeholder="Anything worth remembering about this one"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

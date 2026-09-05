@@ -1,12 +1,21 @@
 // ============================================
-// AuthLayout — Centered layout for auth pages
-// Clean, minimal, premium feel
+// AuthLayout — the shell behind /forgot-password and /reset-password
+//
+// One card, centred, on the app canvas. Deliberately the same object as the
+// AuthModal panel: a person who started at "Forgot password?" inside the modal
+// and landed here should feel they stayed in the same place, not that they were
+// handed off to a different product.
+//
+// The brand tile used to render `getGlobalCurrencySymbol()`, so the logo above
+// the sign-in title changed shape with the viewer's currency setting. AuthModal
+// fixed that by switching to BrandMark; this file was the last copy of the bug.
 // ============================================
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import { APP_CONFIG } from '@/constants'
-import { getGlobalCurrencySymbol } from '@/utils'
+import { BrandMark, panelVariants, transition } from '@/components/ui'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -15,46 +24,61 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+  const reduce = useReducedMotion()
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-0 px-4" role="main">
-      <div className="relative w-full max-w-md animate-fade-in">
-        {/* Logo & Brand Header */}
-        <div className="mb-6 flex flex-col items-center">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500 shadow-[var(--shadow-sm)]">
-            <span className="text-2xl font-bold text-static-white" aria-hidden="true">{getGlobalCurrencySymbol()}</span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-1 flex items-center justify-center select-none">
-            <span className="text-brand-400">In</span><span className="text-white">track</span>
-          </h1>
-          <p className="text-xs font-semibold tracking-wider text-brand-400 uppercase mb-4 text-center">
+    <main
+      className="flex min-h-svh flex-col items-center justify-center bg-surface-0 px-4 py-10 sm:px-6"
+      role="main"
+    >
+      <motion.div
+        variants={panelVariants(reduce)}
+        initial="initial"
+        animate="animate"
+        transition={transition(reduce)}
+        className="w-full max-w-md"
+      >
+        {/* Brand header */}
+        <div className="flex flex-col items-center">
+          <BrandMark size={44} className="text-brand-500" />
+          <p className="mt-3 text-lg font-semibold tracking-tight text-zinc-50 select-none">
+            <span className="text-brand-400">In</span>track
+          </p>
+          <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-zinc-400">
             {APP_CONFIG.APP_TAGLINE}
           </p>
-
         </div>
 
-        {/* Auth form card */}
-        <div className="rounded-2xl border border-border-subtle bg-surface-1 p-6 sm:p-8 shadow-2xl shadow-black/20">
-          <div className="mb-5 text-center">
-            <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+        {/* Auth card */}
+        <div className="mt-6 rounded-2xl border border-border-subtle bg-surface-1 p-6 shadow-[var(--shadow-md)] sm:p-8">
+          <div className="mb-6">
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-50 text-balance">{title}</h1>
             {subtitle && (
-              <p className="mt-1 text-xs text-zinc-400">{subtitle}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{subtitle}</p>
             )}
           </div>
           {children}
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center text-xs text-zinc-500 space-y-1.5 font-medium">
-          <p>
-            {APP_CONFIG.APP_NAME} · {APP_CONFIG.APP_TAGLINE}
-          </p>
-          <p>
-            <Link to="/support" className="text-zinc-400 hover:text-brand-400 underline underline-offset-2 transition-colors">
-              Privacy Policy & Support Center
-            </Link>
-          </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-zinc-400">
+          <span>{APP_CONFIG.APP_NAME}</span>
+          <span aria-hidden="true">·</span>
+          <Link
+            to="/privacy"
+            className="rounded underline underline-offset-2 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+          >
+            Privacy
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link
+            to="/support"
+            className="rounded underline underline-offset-2 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+          >
+            Support
+          </Link>
         </div>
-      </div>
+      </motion.div>
     </main>
   )
 }

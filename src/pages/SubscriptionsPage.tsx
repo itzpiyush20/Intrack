@@ -7,8 +7,15 @@ import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
-import { Card, Button, Badge, Input, EmptyState } from '@/components/ui'
-import { RefreshCw, FileText } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import {
+  Card, Button, Badge, Input, EmptyState, Skeleton,
+  ACTION_BUTTON_DANGER, SECTION_LABEL, rowVariants, transition,
+} from '@/components/ui'
+import {
+  RefreshCw, Plus, Search, TrendingUp, TrendingDown,
+  AlertCircle, CheckCircle2, Lightbulb, EyeOff,
+} from 'lucide-react'
 import Select from '@/components/ui/Select'
 import { createTransaction } from '@/services'
 import { fetchAllTransactions } from '@/services/transactions'
@@ -201,82 +208,126 @@ export default function SubscriptionsPage() {
     }
   }
 
+  const reduce = useReducedMotion()
+  const filtersActive =
+    searchQuery.trim() !== '' || filterCategory !== 'all' || renewalWindow !== 'all'
+
   return (
     <AppLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div>
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Subscriptions</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Auto-detect active streaming, broadband, and billing cycles, and track upcoming renewals.
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Subscriptions</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">
+            Charges that keep coming back — streaming, broadband, apps — spotted in your own
+            transactions, with the next date each one is due.
           </p>
         </div>
 
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card className="h-40 skeleton"><div /></Card>
-            <Card className="h-60 skeleton md:col-span-2"><div /></Card>
+          <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-3">
+            <div role="status" aria-label="Loading subscriptions" className="flex flex-col gap-6 md:col-span-1">
+              <Card>
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="mt-4 h-8 w-40" />
+                <Skeleton className="mt-2 h-4 w-48" />
+              </Card>
+              <Card>
+                <Skeleton className="h-4 w-44" />
+                <Skeleton shape="block" className="mt-5 h-11 w-full" />
+                <Skeleton shape="block" className="mt-4 h-11 w-full" />
+              </Card>
+            </div>
+            <div className="md:col-span-2">
+              <Card>
+                <Skeleton className="h-4 w-52" />
+                <Skeleton shape="block" className="mt-5 h-11 w-full" />
+                <div className="mt-4 flex flex-col gap-3">
+                  {[0, 1, 2, 3].map((i) => <Skeleton key={i} shape="block" className="h-20 w-full" />)}
+                </div>
+              </Card>
+            </div>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-3">
             {/* Left Column: Summary Card and Manual Creator — ordered after the
                 calendar on mobile since the calendar is why someone opens this page */}
-            <div className="md:col-span-1 space-y-6 order-2 md:order-1">
+            <div className="order-2 flex flex-col gap-6 md:order-1 md:col-span-1">
               {/* Summary */}
-              <Card className="border-border-subtle bg-surface-1 shadow-md p-6">
-                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Total Subscriptions</h2>
-                <div className="flex flex-col gap-1">
-                  <span className="text-3xl font-extrabold tracking-tight text-white">
-                    {formatCurrency(totalMonthlyOutflow)}
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    accumulated monthly across {detectedSubs.length} active plans.
-                  </span>
-                </div>
+              <Card>
+                <h2 className={SECTION_LABEL}>Recurring spend</h2>
+                <p className="mt-3 text-3xl font-bold tracking-tight text-zinc-50 tnum">
+                  {formatCurrency(totalMonthlyOutflow)}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                  a month across {detectedSubs.length} {detectedSubs.length === 1 ? 'charge' : 'charges'}.
+                  Quarterly and annual ones are spread over the months they cover.
+                </p>
               </Card>
 
               {/* Duplicate Alerts */}
               {(activeMusic.length > 1 || activeVideo.length > 2) && (
-                <Card className="border border-amber-500/20 bg-amber-500/5 p-4 flex flex-col gap-3">
-                  <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    ⚠️ Optimization Suggestions
-                  </h3>
-                  <div className="space-y-2 text-xs text-zinc-300 leading-relaxed">
+                <Card className="border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)]">
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--status-warning-text)]">
+                    <Lightbulb className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Worth a look</span>
+                  </h2>
+                  <ul className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-zinc-300">
                     {activeMusic.length > 1 && (
-                      <p>
-                        You hold multiple active music subscriptions: <strong>{activeMusic.map(m => m.merchant).join(', ')}</strong>. You could save up to {formatCurrency(activeMusic.reduce((sum, s) => sum + s.amount, 0) - activeMusic[0].amount)}/mo by consolidating into one provider.
-                      </p>
+                      <li>
+                        You are paying for more than one music service —{' '}
+                        <strong className="font-semibold text-zinc-100">{activeMusic.map(m => m.merchant).join(', ')}</strong>.
+                        Keeping just one would save about{' '}
+                        <span className="font-semibold text-zinc-100 tnum">
+                          {formatCurrency(activeMusic.reduce((sum, s) => sum + s.amount, 0) - activeMusic[0].amount)}
+                        </span>{' '}
+                        a month.
+                      </li>
                     )}
                     {activeVideo.length > 2 && (
-                      <p>
-                        You have {activeVideo.length} streaming video services active. Consider cycling subscriptions (subscribing only when watching specific releases) to reduce passive cash drainage.
-                      </p>
+                      <li>
+                        {activeVideo.length} video streaming services are active at once. Subscribing
+                        only in the months you are actually watching is the usual way to cut that.
+                      </li>
                     )}
-                  </div>
+                  </ul>
                 </Card>
               )}
 
               {/* Creator Form */}
-              <Card className="border border-border-subtle bg-surface-1 shadow-md">
-                <h2 className="text-sm font-bold text-zinc-200 mb-4 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-brand-400 shrink-0" />
-                  Add Manual Subscription
+              <Card>
+                <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
+                  <Plus className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+                  <span>Add one yourself</span>
                 </h2>
-                
-                <form onSubmit={handleAddManualSub} className="space-y-4">
+                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                  For a charge Intrack has not seen yet. It is logged as an expense this month on
+                  the day you pick.
+                </p>
+
+                <form onSubmit={handleAddManualSub} className="mt-5 flex flex-col gap-4">
                   {formError && (
-                    <div className="text-xs p-2.5 bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] text-[var(--status-danger-text)] rounded-xl">
-                      {formError}
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2.5 rounded-xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-danger-text)]"
+                    >
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{formError}</span>
                     </div>
                   )}
                   {formSuccess && (
-                    <div className="text-xs p-2.5 bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] text-[var(--status-positive-text)] rounded-xl">
-                      Subscription registered successfully!
+                    <div
+                      role="status"
+                      className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)]"
+                    >
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>Added. It will show up in the list once it has charged twice.</span>
                     </div>
                   )}
 
                   <Input
-                    label="Subscription / Service"
+                    id="sub-name"
+                    label="Service"
                     placeholder="e.g. Netflix Premium"
                     value={subName}
                     onChange={(e) => setSubName(e.target.value)}
@@ -284,197 +335,255 @@ export default function SubscriptionsPage() {
                   />
 
                   <Input
-                    label={`Monthly Price (${currencySymbol})`}
+                    id="sub-amount"
+                    label={`Amount per month (${currencySymbol})`}
                     type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
                     placeholder="649"
                     value={subAmount}
                     onChange={(e) => setSubAmount(e.target.value)}
+                    className="tnum"
                     required
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
-                        Category
-                      </label>
-                      <Select
-                        value={subCategory}
-                        onChange={(e) => setSubCategory(e.target.value)}
-                      >
-                        <option value="Subscriptions">🔄 Subscriptions</option>
-                        <option value="Utilities & Bills">💡 Utilities</option>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
-                        Renewal Day (of month)
-                      </label>
-                      <select
-                        value={subRenewalDay}
-                        onChange={(e) => setSubRenewalDay(Number(e.target.value))}
-                        className="w-full bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                      >
-                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                          <option key={d} value={d}>Day {d}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-1">
+                    <Select
+                      id="sub-category"
+                      label="Category"
+                      value={subCategory}
+                      onChange={(e) => setSubCategory(e.target.value)}
+                    >
+                      <option value="Subscriptions">🔄 Subscriptions</option>
+                      <option value="Utilities & Bills">💡 Utilities</option>
+                    </Select>
+                    <Select
+                      id="sub-renewal-day"
+                      label="Charges on"
+                      value={subRenewalDay}
+                      onChange={(e) => setSubRenewalDay(Number(e.target.value))}
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d}>Day {d} of the month</option>
+                      ))}
+                    </Select>
                   </div>
 
-                  <Button type="submit" block size="sm">
-                    Register Subscription
+                  <Button type="submit" block className="!h-11 justify-center">
+                    Add subscription
                   </Button>
                 </form>
               </Card>
             </div>
 
             {/* Right Column: Active Subscriptions List */}
-            <div className="md:col-span-2 order-1 md:order-2">
-              <Card className="border-border-subtle bg-surface-1 shadow-md">
-                <h2 className="text-base font-bold text-zinc-200 mb-4 flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-brand-400 shrink-0" />
-                  Subscription Renewal Calendar
-                </h2>
-
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                  <input
-                    type="search"
-                    placeholder="Search subscriptions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 bg-surface-2 border border-border-subtle/50 text-zinc-200 text-xs rounded-xl px-3 h-11 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                    aria-label="Search subscriptions"
-                  />
-                  <select
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                    className="bg-surface-2 border border-border-subtle/50 text-zinc-300 text-xs rounded-xl px-3 h-11 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                    aria-label="Filter by category"
-                  >
-                    <option value="all">All Categories</option>
-                    {uniqueSubCategories.map((code) => {
-                      const meta = getStyle(code)
-                      return (
-                        <option key={code} value={code}>
-                          {`${meta.emoji} ${meta.label}`}
-                        </option>
-                      )
-                    })}
-                  </select>
-                  <select
-                    value={renewalWindow}
-                    onChange={(e) => setRenewalWindow(e.target.value as typeof renewalWindow)}
-                    className="bg-surface-2 border border-border-subtle/50 text-zinc-300 text-xs rounded-xl px-3 h-11 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                    aria-label="Filter by renewal window"
-                  >
-                    <option value="all">Any time</option>
-                    <option value="7">Next 7 days</option>
-                    <option value="30">Next 30 days</option>
-                    <option value="90">Next 90 days</option>
-                  </select>
+            <div className="order-1 md:order-2 md:col-span-2">
+              <Card>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
+                    <RefreshCw className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+                    <span>What renews next</span>
+                  </h2>
+                  {detectedSubs.length > 0 && (
+                    <p className="text-xs text-zinc-400">
+                      {visibleSubs.length === detectedSubs.length
+                        ? `${detectedSubs.length} found`
+                        : `${visibleSubs.length} of ${detectedSubs.length} shown`}
+                    </p>
+                  )}
                 </div>
+
+                {detectedSubs.length > 0 && (
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    {/* Input and Select each render their own wrapper div and
+                        pass className to the control inside, so the flex sizing
+                        goes on these wrappers, not on the components. */}
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        id="sub-search"
+                        type="search"
+                        aria-label="Search subscriptions"
+                        placeholder="Search by name"
+                        icon={<Search className="h-4 w-4" aria-hidden="true" />}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <div className="min-w-0 sm:w-44">
+                      <Select
+                        id="sub-filter-category"
+                        aria-label="Filter by category"
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                      >
+                        <option value="all">All categories</option>
+                        {uniqueSubCategories.map((code) => {
+                          const meta = getStyle(code)
+                          return (
+                            <option key={code} value={code}>
+                              {`${meta.emoji} ${meta.label}`}
+                            </option>
+                          )
+                        })}
+                      </Select>
+                    </div>
+                    <div className="min-w-0 sm:w-40">
+                      <Select
+                        id="sub-filter-window"
+                        aria-label="Filter by renewal window"
+                        value={renewalWindow}
+                        onChange={(e) => setRenewalWindow(e.target.value as typeof renewalWindow)}
+                      >
+                        <option value="all">Any time</option>
+                        <option value="7">Next 7 days</option>
+                        <option value="30">Next 30 days</option>
+                        <option value="90">Next 90 days</option>
+                      </Select>
+                    </div>
+                  </div>
+                )}
 
                 {detectedSubs.length === 0 ? (
                   <EmptyState
-                    icon={<RefreshCw className="h-8 w-8 text-zinc-500" />}
-                    title="No subscriptions detected"
-                    description="Add a recurring expense manually, or scan your bank alerts to detect them automatically."
+                    icon={<RefreshCw className="h-7 w-7 text-zinc-400" aria-hidden="true" />}
+                    title="Nothing recurring yet"
+                    description="Intrack calls a charge a subscription once it has seen the same merchant bill you at least twice. Log an expense, or scan your bank alerts, and they will appear here on their own."
                     action={
                       <Link to="/expenses" state={{ openForm: true }}>
-                        <Button size="sm">Add an expense</Button>
+                        <Button className="!h-11">Add an expense</Button>
                       </Link>
                     }
                   />
                 ) : visibleSubs.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center text-xs text-zinc-500">
-                    No subscriptions match your filters.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {visibleSubs.map((sub, idx) => {
-                      const categoryMeta = getStyle(sub.category)
-
-                      let badgeVariant: 'success' | 'warning' | 'danger' = 'success'
-                      if (sub.daysToRenewal <= 2) badgeVariant = 'danger'
-                      else if (sub.daysToRenewal <= 7) badgeVariant = 'warning'
-
-                      const freqLabel = sub.frequency === 'monthly' ? 'Monthly'
-                        : sub.frequency === 'quarterly' ? 'Quarterly'
-                        : sub.frequency === 'annual' ? 'Annual'
-                        : 'Recurring'
-
-                      return (
-                        <div
-                          key={`${sub.merchant}-${idx}`}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-surface-2/40 border border-border-subtle/30 text-xs hover:bg-surface-2 transition-colors gap-3"
+                  <EmptyState
+                    icon={<Search className="h-7 w-7 text-zinc-400" aria-hidden="true" />}
+                    title="Nothing matches those filters"
+                    description="Widen the renewal window, clear the category, or search for a different name."
+                    action={
+                      filtersActive ? (
+                        <Button
+                          variant="secondary"
+                          className="!h-11"
+                          onClick={() => {
+                            setSearchQuery('')
+                            setFilterCategory('all')
+                            setRenewalWindow('all')
+                          }}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-surface-1 flex items-center justify-center text-lg border border-border-subtle/60 shrink-0">
-                              {categoryMeta.emoji}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-zinc-200 truncate capitalize">{sub.merchant}</span>
-                                {sub.priceChange !== null && (
-                                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                                    sub.priceChange > 0
-                                      ? 'bg-red-500/15 text-red-400'
-                                      : 'bg-emerald-500/15 text-emerald-400'
-                                  }`}>
-                                    {sub.priceChange > 0 ? '↑' : '↓'} Price {sub.priceChange > 0 ? 'Increased' : 'Decreased'}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-zinc-500">
-                                  Last billed: {formatDate(sub.lastBilled)}
-                                </span>
-                                <span className="text-xs bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded-full">
-                                  {freqLabel} · {sub.timesCharged}× charged
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center flex-wrap gap-2 sm:gap-4 justify-between sm:justify-end">
-                            <div className="flex flex-col items-end">
-                              <span className="font-extrabold text-zinc-100">{formatCurrency(sub.amount)}</span>
-                              <span className="text-xs text-zinc-500">{freqLabel.toLowerCase()}</span>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <Badge variant={badgeVariant}>
-                                {sub.daysToRenewal <= 0 ? 'Renews today' : sub.daysToRenewal === 1 ? 'Renews tomorrow' : `Renews in ${sub.daysToRenewal}d`}
-                              </Badge>
-                              <span className="text-xs text-zinc-500">
-                                Date: {formatDate(sub.nextRenewal)}
+                          Clear filters
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ) : (
+                  <ul className="mt-5 flex flex-col gap-3">
+                    <AnimatePresence initial={false}>
+                      {visibleSubs.map((sub, idx) => {
+                        const categoryMeta = getStyle(sub.category)
+
+                        let badgeVariant: 'success' | 'warning' | 'danger' = 'success'
+                        if (sub.daysToRenewal <= 2) badgeVariant = 'danger'
+                        else if (sub.daysToRenewal <= 7) badgeVariant = 'warning'
+
+                        const freqLabel = sub.frequency === 'monthly' ? 'Monthly'
+                          : sub.frequency === 'quarterly' ? 'Quarterly'
+                          : sub.frequency === 'annual' ? 'Annual'
+                          : 'Recurring'
+
+                        const renewsLabel = sub.daysToRenewal <= 0
+                          ? 'Renews today'
+                          : sub.daysToRenewal === 1
+                            ? 'Renews tomorrow'
+                            : `Renews in ${sub.daysToRenewal} days`
+
+                        return (
+                          <motion.li
+                            key={`${sub.merchant}-${idx}`}
+                            layout={!reduce}
+                            variants={rowVariants(reduce)}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={transition(reduce)}
+                            className="flex flex-col gap-3 rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4 transition-colors hover:border-border-hover sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                aria-hidden="true"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-1 text-lg"
+                              >
+                                {categoryMeta.emoji}
                               </span>
+                              <div className="flex min-w-0 flex-col">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="truncate text-sm font-semibold capitalize text-zinc-100">
+                                    {sub.merchant}
+                                  </span>
+                                  {sub.priceChange !== null && (
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-0.5 text-xs font-medium ${
+                                        sub.priceChange > 0
+                                          ? 'border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)]'
+                                          : 'border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
+                                      }`}
+                                    >
+                                      {sub.priceChange > 0
+                                        ? <TrendingUp className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                        : <TrendingDown className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                                      Price {sub.priceChange > 0 ? 'went up' : 'came down'}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 text-xs text-zinc-400">
+                                  {freqLabel} · charged {sub.timesCharged}× · last on{' '}
+                                  <span className="tnum">{formatDate(sub.lastBilled)}</span>
+                                </p>
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => hideSubscription(sub.merchant)}
-                              title="Not a subscription — hide from this list (keeps the expense)"
-                              aria-label={`Remove ${sub.merchant} from subscriptions`}
-                              className="shrink-0 ml-auto sm:ml-0 h-10 w-10 flex items-center justify-center rounded-lg border border-border-subtle/50 bg-surface-1 text-zinc-500 hover:text-[var(--status-danger-text)] hover:border-[var(--status-danger-border)] hover:bg-[var(--status-danger-subtle)] transition-colors cursor-pointer text-sm leading-none"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+
+                            <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
+                              <div className="flex flex-col sm:items-end">
+                                <span className="text-sm font-semibold text-zinc-100 tnum">
+                                  {formatCurrency(sub.amount)}
+                                </span>
+                                <span className="text-xs text-zinc-400">{freqLabel.toLowerCase()}</span>
+                              </div>
+                              <div className="flex flex-col gap-1 sm:items-end">
+                                <Badge variant={badgeVariant}>{renewsLabel}</Badge>
+                                <span className="text-xs text-zinc-400 tnum">
+                                  {formatDate(sub.nextRenewal)}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => hideSubscription(sub.merchant)}
+                                title="Not a subscription — hide it from this list. The expense stays."
+                                aria-label={`Hide ${sub.merchant} from subscriptions`}
+                                className={`${ACTION_BUTTON_DANGER} shrink-0`}
+                              >
+                                <EyeOff className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </motion.li>
+                        )
+                      })}
+                    </AnimatePresence>
+                  </ul>
                 )}
 
                 {ignoredKeys.length > 0 && (
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-dashed border-border-subtle/50 bg-surface-2/30 px-4 py-2.5">
-                    <span className="text-[11px] text-zinc-500">
-                      {ignoredKeys.length} item{ignoredKeys.length > 1 ? 's' : ''} hidden as “not a subscription”. Their expenses are still tracked.
-                    </span>
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border-default bg-surface-2/40 px-4 py-3">
+                    <p className="text-sm text-zinc-400">
+                      {ignoredKeys.length} hidden as “not a subscription”. Those expenses are still
+                      counted everywhere else.
+                    </p>
                     <button
                       type="button"
                       onClick={restoreAllSubscriptions}
-                      className="shrink-0 text-[11px] font-semibold text-brand-400 hover:text-brand-300 transition-colors cursor-pointer"
+                      className="shrink-0 cursor-pointer rounded text-sm font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                     >
-                      Restore all
+                      Show them again
                     </button>
                   </div>
                 )}

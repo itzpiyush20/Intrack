@@ -1,12 +1,26 @@
 // ============================================
-// ProfilePage — Security Profile & Danger Zones
-// Manage profile, security reset, and account deletion
+// ProfilePage — the account itself: who you are, your password, and the exits
+//
+// Restyle only. Every handler below — the profile save, the avatar URL check,
+// the reset-password trigger, the data wipe and the account deletion — is
+// unchanged, including the reload after a wipe and the case-folded email
+// confirmation before a delete.
+//
+// What changed is the shape. This was a 7/5 grid with the destructive actions
+// parked in a right-hand column, so on a phone the two danger cards landed
+// under the profile form with no separation, and every label was 12px uppercase
+// — the same "reads as small print" problem Settings had. It is one column of
+// section cards now, body copy at `text-sm`, the shared `Input` carrying its
+// own label, and the danger zone kept behind a disclosure that says plainly
+// what is inside it.
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { AlertCircle, CheckCircle2, KeyRound, ChevronDown, TriangleAlert, Trash2, UserRound } from 'lucide-react'
 import { AppLayout } from '@/layouts'
-import { Card, Button, Input, Badge, ConfirmDialog } from '@/components/ui'
+import { Card, Button, Input, ConfirmDialog, panelVariants, transition } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import {
@@ -43,7 +57,7 @@ export default function ProfilePage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
-    document.title = `Security Profile | ${APP_CONFIG.APP_NAME}`
+    document.title = `Your account | ${APP_CONFIG.APP_NAME}`
     // Load fresh profile details
     getProfile().then(({ data }) => {
       if (data) {
@@ -218,218 +232,298 @@ export default function ProfilePage() {
     }
   }
 
+  const reduce = useReducedMotion()
+
+  const initial = (fullName.trim()[0] || user?.email?.[0] || 'U').toUpperCase()
+
   return (
     <AppLayout>
-      <div className="space-y-8 animate-fade-in">
+      <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Security Profile</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Configure your personal finance identity, account credentials, and platform security.
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Your account</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">
+            Your name and picture, your password, and the two ways to clear out what Intrack
+            holds for you.
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="rounded-2xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-4 text-sm text-[var(--status-danger-text)]">
-            {error}
+          <div
+            role="alert"
+            className="mt-6 flex items-start gap-2.5 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] p-4 text-sm leading-relaxed text-[var(--status-danger-text)]"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-12">
-          {/* Left panel: Profile details */}
-          <div className="md:col-span-7 space-y-6">
-            {/* Profile Settings Card */}
-            <Card>
-              <h2 className="text-base font-bold text-white mb-6">Profile Settings</h2>
-              
-              <form onSubmit={handleProfileSave} className="space-y-5">
-                <div className="flex items-center gap-4">
-                  {/* Mock preview avatar circle */}
-                  <div className="h-14 w-14 rounded-full bg-surface-2 ring-2 ring-brand-500/50 flex items-center justify-center text-zinc-300 text-lg font-bold shrink-0 overflow-hidden shadow-md">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Preview" className="h-full w-full object-cover" />
-                    ) : (
-                      fullName.substring(0, 1).toUpperCase() || 'U'
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-zinc-200">Avatar Image</h3>
-                    <p className="text-xs text-zinc-500 mt-0.5">Previews instantly on URL match</p>
-                  </div>
-                </div>
+        <div className="mt-6 flex flex-col gap-6 md:mt-8">
+          {/* Profile */}
+          <Card>
+            <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
+              <UserRound className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+              <span>Profile</span>
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+              Your name is what Intrack calls you around the app. Nothing here is shared with
+              anyone.
+            </p>
 
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                    Email Address
-                  </label>
-                  <Input value={user?.email || ''} disabled />
-                  <p className="text-xs text-zinc-400 mt-1">Unique login email identifier (disabled)</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                    Full Display Name
-                  </label>
-                  <Input
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    disabled={profileLoading}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                    Avatar Image URL
-                  </label>
-                  <Input
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="e.g. https://images.unsplash.com/photo-..."
-                    disabled={profileLoading}
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                  {profileSuccess ? (
-                    <Badge variant="success">✔️ Changes updated successfully</Badge>
+            <form onSubmit={handleProfileSave} className="mt-6 flex flex-col gap-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-default bg-surface-2 text-lg font-semibold text-zinc-300">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div />
+                    initial
                   )}
-                  <Button type="submit" loading={profileLoading} disabled={profileLoading} className="w-full sm:w-auto">
-                    Save Profile Changes
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-100">
+                    {fullName.trim() || 'No name set'}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-zinc-400">{user?.email}</p>
+                </div>
+              </div>
+
+              <Input
+                id="profile-email"
+                label="Email"
+                value={user?.email || ''}
+                disabled
+              />
+              <p className="-mt-3 text-xs text-zinc-400">
+                This is how you sign in, so it cannot be changed here. Contact support if it
+                needs to move.
+              </p>
+
+              <Input
+                id="profile-name"
+                label="Full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                disabled={profileLoading}
+                required
+              />
+
+              <Input
+                id="profile-avatar"
+                label="Picture URL (optional)"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://…"
+                disabled={profileLoading}
+              />
+              <p className="-mt-3 text-xs text-zinc-400">
+                Must start with http:// or https://. The circle above previews it as you type.
+              </p>
+
+              <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-start">
+                <Button
+                  type="submit"
+                  loading={profileLoading}
+                  disabled={profileLoading}
+                  className="!h-11 w-full justify-center sm:w-auto"
+                >
+                  Save changes
+                </Button>
+                <AnimatePresence initial={false}>
+                  {profileSuccess && (
+                    <motion.p
+                      key="profile-saved"
+                      initial={reduce ? false : { opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                      transition={transition(reduce)}
+                      role="status"
+                      className="flex items-center gap-2 text-sm font-medium text-[var(--status-positive-text)]"
+                    >
+                      <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      Saved
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </form>
+          </Card>
+
+          {/* Password */}
+          <Card>
+            <h2 className="flex items-center gap-2 text-base font-bold text-zinc-100">
+              <KeyRound className="h-5 w-5 shrink-0 text-brand-400" aria-hidden="true" />
+              <span>Password</span>
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+              Forgotten your password? We'll email a reset link to{' '}
+              <strong className="font-semibold text-zinc-200">{user?.email}</strong>. If you still
+              know it, changing it from Settings is faster — no email involved.
+            </p>
+
+            <form onSubmit={handlePasswordReset} className="mt-5 flex flex-col gap-4">
+              <AnimatePresence initial={false}>
+                {passwordSuccess && (
+                  <motion.div
+                    key="password-sent"
+                    initial={reduce ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                    transition={transition(reduce)}
+                    role="status"
+                    className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)]"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Reset link sent. Check your inbox, and your spam folder if it isn't there.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <Button
+                variant="secondary"
+                type="submit"
+                block
+                loading={passwordLoading}
+                disabled={passwordLoading}
+                className="!h-11 justify-center"
+              >
+                Email me a reset link
+              </Button>
+            </form>
+          </Card>
+
+          {/* Danger zone, behind a disclosure. Two irreversible actions do not
+              belong one tap away from "Save changes". */}
+          {!showDangerZone ? (
+            <button
+              type="button"
+              onClick={() => setShowDangerZone(true)}
+              aria-expanded={false}
+              className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-1 text-sm font-medium text-zinc-300 transition-colors hover:border-border-hover hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+            >
+              <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Delete my data or my account
+              <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+            </button>
+          ) : (
+            <motion.div
+              variants={panelVariants(reduce)}
+              initial="initial"
+              animate="animate"
+              transition={transition(reduce)}
+              className="flex flex-col gap-6"
+            >
+              {/* Reset data */}
+              <Card className="border-[var(--status-danger-border)]">
+                <h2 className="flex items-center gap-2 text-base font-bold text-[var(--status-danger-text)]">
+                  <TriangleAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>Erase your transactions</span>
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+                  Deletes every transaction, budget and scan log on this account. Your learned
+                  merchant rules and saved cards stay. Your login stays. This cannot be undone.
+                </p>
+
+                <div className="mt-5 flex flex-col gap-4">
+                  <AnimatePresence initial={false}>
+                    {resetSuccess && (
+                      <motion.div
+                        key="wipe-done"
+                        initial={reduce ? false : { opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                        transition={transition(reduce)}
+                        role="status"
+                        className="flex items-start gap-2.5 rounded-xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-3.5 text-sm leading-relaxed text-[var(--status-positive-text)]"
+                      >
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span>Done. Your transactions, budgets and scan logs are gone — reloading the app…</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <Button
+                    variant="danger"
+                    block
+                    onClick={() => setConfirmWipeOpen(true)}
+                    loading={resetLoading}
+                    disabled={resetLoading}
+                    className="!h-11 justify-center"
+                  >
+                    <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    Erase my transactions
                   </Button>
                 </div>
-              </form>
-            </Card>
+              </Card>
 
-            {/* Security Reset Card */}
-            <Card>
-              <h2 className="text-base font-bold text-white mb-4">Credential Safety</h2>
-              <p className="text-xs text-zinc-400 mb-2 leading-relaxed">
-                Trigger a secure password reset link. We will send guidelines directly to <strong className="text-zinc-200">{user?.email}</strong>.
-              </p>
-              <p className="text-xs text-zinc-500 mb-6 leading-relaxed italic">
-                Already logged in and know your current password? Change it directly from
-                Settings instead — faster, no email required.
-              </p>
+              {/* Delete account */}
+              <Card className="border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)]">
+                <h2 className="flex items-center gap-2 text-base font-bold text-[var(--status-danger-text)]">
+                  <TriangleAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>Delete your account</span>
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+                  Deletes your login and everything attached to it — transactions, budgets,
+                  learned rules, saved cards and scan logs.{' '}
+                  <strong className="font-semibold">This cannot be undone.</strong>
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                  One thing survives, and only with your name taken off it: any feedback or
+                  support message you sent is kept with your name and email replaced, so a
+                  problem you reported does not vanish with you. The Privacy Policy sets this
+                  out in full.
+                </p>
 
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                {passwordSuccess && (
-                  <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-xs text-[var(--status-positive-text)] leading-relaxed">
-                    📧 Reset link transmitted! Check your inbox (including spam) for verification actions.
+                <form onSubmit={handleDeleteAccount} className="mt-5 flex flex-col gap-4">
+                  <div>
+                    <Input
+                      id="delete-confirm-email"
+                      label="Type your email address to confirm"
+                      type="email"
+                      autoComplete="off"
+                      placeholder={user?.email || 'you@example.com'}
+                      value={deleteConfirmEmail}
+                      onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                      disabled={deleteLoading}
+                      required
+                      className="border-[var(--status-danger-border)]"
+                    />
+                    <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">
+                      {deleteConfirmEmail.trim() !== '' && !deleteConfirmMatches
+                        ? 'That is not the email on this account yet, so the button below stays disabled.'
+                        : <>The address on this account is <span className="select-all break-all font-medium text-zinc-300">{user?.email}</span>.</>}
+                    </p>
                   </div>
-                )}
-                <Button variant="secondary" type="submit" block loading={passwordLoading} disabled={passwordLoading}>
-                  🔑 Reset My Password
-                </Button>
-              </form>
-            </Card>
-          </div>
+                  {/*
+                    The fill is --status-danger-solid and the label is forced
+                    white, together.
 
-          {/* Right panel: Data Reset zone */}
-          <div className="md:col-span-5 space-y-6">
-            {!showDangerZone ? (
-              <button
-                type="button"
-                onClick={() => setShowDangerZone(true)}
-                aria-expanded={showDangerZone}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--status-danger-border)]/40 bg-[var(--status-danger-subtle)]/5 text-xs font-semibold text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]/15 transition-colors"
-              >
-                ⚠️ Show danger zone (reset data / delete account)
-              </button>
-            ) : (
-              <>
-                {/* Account Data Reset zone */}
-                <Card className="border-[var(--status-danger-border)]/50 bg-[var(--status-danger-subtle)]/10">
-                  <h2 className="text-base font-bold text-[var(--status-danger-text)] mb-2">Danger Zone: Data Reset</h2>
-                  <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                    Permanently deletes all your transaction entries, custom budgets, and inbox
-                    scan logs. Your learned merchant rules and saved cards are kept — use Delete
-                    Account below to remove everything. This is irreversible!
-                  </p>
+                    This used to set the background to --status-danger-text
+                    while the `danger` variant sets the TEXT colour to that
+                    same variable — so the label was the exact colour of the
+                    fill and invisible, in both themes, enabled or disabled.
+                    The control rendered as a blank coloured bar and read as
+                    broken, on the one screen where someone is exercising
+                    their right to erasure.
 
-                  <div className="space-y-4">
-                    {resetSuccess && (
-                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-xs text-[var(--status-positive-text)] leading-relaxed">
-                        ✨ Wipe complete. Your transactions, budgets and scan logs are gone — reloading…
-                      </div>
-                    )}
-                    <Button
-                      variant="danger"
-                      block
-                      onClick={() => setConfirmWipeOpen(true)}
-                      loading={resetLoading}
-                      disabled={resetLoading}
-                    >
-                      Reset Account Data
-                    </Button>
-                  </div>
-                </Card>
-
-                {/* Danger Zone: Permanent Deletion */}
-                <Card className="border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)]/20 shadow-lg">
-                  <h2 className="text-base font-bold text-[var(--status-danger-text)] flex items-center gap-1.5 mb-2">
-                    <span>⚠️</span> Danger Zone: Delete Account
-                  </h2>
-                  <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
-                    Permanently deletes your login, your transactions, budgets, learned rules, saved cards and scan logs. <strong>This cannot be undone.</strong> One thing survives, and only without your name on it: any feedback or support message you sent is kept with your name and email replaced, so a problem you reported does not vanish. The Privacy Policy explains this in full.
-                  </p>
-
-                  <form onSubmit={handleDeleteAccount} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
-                        Confirm Deletion by Typing: <span className="text-zinc-300 font-mono lowercase select-all break-all">{user?.email}</span>
-                      </label>
-                      <Input
-                        type="email"
-                        placeholder="Type your email to confirm"
-                        value={deleteConfirmEmail}
-                        onChange={(e) => setDeleteConfirmEmail(e.target.value)}
-                        disabled={deleteLoading}
-                        required
-                        className="border-[var(--status-danger-border)]/60 focus:border-[var(--status-danger-border)] focus:ring-[var(--status-danger-border)]/20"
-                      />
-                      {deleteConfirmEmail.trim() !== '' && !deleteConfirmMatches && (
-                        <p className="mt-1.5 text-xs text-zinc-500">
-                          That doesn't match your account email yet, so the button below stays disabled.
-                        </p>
-                      )}
-                    </div>
-                    {/*
-                      The fill is --status-danger-solid and the label is forced
-                      white, together.
-
-                      This used to set the background to --status-danger-text
-                      while the `danger` variant sets the TEXT colour to that
-                      same variable — so the label was the exact colour of the
-                      fill and invisible, in both themes, enabled or disabled.
-                      The control rendered as a blank coloured bar and read as
-                      broken, on the one screen where someone is exercising
-                      their right to erasure.
-
-                      Simply forcing white on the old background was not enough:
-                      --status-danger-text is tuned to be READ as text on a dark
-                      surface (#f47174), so white on it measures ~2.6:1, under
-                      the 4.5:1 floor. --status-danger-solid exists for this —
-                      a fill dark enough in both themes to carry white.
-                    */}
-                    <Button
-                      variant="danger"
-                      type="submit"
-                      block
-                      disabled={!deleteConfirmMatches || deleteLoading}
-                      loading={deleteLoading}
-                      className="bg-[var(--status-danger-solid)] text-static-white hover:opacity-90 active:opacity-80 disabled:opacity-40 transition-all duration-200"
-                    >
-                      Permanently Delete My Account
-                    </Button>
-                  </form>
-                </Card>
-              </>
-            )}
-          </div>
+                    Simply forcing white on the old background was not enough:
+                    --status-danger-text is tuned to be READ as text on a dark
+                    surface (#f47174), so white on it measures ~2.6:1, under
+                    the 4.5:1 floor. --status-danger-solid exists for this —
+                    a fill dark enough in both themes to carry white.
+                  */}
+                  <Button
+                    variant="danger"
+                    type="submit"
+                    block
+                    disabled={!deleteConfirmMatches || deleteLoading}
+                    loading={deleteLoading}
+                    className="!h-11 justify-center bg-[var(--status-danger-solid)] text-static-white transition-all duration-200 hover:opacity-90 active:opacity-80 disabled:opacity-40"
+                  >
+                    Permanently delete my account
+                  </Button>
+                </form>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -440,9 +534,9 @@ export default function ProfilePage() {
           await handleWipeData()
           setConfirmWipeOpen(false)
         }}
-        title="Reset account data"
-        message="All transactions, budgets, and scan logs will be permanently deleted. This can't be undone."
-        confirmLabel="Reset data"
+        title="Erase your transactions?"
+        message="Every transaction, budget and scan log on this account will be permanently deleted. Your login, saved cards and learned merchant rules stay. This cannot be undone."
+        confirmLabel="Erase them"
       />
     </AppLayout>
   )
