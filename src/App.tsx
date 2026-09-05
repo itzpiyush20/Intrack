@@ -3,7 +3,7 @@
 // Code-split via React.lazy for performance
 // ============================================
 
-import { useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { AuthProvider, ToastProvider, CategoriesProvider } from '@/context'
@@ -15,6 +15,7 @@ import CookieConsent from '@/components/CookieConsent'
 import URLAuthTrigger from '@/components/auth/URLAuthTrigger'
 import AuthModal from '@/components/auth/AuthModal'
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar'
+import { PageSkeleton } from '@/components/ui'
 import { applyLightTheme, clearStoredTheme } from '@/utils/theme'
 import { setCanonical } from '@/utils/seo'
 
@@ -142,13 +143,29 @@ const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'))
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'))
 
 // ─── Loading fallback ────────────────────────────────────
+/**
+ * What fills a route while its code chunk downloads.
+ *
+ * This used to be a centred spinner, which meant every navigation flashed a
+ * "Loading…" screen even when the chunk arrived in 40ms — the flash itself was
+ * most of the perceived slowness. Now nothing renders for the first 160ms, so
+ * a fast route simply appears, and a genuinely slow one gets a skeleton in the
+ * shape of a page rather than a spinner that says only "wait".
+ */
 function PageLoader() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    // setState in a timer callback, not synchronously in the effect body —
+    // react-hooks/set-state-in-effect flags the latter.
+    const timer = setTimeout(() => setVisible(true), 160)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!visible) return null
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
-        <span className="text-xs text-zinc-500 font-medium">Loading…</span>
-      </div>
+    <div className="min-h-screen bg-surface-0">
+      <PageSkeleton />
     </div>
   )
 }

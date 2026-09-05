@@ -24,3 +24,16 @@ export const ACTION_BUTTON_DANGER =
   'h-9 w-9 rounded-lg flex items-center justify-center text-zinc-400 transition-colors ' +
   'hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--status-danger-border)] cursor-pointer'
+
+/**
+ * A row inside a section card: a list entry, a rule, a card, a category.
+ *
+ * Not a nested card — one hairline and a barely-there fill, so the section it
+ * sits in stays the only object with real elevation.
+ */
+export const ROW_TILE =
+  'rounded-xl border border-border-subtle/40 bg-surface-2/50 transition-colors hover:border-border-hover'
+
+/** The small uppercase label above a group of rows inside a section. */
+export const SECTION_LABEL =
+  'text-xs font-bold text-zinc-400 uppercase tracking-wider'
