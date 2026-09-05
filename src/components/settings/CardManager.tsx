@@ -28,7 +28,7 @@ import {
   getCardPeriods, setCardOpening, getCardMovementsSince, getCardUsageCounts,
   monthKey, todayKey,
 } from '@/services/cards'
-import { formatCurrency, formatDate } from '@/utils'
+import { formatCurrency } from '@/utils'
 import { CreditCard, Plus, Archive, ArchiveRestore, Trash2, Pencil, Lock, AlertTriangle } from 'lucide-react'
 import type { Card as CardRow, CardBrand, CardPeriod } from '@/types'
 
@@ -469,7 +469,7 @@ export default function CardManager() {
         </div>
         {stored !== undefined && draft === undefined && (
           <p className="text-xs text-zinc-500 -mt-1">
-            {formatCurrency(stored)} as of {formatDate(today)} — edit to correct it.
+            {formatCurrency(stored)} owed today — edit to correct it.
           </p>
         )}
       </div>
@@ -504,7 +504,7 @@ export default function CardManager() {
           {detailFields(form, setForm, 'add')}
           <div className="sm:col-span-2">
             <label htmlFor="add-owed" className="text-xs font-semibold text-zinc-400 block mb-1">
-              Owed today ({formatDate(today)})
+              Outstanding balance today
             </label>
             <Input
               id="add-owed"
