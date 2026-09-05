@@ -28,12 +28,16 @@ export default function BudgetsPage() {
   const budgetEligible = categories.filter((c) => c.type === 'expense' && c.budget_eligible)
   const [dateFilter, setDateFilter] = useState<DateFilter>({ mode: 'month', month: getCurrentMonth() })
   const targetMonth = dateFilter.mode === 'month' ? dateFilter.month : resolveDateFilter(dateFilter).dateTo.slice(0, 7)
-  const [budgets, setBudgets] = useState<(BudgetRow & { monthCount: number; ids: string[] })[]>([])
+  // Each merged entry keeps the source rows (id + month), not just ids: deleting
+  // needs the month so the service can tombstone a current-month budget rather
+  // than remove it, which is what stops carry-forward resurrecting it.
+  type BudgetSource = { id: string; month: string }
+  const [budgets, setBudgets] = useState<(BudgetRow & { monthCount: number; rows: BudgetSource[] })[]>([])
   const [spentMap, setSpentMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; categoryLabel: string; monthCount: number } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ rows: BudgetSource[]; categoryLabel: string; monthCount: number } | null>(null)
   const { showToast } = useToast()
 
   // Form states
@@ -70,16 +74,16 @@ export default function BudgetsPage() {
       if (summaryRes.error) throw summaryRes.error
 
       // Merge same-category budgets across months (Custom mode can touch several).
-      const merged = new Map<string, BudgetRow & { monthCount: number; ids: string[] }>()
+      const merged = new Map<string, BudgetRow & { monthCount: number; rows: BudgetSource[] }>()
       budgetsResults.forEach((r) => {
         (r.data || []).forEach((b) => {
           const existing = merged.get(b.category)
           if (existing) {
             existing.amount += Number(b.amount)
             existing.monthCount += 1
-            existing.ids.push(b.id)
+            existing.rows.push({ id: b.id, month: b.month })
           } else {
-            merged.set(b.category, { ...b, amount: Number(b.amount), monthCount: 1, ids: [b.id] })
+            merged.set(b.category, { ...b, amount: Number(b.amount), monthCount: 1, rows: [{ id: b.id, month: b.month }] })
           }
         })
       })
@@ -127,12 +131,14 @@ export default function BudgetsPage() {
     }
   }
 
-  const handleDelete = async (targetIds: string[]) => {
+  const handleDelete = async (targetRows: BudgetSource[]) => {
     setActionLoading(true)
     setError(null)
     try {
-      for (const id of targetIds) {
-        const { error } = await deleteBudget(id)
+      for (const row of targetRows) {
+        // The month goes with the id: a current-month removal is recorded as a
+        // deliberate deletion so month-to-month carry-forward leaves it alone.
+        const { error } = await deleteBudget(row.id, { month: row.month })
         if (error) throw error
       }
       showToast('Limit removed successfully')
@@ -178,6 +184,7 @@ export default function BudgetsPage() {
             <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Budgets</h1>
             <p className="mt-1 text-sm text-zinc-400">
               Set per-category monthly limits and get overspend warnings before they happen.
+              Limits you set carry over to the next month on their own — set them once.
             </p>
           </div>
 
@@ -370,7 +377,7 @@ export default function BudgetsPage() {
                               variant="ghost"
                               size="sm"
                               className="text-zinc-500 hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] h-11 w-11 p-0 shrink-0"
-                              onClick={() => setDeleteTarget({ ids: budget.ids || [budget.id], categoryLabel: cat.label, monthCount: budget.monthCount })}
+                              onClick={() => setDeleteTarget({ rows: budget.rows ?? [{ id: budget.id, month: budget.month }], categoryLabel: cat.label, monthCount: budget.monthCount })}
                               disabled={actionLoading}
                               title={budget.monthCount > 1 ? `Delete limit across ${budget.monthCount} months` : 'Delete budget limit'}
                             >
@@ -471,14 +478,14 @@ export default function BudgetsPage() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={async () => {
-          if (deleteTarget) await handleDelete(deleteTarget.ids)
+          if (deleteTarget) await handleDelete(deleteTarget.rows)
           setDeleteTarget(null)
         }}
         title="Remove budget limit"
         message={
           deleteTarget && deleteTarget.monthCount > 1
             ? `Remove the budget limit for ${deleteTarget.categoryLabel} across all ${deleteTarget.monthCount} months in this view?`
-            : `Remove the budget limit for ${deleteTarget?.categoryLabel || 'this category'}? You can set a new one anytime.`
+            : `Remove the budget limit for ${deleteTarget?.categoryLabel || 'this category'}? It won't carry into next month. You can set a new one anytime.`
         }
         confirmLabel="Remove"
       />
