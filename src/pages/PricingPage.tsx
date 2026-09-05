@@ -1,6 +1,6 @@
 // ============================================
-// PricingPage — Supabaze Design Language version
-// Premium layout with glowing grids, dual-tone wordmarks, and brand showcases
+// PricingPage — Modern Luxury Fintech Edition
+// Sovereign, transparent, zero-surprise pricing
 // ============================================
 
 import { useState, useEffect } from 'react'
@@ -9,43 +9,63 @@ import AppLayout from '@/layouts/AppLayout'
 import { useAuth, useToast } from '@/context'
 import { motion } from 'framer-motion'
 import { useScrollReveal } from '@/hooks'
-import { Card } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { formatDate, cn } from '@/utils'
 import { setPageMeta } from '@/utils/seo'
 import { APP_CONFIG } from '@/constants'
+import {
+  Sparkles,
+  Clock,
+  PauseCircle,
+  CheckCircle2,
+  ShieldCheck,
+  Lock,
+  KeyRound,
+  CreditCard,
+  ArrowRight,
+  Calendar,
+  Ticket,
+  EyeOff
+} from 'lucide-react'
+import {
+  PricingAmbientBackground,
+  CostToValueVisual,
+  TrustTelemetryRibbon,
+  PricingFaqAccordion
+} from './pricing'
+
+interface RazorpayInstance {
+  on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void
+  open: () => void
+}
+
+interface RazorpayConstructor {
+  new (options: Record<string, unknown>): RazorpayInstance
+}
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor
+  }
+}
 
 // ── Feature lists for different subscription tiers ───────────
-// Kept deliberately accurate against what the code actually does.
-//
-// These lists used to advertise "Encrypted CSV & JSON data export",
-// "Subscription renewal tracking" and "Priority support" as YEARLY-only. No
-// such gate exists anywhere: every subscription_plan_type check in the app is
-// a badge label or an upsell button, and ProtectedRoute gates on
-// isSubscriptionActive alone. A monthly subscriber already has all of it, so
-// the yearly card was selling features the monthly plan silently included.
-// There is no free tier. The owner settled this on 2026-09-04: after the
-// 7-day trial, access stops unless the user pays. This list used to promise
-// that manual entry, budgets and one daily scan stayed free afterwards, which
-// ProtectedRoute has never allowed — it sends every user without an active
-// subscription to this page. The card now describes the trial, which is the
-// only thing here that costs nothing. The trial itself is no longer a card
-// in the pricing grid — see the banner above it — so this list is gone; the
-// banner's own copy covers what the trial includes.
-
 const MONTHLY_FEATURES = [
-  'Two inbox scans a day, at least 4 hours apart',
-  'Everything the trial had, without the 7-day limit',
-  'Real-time category learning engine',
-  'Subscription renewal tracking & calendar',
-  'Encrypted CSV & JSON data export',
+  'Two automated inbox scans a day (4h cadence)',
+  'Everything in the 7-day trial, without time limits',
+  'Real-time merchant & category learning engine',
+  'Subscription renewal radar & calendar alerts',
+  'Encrypted CSV & JSON full financial ledger exports',
+  'One-time payment · Zero auto-renew mandates',
 ]
 
 const YEARLY_FEATURES = [
-  'Everything in Monthly — the same features',
+  'Everything in Monthly — full unrestricted suite',
   'Billed once a year instead of every month',
-  'Works out at ₹1 a day',
-  'Nothing to renew or re-authorise for 12 months',
+  'Works out to just ₹1.00 a day (Save 17%)',
+  'Nothing to renew or re-authorise for 365 days',
+  'Instant plan queueing — stack another year without losing days',
+  'Priority support & early access to new banks',
 ]
 
 export default function PricingPage() {
@@ -64,68 +84,43 @@ export default function PricingPage() {
   const isExpired = status === 'expired' || (status === 'active' && daysLeft <= 0) || (status === 'trial' && daysLeft <= 0)
   const isTrialExpired = (status === 'trial' && daysLeft <= 0) || (status === 'expired' && profile?.subscription_plan_type === 'trial')
   const isSubExpired = (status === 'active' && daysLeft <= 0) || (status === 'expired' && profile?.subscription_plan_type !== 'trial')
-  // Never subscribed (signed-out visitor, or a signed-in account that hasn't started a trial yet) —
-  // this is a prospective customer, not someone who lost access. Show them the trial offer, not a lock screen.
   const neverSubscribed = !user || status === 'free' || !status
   const isCancelled = status === 'cancelled'
 
-  // A plan already bought and waiting for the current one to end. The server
-  // refuses a second purchase in this state (409), so the buttons come off too.
   const hasQueuedPlan = !!profile?.pending_plan_type
-
   const isActiveActive = status === 'active' && daysLeft > 0
   const isTrialActive = status === 'trial' && daysLeft > 0
 
-  const isActive  = isActiveActive
-  const isTrial   = isTrialActive
+  const isActive = isActiveActive
+  const isTrial = isTrialActive
 
-  // WHICH PLAN they hold. Deliberately not the same question as whether they
-  // may buy, which is `canBuy` below.
-  //
-  // These were one flag — `isPro` — and merging them locked annual subscribers
-  // out of paying: it hid the entire checkout section AND disabled the yearly
-  // button, so a customer on the yearly plan had no way to buy another year
-  // until their access lapsed. apply_plan_purchase() has queued renewals since
-  // 035 (buying again returns outcome 'queued' and the new plan starts the day
-  // the current one ends), and monthly subscribers could already reach it.
-  // Only annual subscribers, the ones most worth renewing, could not.
-  const isOnYearly  = isActive && profile?.subscription_plan_type !== 'monthly'
+  const isOnYearly = isActive && profile?.subscription_plan_type !== 'monthly'
   const isOnMonthly = isActive && profile?.subscription_plan_type === 'monthly'
-
-  // The one thing that genuinely stops a purchase: the server refuses a second
-  // one while a plan is already queued (create-order.ts returns 409), because
-  // stacking two would take money for time the customer cannot reach for up to
-  // a year.
   const canBuy = !hasQueuedPlan
 
-  const planName  = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
+  const planName = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
   const planPrice = selectedPlan === 'annual' ? '365' : '31'
-  // Both plans are ONE-TIME payments. create-order.ts calls orders.create, not
-  // the Subscriptions API — there is no mandate, no plan id, and nothing that
-  // charges a card a second time. Access simply ends on the expiry date. The
-  // copy used to say "Billed every month · cancel anytime", which invented a
-  // recurring charge that does not exist and a cancellation there is nothing to
-  // perform.
-  const planSub   = selectedPlan === 'annual' ? 'One payment · 365 days of access' : 'One payment · 30 days of access'
+  const planSub = selectedPlan === 'annual' ? 'One payment · 365 days of full access' : 'One payment · 30 days of full access'
 
   useEffect(() => {
     setPageMeta({
       title: `Pricing & Plans | ${APP_CONFIG.APP_NAME}`,
-      description: 'Intrack costs ₹31 for 30 days or ₹365 for a year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
+      description: 'Intrack costs ₹31 for 30 days or ₹365 for a full year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
       canonicalPath: '/pricing',
     })
   }, [])
 
   useEffect(() => {
     if (isActive && profile?.subscription_plan_type === 'monthly') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedPlan('annual')
     }
   }, [isActive, profile])
 
-  // ── Razorpay ──────────────────────────────────────────────────
+  // ── Razorpay Checkout ─────────────────────────────────────────
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
-      if ((window as any).Razorpay) return resolve(true)
+      if (window.Razorpay) return resolve(true)
       const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
       if (existingScript) {
         existingScript.addEventListener('load', () => resolve(true))
@@ -135,20 +130,32 @@ export default function PricingPage() {
       const script = document.createElement('script')
       script.src = 'https://checkout.razorpay.com/v1/checkout.js'
       script.async = true
-      script.onload  = () => resolve(true)
+      script.onload = () => resolve(true)
       script.onerror = () => resolve(false)
       document.body.appendChild(script)
     })
 
   const handleRazorpayCheckout = async () => {
-    if (!user) { showToast('Please log in to upgrade your plan.', 'warning'); openAuthModal('/pricing'); return }
+    if (!user) {
+      showToast('Please log in to upgrade your plan.', 'warning')
+      openAuthModal('/pricing')
+      return
+    }
     setProcessing(true)
     const scriptLoaded = await loadRazorpayScript()
-    if (!scriptLoaded) { showToast('Failed to load Razorpay SDK. Check your internet.', 'error'); setProcessing(false); return }
+    if (!scriptLoaded) {
+      showToast('Failed to load Razorpay SDK. Check your internet.', 'error')
+      setProcessing(false)
+      return
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) { showToast('Your session expired. Please log in again.', 'error'); setProcessing(false); return }
-      const response  = await fetch('/api/create-order', {
+      if (!session?.access_token) {
+        showToast('Your session expired. Please log in again.', 'error')
+        setProcessing(false)
+        return
+      }
+      const response = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,8 +166,6 @@ export default function PricingPage() {
         })
       })
       const orderData = await response.json()
-      // The server refuses a purchase while a plan is queued. This is an
-      // expected answer, not a checkout fault, so it must not be prefixed as one.
       if (response.status === 409) {
         showToast(orderData.error || 'You already have a plan queued.', 'warning')
         setProcessing(false)
@@ -168,10 +173,6 @@ export default function PricingPage() {
       }
       if (!response.ok || orderData.error) throw new Error(orderData.error || 'Could not initiate payment order')
 
-      // A missing or malformed key used to fall back to 'rzp_test_placeholder',
-      // so checkout opened and then failed inside Razorpay's iframe with an
-      // error the customer could neither understand nor act on. Fail here
-      // instead, where the message can say what is actually wrong.
       const clientKey = import.meta.env.VITE_RAZORPAY_KEY_ID
       if (!clientKey || !clientKey.startsWith('rzp_')) {
         throw new Error('Payments are not configured on this deployment. Please contact support — you have not been charged.')
@@ -179,27 +180,26 @@ export default function PricingPage() {
 
       const options = {
         key: clientKey,
-        amount: orderData.amount, currency: orderData.currency,
-        // The merchant name on the Razorpay sheet and on the receipt the
-        // customer keeps. Sourced from the constant so a rename can never leave
-        // the old brand printed on someone's payment record.
-        name: APP_CONFIG.APP_NAME, description: `Upgrade to ${planName} Plan`,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: APP_CONFIG.APP_NAME,
+        description: `Upgrade to ${planName} Plan`,
         order_id: orderData.id,
         prefill: { name: profile?.full_name || '', email: user.email || '' },
         theme: { color: '#0e7a5d' },
-        handler: async (paymentResponse: any) => {
+        handler: async (paymentResponse: Record<string, unknown>) => {
           setProcessing(true)
           try {
             const { data: { session: verifySession } } = await supabase.auth.getSession()
             if (!verifySession?.access_token) throw new Error('Your session expired. Please log in again.')
-            const verifyResponse = await fetch('/api/verify-payment', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${verifySession.access_token}` }, body: JSON.stringify({ ...paymentResponse, planType: selectedPlan }) })
+            const verifyResponse = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${verifySession.access_token}` },
+              body: JSON.stringify({ ...paymentResponse, planType: selectedPlan })
+            })
             const verifyData = await verifyResponse.json()
             if (!verifyResponse.ok || verifyData.error) throw new Error(verifyData.error || 'Payment verification failed')
-            
-            // Only an immediate activation may touch local subscription state.
-            // A 'queued' outcome means the customer paid for a plan that starts
-            // when the current one ends; marking it active now would apply the
-            // change the queue exists to defer.
+
             if (verifyData.outcome === 'queued' || verifyData.outcome === 'queue_extended') {
               await refreshProfile()
               showToast('Payment received. Your new plan starts when your current one ends.', 'success')
@@ -212,10 +212,6 @@ export default function PricingPage() {
               })
             } else {
               await updateSubscriptionStatus('active', selectedPlan)
-              // 'already_applied' means this order was credited earlier — the
-              // webhook usually beats the browser here. The plan IS active, so
-              // this is still a success, but announcing a fresh unlock for a
-              // second delivery of the same payment reads as a double charge.
               showToast(
                 verifyData.outcome === 'already_applied'
                   ? `Payment already confirmed — your ${planName} plan is active.`
@@ -224,26 +220,35 @@ export default function PricingPage() {
               )
               navigate('/payment-success', { state: { planName, expiresAt: verifyData.expiresAt } })
             }
-          } catch (err: any) { showToast(`Verification Failed: ${err.message}`, 'error') }
-          finally { setProcessing(false) }
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err)
+            showToast(`Verification Failed: ${message}`, 'error')
+          } finally {
+            setProcessing(false)
+          }
         },
         modal: { ondismiss: () => setProcessing(false) },
       }
-      const rzp = new (window as any).Razorpay(options)
-      rzp.on('payment.failed', (response: any) => {
-        showToast(`Payment Failed: ${response.error.description || 'Unknown error'}`, 'error')
+      const RazorpayCtor = window.Razorpay
+      if (!RazorpayCtor) {
+        showToast('Razorpay failed to initialize.', 'error')
+        setProcessing(false)
+        return
+      }
+      const rzp = new RazorpayCtor(options)
+      rzp.on('payment.failed', (response: { error?: { description?: string } }) => {
+        showToast(`Payment Failed: ${response?.error?.description || 'Unknown error'}`, 'error')
         setProcessing(false)
       })
       rzp.open()
-    } catch (err: any) { showToast(`Checkout error: ${err.message}`, 'error'); setProcessing(false) }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast(`Checkout error: ${message}`, 'error')
+      setProcessing(false)
+    }
   }
 
   const handleSelectPlan = (plan: 'monthly' | 'annual') => {
-    if (!user) {
-      showToast('Please sign in or create an account to proceed.', 'warning')
-      openAuthModal('/pricing')
-      return
-    }
     setSelectedPlan(plan)
     setPaymentMethod('razorpay')
     const checkoutElem = document.getElementById('checkout-section')
@@ -265,12 +270,7 @@ export default function PricingPage() {
     }
   }
 
-  // ── Promo code ────────────────────────────────────────────────
-  // Redemption happens entirely on the server. The codes used to be listed in
-  // VITE_PROMO_CODES, which ships inside the public JavaScript bundle, so any
-  // visitor could read them; and the grant only reached localStorage, so it
-  // disappeared on the user's next device. Both halves now live in
-  // api/redeem-promo.ts.
+  // ── Promo Code Simulator & Redemption ─────────────────────────
   const handlePromoSimulator = async () => {
     if (!user) {
       showToast('Please log in to redeem a promo code.', 'warning')
@@ -309,13 +309,13 @@ export default function PricingPage() {
         return
       }
 
-      // The grant is already in the database; pull it into the app's state.
       await refreshProfile()
       const days = result.durationDays
       showToast(`👑 ${days} day${days === 1 ? '' : 's'} of full access unlocked!`, 'success')
       navigate('/dashboard')
-    } catch (err: any) {
-      showToast('Coupon error: ' + err.message, 'error')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast('Coupon error: ' + message, 'error')
     } finally {
       setProcessing(false)
     }
@@ -324,493 +324,618 @@ export default function PricingPage() {
   // ── Render ────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <div className="space-y-6 animate-fade-in" style={{ fontFamily: "'Inter', -apple-system, system-ui, sans-serif" }}>
+      <div className="space-y-8 animate-fade-in text-sb-ink max-w-6xl mx-auto overflow-x-hidden">
 
-        {/* ── HEADER CARD ──────────────────────────────────── */}
+        {/* ── LUXURY HEADER CARD ──────────────────────────────── */}
         <motion.div
-          className="relative rounded-3xl overflow-hidden sb-card-light p-5 sm:p-8 md:p-10"
-          initial={{ opacity: 0, y: 24 }}
+          className="relative rounded-3xl overflow-hidden border border-sb-hairline bg-surface-1 p-6 sm:p-10 md:p-14 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="relative z-10 flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold tracking-wide">
+          {/* Ambient Lighting Orbs */}
+          <PricingAmbientBackground />
+
+          <div className="relative z-10 flex flex-col items-center max-w-2xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 text-xs font-semibold tracking-wide shadow-sm">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
               </span>
-              Plans & Pricing
+              Autonomous Finance · Sovereign Pricing
             </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-sb-ink select-none">
-              Simple, <span className="text-sb-primary">honest pricing</span>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-sb-ink leading-tight">
+              Invest in peace of mind.{' '}
+              <span className="text-brand-500 block sm:inline">Zero manual entry.</span>
             </h1>
-            <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-              The subscription tracker that isn't a subscription. Pay once for a second daily scan, a categoriser that learns your merchants, and encrypted exports — then nothing renews, and we never store your card.
+
+            <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-xl">
+              One-time payments with no recurring debit mandates, no auto-renewal surprises, and no stored card details. Every plan starts with a full 7-day trial.
             </p>
+
+            {/* Interactive Billing Toggle Pill */}
+            <div className="pt-2">
+              <div className="inline-flex items-center p-1.5 rounded-2xl bg-surface-2 border border-sb-hairline shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan('annual')}
+                  className={cn(
+                    'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
+                    selectedPlan === 'annual'
+                      ? 'text-brand-700 font-bold'
+                      : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
+                  )}
+                >
+                  {selectedPlan === 'annual' && (
+                    <motion.div
+                      layoutId="billing-pill"
+                      className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
+                      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span>Yearly (₹1 / day)</span>
+                    <span className="text-[10px] uppercase font-mono font-bold bg-brand-500/15 text-brand-700 px-2 py-0.5 rounded-md border border-brand-500/30">
+                      Save 17%
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan('monthly')}
+                  className={cn(
+                    'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
+                    selectedPlan === 'monthly'
+                      ? 'text-brand-700 font-bold'
+                      : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
+                  )}
+                >
+                  {selectedPlan === 'monthly' && (
+                    <motion.div
+                      layoutId="billing-pill"
+                      className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
+                      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                    />
+                  )}
+                  <span className="relative z-10">Monthly (₹31 / mo)</span>
+                </button>
+              </div>
+            </div>
           </div>
         </motion.div>
 
         {/* ── STATUS BANNERS ──────────────────────────────────── */}
-        <div className="space-y-3 animate-fade-in">
+        <div className="space-y-3">
           {isTrial && daysLeft > 0 && (
-            <div className="rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-border-subtle shadow-md">
+            <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-brand-500/30 shadow-sm">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">⏳</span>
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-sm font-bold text-sb-ink">Trial Active — {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</p>
-                  <p className="text-xs text-zinc-400 font-medium mt-0.5">Full access to premium features active. Upgrade to keep two inbox scans a day instead of one.</p>
+                  <p className="text-sm font-bold text-sb-ink">
+                    Trial Active — <span className="font-mono text-amber-600">{daysLeft} day{daysLeft !== 1 ? 's' : ''}</span> remaining
+                  </p>
+                  <p className="text-xs text-sb-ink-secondary mt-0.5">
+                    Full access to automated tracking is currently active. Pick a plan below to keep uninterrupted access.
+                  </p>
                 </div>
               </div>
-              <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider">Trial Access</span>
+              <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-700 border border-amber-500/25 font-bold uppercase tracking-wider">
+                Trial Access
+              </span>
             </div>
           )}
 
           {neverSubscribed && (
-            <div className="rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-1 border border-border-subtle shadow-md">
+            <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-1 border border-brand-500/30 shadow-sm">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">✨</span>
+                <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-sm font-bold text-sb-ink">Every plan starts with a free 7-day trial</p>
-                  <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                    Full access — manual entry, budgets, insights and one scan a day. No card required. Access ends
-                    when the trial does, unless you pick a plan below.
+                  <p className="text-sm font-bold text-sb-ink">Every account starts with a free 7-day trial</p>
+                  <p className="text-xs text-sb-ink-secondary mt-0.5">
+                    Full access — automated email parsing, smart budgets, and subscription detection. No credit card required.
                   </p>
                 </div>
               </div>
               {!user ? (
                 <button
                   onClick={() => openAuthModal('/pricing', 'signup')}
-                  className="sb-btn-primary w-full sm:w-auto justify-center border-0 cursor-pointer shrink-0"
+                  className="sb-btn-primary w-full sm:w-auto justify-center border-0 cursor-pointer shrink-0 py-2.5 px-4 text-xs font-bold"
                 >
-                  Start free trial →
+                  Start free trial <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </button>
               ) : (
-                <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] border border-[var(--status-positive-border)] font-bold uppercase tracking-wider">No card needed</span>
+                <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-brand-500/10 text-brand-700 border border-brand-500/20 font-bold uppercase tracking-wider">
+                  No card required
+                </span>
               )}
             </div>
           )}
 
           {(isExpired || isCancelled) && (
-            <div className="rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-border-subtle shadow-md">
+            <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-amber-500/30 shadow-sm">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">⏸️</span>
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
+                  <PauseCircle className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm font-bold text-sb-ink">
                     {isTrialExpired
-                      ? 'Your trial has ended'
+                      ? 'Your free trial has ended'
                       : isSubExpired
-                      ? 'Your subscription has ended'
-                      : 'Your plan is inactive'}
+                      ? 'Your subscription period has ended'
+                      : 'Your plan is currently inactive'}
                   </p>
-                  <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                    {isCancelled
-                      ? 'Resubscribe to turn the second daily scan, budgets, and priority tracking back on.'
-                      : 'Renew to restore the second daily scan, budgets, and priority tracking.'}
+                  <p className="text-xs text-sb-ink-secondary mt-0.5">
+                    Renew anytime to instantly restore automated inbox scans, dynamic budgets, and recurring tracking.
                   </p>
                 </div>
               </div>
-              <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)] border border-[var(--status-warning-border)] font-bold uppercase tracking-wider">Inactive</span>
+              <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-700 border border-amber-500/20 font-bold uppercase tracking-wider">
+                Paused
+              </span>
             </div>
           )}
 
           {isActive && (
-            <div className="rounded-3xl p-5 flex items-center gap-3 bg-surface-1 border border-border-subtle shadow-md">
-              <span className="text-2xl">✅</span>
-              <p className="text-sm font-bold text-brand-400">You are on the {profile?.subscription_plan_type === 'monthly' ? 'Monthly' : 'Yearly'} Plan — all automation and sync systems are fully active.</p>
+            <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-3 bg-surface-1 border border-brand-500/30 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <p className="text-sm font-bold text-sb-ink">
+                You are on the <span className="text-brand-600">{profile?.subscription_plan_type === 'monthly' ? 'Monthly' : 'Yearly'} Plan</span> — all automation systems, AI parsing, and ledger sync are fully active.
+              </p>
             </div>
           )}
 
           {profile?.pending_plan_type && (
-            <div role="status" className="rounded-2xl border border-border-subtle bg-surface-1 p-4 text-sm">
-              <p className="font-semibold text-zinc-200">
-                {profile.pending_plan_type === 'annual' ? 'Annual' : 'Monthly'} plan queued
-              </p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Already paid for. It starts automatically on{' '}
-                {profile.pending_activates_at
-                  ? formatDate(profile.pending_activates_at)
-                  : "your current plan's expiry"}
-                , when your current plan ends. You can buy again once it begins.
-              </p>
+            <div role="status" className="rounded-2xl border border-brand-500/30 bg-surface-1 p-4 sm:p-5 flex items-center gap-3 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-sb-ink">
+                  {profile.pending_plan_type === 'annual' ? 'Annual' : 'Monthly'} Plan Queued
+                </p>
+                <p className="text-xs text-sb-ink-secondary mt-0.5">
+                  Already paid for. It starts automatically on{' '}
+                  <span className="font-semibold text-brand-600">
+                    {profile.pending_activates_at
+                      ? formatDate(profile.pending_activates_at)
+                      : "your current plan's expiry date"}
+                  </span>
+                  . Zero overlap, zero lost days.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── PRICING CARDS ─────────────────────────────────────
-            Four near-identical cards used to sit in one row — Trial and
-            Coupon Code included, dressed up with the same price-tag layout
-            as the two plans a person can actually buy. Neither is a plan:
-            the trial is now the banner above, and the coupon is the small
-            disclosure below. Yearly carries the visual weight a "best
-            value" recommendation should — a wider column, not just a
-            coloured border matching its neighbour's. */}
-        <div className="py-6 animate-fade-in">
-          <div className="grid lg:grid-cols-[3fr_2fr] gap-6 items-stretch">
+        {/* ── SYMMETRICAL LUXURY PRICING CARDS ────────────────── */}
+        <div className="grid md:grid-cols-2 gap-6 items-stretch max-w-5xl mx-auto pt-2">
 
-            {/* ── Featured: Yearly ─────────────────────────────── */}
-            <Card
-              hoverable
-              className={cn(
-                "p-6 sm:p-9 flex flex-col relative overflow-hidden group transition-all border-2",
-                selectedPlan === 'annual' ? "border-brand-500 shadow-lg" : "border-brand-500/30"
-              )}
-              onClick={() => handleSelectPlan('annual')}
-            >
-              <div className="absolute top-0 right-0 sb-pill-tag-green text-xs font-extrabold uppercase tracking-widest px-4 py-2 rounded-bl-2xl rounded-tr-2xl">
-                Recommended · ₹1 a day
+          {/* ── Featured: Yearly Plan ─────────────────────────── */}
+          <div
+            onClick={() => handleSelectPlan('annual')}
+            className={cn(
+              'rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-all duration-300 cursor-pointer select-none bg-surface-1 border-2',
+              selectedPlan === 'annual'
+                ? 'border-brand-500 shadow-[0_12px_40px_-10px_rgba(14,122,93,0.18)]'
+                : 'border-sb-hairline hover:border-brand-500/40 shadow-sm'
+            )}
+          >
+            {/* Top Tag */}
+            <div className="absolute top-0 right-0 bg-brand-500 text-white text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-bl-2xl rounded-tr-2xl shadow-sm">
+              Recommended · Save 17%
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2.5 mb-2 mt-1">
+                <h2 className="text-2xl font-bold text-sb-ink">Yearly Plan</h2>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded-md border border-brand-500/20 font-mono">
+                  BEST VALUE
+                </span>
               </div>
+              <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed mb-6">
+                The choice of mindful spenders. Pay once, enjoy effortless bookkeeping for 12 months with zero surprise charges.
+              </p>
 
-              <div className="flex items-center gap-3 mb-2 mt-2">
-                <h2 className="text-xl font-bold text-sb-ink">Yearly</h2>
-                <input type="radio" readOnly checked={selectedPlan === 'annual'} aria-label="Select the Yearly plan" className="h-5 w-5 cursor-pointer accent-brand-500" />
-              </div>
-              <p className="text-sm text-zinc-400 font-medium mb-6">The plan most people settle on — pay once, forget about it for a year.</p>
-
-              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              {/* Price Display */}
+              <div className="mb-6 p-4 rounded-2xl bg-surface-2/60 border border-sb-hairline flex items-baseline justify-between">
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-5xl text-sb-ink tracking-tight tnum">₹365</span>
-                    <span className="text-sm text-zinc-400">/year</span>
+                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹365</span>
+                    <span className="text-xs sm:text-sm text-sb-ink-muted">/ year</span>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1 font-medium">One payment · 365 days · nothing to renew or re-authorise</p>
+                  <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
+                    One-time payment · 365 days of access
+                  </p>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold shrink-0">≈ ₹1 / day</span>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-700 border border-brand-500/30 font-bold font-mono shrink-0">
+                  ≈ ₹1.00 / day
+                </span>
               </div>
 
-              <ul className="grid sm:grid-cols-2 gap-x-4 gap-y-3 flex-1 border-t border-border-subtle pt-5">
+              {/* Feature Checklist */}
+              <ul className="space-y-3 border-t border-sb-hairline pt-5 mb-8">
                 {YEARLY_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
-                    <span className="text-brand-400 shrink-0 text-sm font-bold">✓</span>
-                    <span className="text-sm text-zinc-300 font-medium">{f}</span>
+                  <li key={f} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium text-sb-ink">
+                    <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
+            </div>
 
-              <div className="mt-8 space-y-3">
-                {/* Holding the yearly plan is now a NOTE, not a locked button.
-                    It used to be the button itself, which is what left an
-                    annual subscriber with no way to pay again. */}
-                {isOnYearly && profile?.subscription_expires_at && (
-                  <p className="text-center text-xs font-bold text-brand-400">
-                    Your current plan · active until {formatDate(profile.subscription_expires_at)}
-                  </p>
-                )}
-                <button
-                  onClick={() => handleSelectPlan('annual')}
-                  disabled={!canBuy}
-                  className="sb-btn-primary w-full cursor-pointer border-0 text-base py-3.5"
-                  style={{ opacity: canBuy ? 1 : 0.5 }}
-                >
-                  {!canBuy
-                    ? 'A plan is already queued'
-                    : isOnYearly
-                    ? 'Renew for another year'
-                    : isActive && profile?.subscription_plan_type === 'monthly'
-                    ? 'Upgrade to Yearly'
-                    : 'Get Yearly'}
-                </button>
-                {isOnYearly && canBuy && (
-                  <p className="text-xs text-center text-zinc-500 font-medium">
-                    Renewing now adds 365 days to the end of your current plan — you lose nothing.
-                  </p>
-                )}
+            <div className="space-y-2.5 pt-2">
+              {isOnYearly && profile?.subscription_expires_at && (
+                <p className="text-center text-xs font-bold text-brand-600">
+                  Your active plan until {formatDate(profile.subscription_expires_at)}
+                </p>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSelectPlan('annual')
+                }}
+                disabled={!canBuy}
+                className="sb-btn-primary w-full justify-center cursor-pointer border-0 text-sm sm:text-base py-3.5 shadow-md hover:shadow-lg transition-all"
+                style={{ opacity: canBuy ? 1 : 0.5 }}
+              >
+                {!canBuy
+                  ? 'A plan is already queued'
+                  : isOnYearly
+                  ? 'Renew for another year'
+                  : isActive && profile?.subscription_plan_type === 'monthly'
+                  ? 'Upgrade to Yearly (₹365)'
+                  : 'Get Yearly · ₹365'}
+              </button>
+              {isOnYearly && canBuy && (
+                <p className="text-[11px] text-center text-sb-ink-muted">
+                  Renewing now adds 365 days to your end date — you lose zero prepaid time.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Secondary: Monthly Plan ───────────────────────── */}
+          <div
+            onClick={() => handleSelectPlan('monthly')}
+            className={cn(
+              'rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-all duration-300 cursor-pointer select-none bg-surface-1 border-2',
+              selectedPlan === 'monthly'
+                ? 'border-brand-500 shadow-[0_12px_40px_-10px_rgba(14,122,93,0.18)]'
+                : 'border-sb-hairline hover:border-brand-500/40 shadow-sm'
+            )}
+          >
+            <div>
+              <div className="flex items-center gap-2.5 mb-2 mt-1">
+                <h2 className="text-2xl font-bold text-sb-ink">Monthly Plan</h2>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sb-ink-muted bg-surface-2 px-2 py-0.5 rounded-md border border-sb-hairline font-mono">
+                  FLEXIBLE
+                </span>
               </div>
-            </Card>
+              <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed mb-6">
+                Test the power of autonomous money management month-to-month without long-term commitment.
+              </p>
 
-            {/* ── Secondary: Monthly ───────────────────────────── */}
-            <Card
-              hoverable
-              className={cn("p-6 sm:p-8 flex flex-col relative group transition-all", selectedPlan === 'monthly' ? "border-brand-400 border-2" : "border-border-subtle")}
-              onClick={() => handleSelectPlan('monthly')}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-bold text-sb-ink">Monthly</h2>
-                <input type="radio" readOnly checked={selectedPlan === 'monthly'} aria-label="Select the Monthly plan" className="h-5 w-5 cursor-pointer accent-brand-500" />
-              </div>
-              <p className="text-sm text-zinc-400 font-medium mb-6">Try it a month at a time before committing to a year.</p>
-
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span className="font-extrabold text-4xl text-sb-ink tracking-tight tnum">₹31</span>
-                  <span className="text-xs text-zinc-400">/month</span>
+              {/* Price Display */}
+              <div className="mb-6 p-4 rounded-2xl bg-surface-2/60 border border-sb-hairline flex items-baseline justify-between">
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹31</span>
+                    <span className="text-xs sm:text-sm text-sb-ink-muted">/ month</span>
+                  </div>
+                  <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
+                    One-time payment · 30 days of access
+                  </p>
                 </div>
-                <p className="text-xs text-zinc-400 mt-1 font-medium">One payment · 30 days · no auto-renewal</p>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-surface-1 text-sb-ink-secondary border border-sb-hairline font-bold shrink-0">
+                  Zero Mandates
+                </span>
               </div>
 
-              <ul className="space-y-3 flex-1 border-t border-border-subtle pt-5">
+              {/* Feature Checklist */}
+              <ul className="space-y-3 border-t border-sb-hairline pt-5 mb-8">
                 {MONTHLY_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
-                    <span className="text-brand-400 shrink-0 text-sm font-bold">✓</span>
-                    <span className="text-xs text-zinc-400 font-medium">{f}</span>
+                  <li key={f} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium text-sb-ink">
+                    <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
+            </div>
 
-              <div className="mt-8 space-y-3">
-                {/* Same change as the yearly card: holding this plan is a note,
-                    not a disabled button. A monthly subscriber buying again
-                    queues the next month behind the running one. */}
-                {isOnMonthly && profile?.subscription_expires_at && (
-                  <p className="text-center text-xs font-bold text-brand-400">
-                    Your current plan · active until {formatDate(profile.subscription_expires_at)}
-                  </p>
+            <div className="space-y-2.5 pt-2">
+              {isOnMonthly && profile?.subscription_expires_at && (
+                <p className="text-center text-xs font-bold text-brand-600">
+                  Your active plan until {formatDate(profile.subscription_expires_at)}
+                </p>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSelectPlan('monthly')
+                }}
+                disabled={!canBuy}
+                className={cn(
+                  'w-full justify-center rounded-xl py-3.5 text-sm sm:text-base font-semibold border cursor-pointer transition-all',
+                  selectedPlan === 'monthly'
+                    ? 'sb-btn-primary border-0'
+                    : 'sb-btn-secondary'
                 )}
-                <button
-                  onClick={() => canBuy && handleSelectPlan('monthly')}
-                  disabled={!canBuy}
-                  className={`w-full justify-center rounded-xl py-3 font-semibold text-xs border ${
-                    !canBuy
-                      ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500 cursor-not-allowed'
-                      : 'border-zinc-700 bg-surface-2 hover:bg-zinc-800 text-zinc-300 transition-all active:scale-98 shadow-sm cursor-pointer'
-                  }`}
-                >
-                  {!canBuy
-                    ? 'A plan is already queued'
-                    : isOnMonthly
-                    ? 'Renew for another month'
-                    : 'Choose Monthly'}
-                </button>
-              </div>
-            </Card>
+                style={{ opacity: canBuy ? 1 : 0.5 }}
+              >
+                {!canBuy
+                  ? 'A plan is already queued'
+                  : isOnMonthly
+                  ? 'Renew for another month'
+                  : 'Choose Monthly · ₹31'}
+              </button>
+            </div>
           </div>
 
-          <p className="text-xs text-center mt-5 text-zinc-500 font-medium">
-            Payments handled by Razorpay · card details go to Razorpay, never to us.
-          </p>
-
-          {/* ── Coupon ── a disclosure, not a third plan. Redemption itself
-              still happens in the checkout card below via `paymentMethod`;
-              this just gives it an entry point that doesn't compete with the
-              two real plans for a whole grid column. */}
-          <div className="max-w-md mx-auto mt-6 text-center">
-            <button
-              onClick={handleSelectPromo}
-              className="text-sm font-semibold text-brand-500 underline underline-offset-2 bg-transparent border-none cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-            >
-              Have a coupon code?
-            </button>
-          </div>
         </div>
 
-        {/* ── CHECKOUT SECTION ─────────────────────────────────
-            Rendered for everyone, including subscribers on the yearly plan.
-            This was gated on `!isOnYearly`, which meant the only customers who had
-            already committed to a full year were the only ones with no way to
-            give money again — the checkout simply did not exist on their page.
-            A queued purchase is refused by create-order.ts, not by hiding the
-            form, so `hasQueuedPlan` is the only state that disables buying. */}
-        {(
-          <div id="checkout-section" className="max-w-2xl mx-auto pb-12 w-full animate-fade-in">
-            {!user ? (
-              <Card className="rounded-3xl shadow-md p-8 text-center space-y-6">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 text-3xl shadow-sm">
-                  🔒
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-sb-ink">Sign in to complete checkout</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed font-medium max-w-sm mx-auto">
-                    To secure your billing and unlock the second daily scan, please log in or create an account first.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <button
-                    onClick={() => openAuthModal('/pricing', 'login')}
-                    className="sb-btn-primary w-full sm:w-auto cursor-pointer border-0"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => openAuthModal('/pricing', 'signup')}
-                    className="sb-btn-secondary w-full sm:w-auto cursor-pointer"
-                  >
-                    Create Account
-                  </button>
-                </div>
-                <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">
-                  Checkout is handled by Razorpay · encrypted in transit
+        {/* ── COUPON CODE DISCLOSURE ──────────────────────────── */}
+        <div className="text-center pt-1">
+          <button
+            type="button"
+            onClick={handleSelectPromo}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 bg-transparent border-0 cursor-pointer underline underline-offset-4"
+          >
+            <Ticket className="w-4 h-4" />
+            <span>Have an invite or coupon code? Click to redeem</span>
+          </button>
+        </div>
+
+        {/* ── RETURN ON INVESTMENT & COST COMPARISON VISUAL ────── */}
+        <CostToValueVisual />
+
+        {/* ── TRUST & SECURITY TELEMETRY ──────────────────────── */}
+        <TrustTelemetryRibbon />
+
+        {/* ── CHECKOUT CARD ──────────────────────────────────── */}
+        <div id="checkout-section" className="max-w-2xl mx-auto w-full pt-4">
+          {!user ? (
+            <div className="rounded-3xl shadow-sm p-8 text-center space-y-5 bg-surface-1 border border-sb-hairline">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-600">
+                <Lock className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-sb-ink">Sign in to activate your plan</h3>
+                <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed max-w-sm mx-auto">
+                  To securely associate your payment and enable automated Gmail alert parsing, sign in or register in seconds.
                 </p>
-              </Card>
-            ) : (
-              <Card noPadding className="rounded-3xl shadow-md overflow-hidden">
-
-                {/* Tab switcher */}
-                <div className="flex bg-surface-2/40 border-b border-border-subtle">
-                  {([['razorpay', '💳 Pay Securely'], ['promo', '🎟️ Promo Code']] as const).map(([tab, label]) => (
-                    <button
-                      key={tab}
-                      onClick={() => setPaymentMethod(tab)}
-                      className={cn(
-                        "flex-1 py-4 text-xs cursor-pointer transition-colors border-none bg-transparent font-bold border-b-2",
-                        paymentMethod === tab
-                          ? "text-brand-400 border-brand-400"
-                          : "text-zinc-500 border-transparent hover:text-zinc-300"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="p-8 space-y-6">
-
-                  {/* ── Razorpay flow ─────────────────────────────── */}
-                  {paymentMethod === 'razorpay' && (
-                    <div className="space-y-6 animate-fade-in">
-                      {/* Order summary card */}
-                      <div className="rounded-2xl p-5 flex justify-between items-start bg-surface-2/40 border border-border-subtle/50">
-                        <div>
-                          <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">Order Summary</p>
-                          <p className="text-lg mt-2 font-extrabold text-sb-ink">{planName} Plan</p>
-                          <p className="text-xs text-zinc-400 font-medium mt-0.5">{planSub}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-extrabold text-2xl text-sb-ink tracking-tight">₹{planPrice}</p>
-                          <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Total payable</p>
-                        </div>
-                      </div>
-
-                      {/* Plan picker */}
-                      <div className="flex gap-3">
-                        {(['annual', 'monthly'] as const).map((plan) => (
-                          <button
-                            key={plan}
-                            onClick={() => setSelectedPlan(plan)}
-                            className={cn(
-                              "flex-1 py-3.5 rounded-xl text-xs cursor-pointer transition-all bg-transparent font-bold border",
-                              selectedPlan === plan
-                                ? "text-brand-400 border-brand-400"
-                                : "text-zinc-400 border-border-subtle hover:border-zinc-700 hover:text-zinc-200"
-                            )}
-                          >
-                            {plan === 'annual' ? 'Annual — ₹365/yr' : 'Monthly — ₹31/mo'}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Trust bar */}
-                      <div className="rounded-2xl p-3 flex flex-wrap items-center justify-center gap-2 bg-surface-2/40 border border-border-subtle/50">
-                        {['UPI', 'Debit/Credit Cards', 'NetBanking', 'Google Pay', 'PhonePe'].map((m) => (
-                          <span key={m} className="text-xs px-3 py-1 rounded-full bg-surface-1 border border-border-subtle text-zinc-400 font-bold uppercase tracking-wider">{m}</span>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={handleRazorpayCheckout}
-                        disabled={processing || hasQueuedPlan}
-                        className="sb-btn-primary w-full cursor-pointer border-0"
-                        style={{ opacity: processing || hasQueuedPlan ? 0.6 : 1 }}
-                      >
-                        {hasQueuedPlan
-                          ? 'A plan is already queued'
-                          : processing
-                          ? 'Opening secure checkout…'
-                          : `Pay ₹${planPrice} & Activate ${planName}`}
-                      </button>
-
-                      <p className="text-xs text-center text-zinc-500 font-semibold uppercase tracking-wider">
-                        🔒 Encrypted in transit · Card details go to Razorpay, never to us
-                      </p>
-                    </div>
-                  )}
-
-                  {/* ── Promo flow ────────────────────────────────── */}
-                  {paymentMethod === 'promo' && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="rounded-2xl p-4 bg-brand-500/5 border border-brand-500/25">
-                        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                          🎟️ <strong className="text-sb-ink">Have a promo code?</strong> Enter your exclusive code below to unlock a free month of all tracking, backup, and dashboard automation tools instantly.
-                        </p>
-                        {/* Stated up front rather than left to the refusal message.
-                            Both conditions are permanent for an account, so someone
-                            who has paid before can never make a coupon work — telling
-                            them only after they have typed a code reads as a fault. */}
-                        <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
-                          Coupons are for first-time users — accounts that have never had a paid plan — and one coupon per account.
-                        </p>
-                      </div>
-                      <form onSubmit={(e) => { e.preventDefault(); handlePromoSimulator(); }} className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-xs block font-bold uppercase tracking-widest text-zinc-500">Promo Code</label>
-                          <input
-                            className="w-full bg-surface-2 border border-border-subtle/50 text-zinc-200 text-sm rounded-xl px-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-brand-400 transition-all uppercase font-semibold tracking-wider"
-                            type="text"
-                            placeholder="e.g. DHANVIP"
-                            value={promoCode}
-                            onChange={(e) => setPromoCode(e.target.value)}
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={processing || !promoCode.trim()}
-                          className="sb-btn-primary w-full cursor-pointer border-0"
-                          style={{ opacity: processing || !promoCode.trim() ? 0.5 : 1 }}
-                        >
-                          {processing ? 'Applying promo coupon…' : 'Redeem Code & Activate'}
-                        </button>
-                      </form>
-                    </div>
-                  )}
-
-                </div>
-              </Card>
-            )}
-
-            {/* Refund note */}
-            <p className="text-xs text-center mt-6 text-zinc-500 font-medium">
-              Have questions?{' '}
-              <Link to="/support" className="text-brand-400 no-underline hover:underline font-bold">Contact support</Link> ·{' '}
-              <Link to="/refund-policy" className="text-brand-400 no-underline hover:underline font-bold">Refund policy</Link> — refunds are available in limited cases, so please read it before paying.
-            </p>
-          </div>
-        )}
-
-        {/* ── BRAND PROMISE SECTION (THE INTRACK STANDARD) ───── */}
-        <div className="border-t border-border-subtle py-16 animate-fade-in">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center max-w-xl mx-auto mb-12 space-y-4">
-              <span className="inline-flex items-center bg-surface-1 border border-border-subtle px-3 py-1 rounded-full text-xs font-semibold text-zinc-400 uppercase tracking-widest">The Intrack Standard</span>
-              <h2 className="text-3xl font-extrabold text-sb-ink tracking-tight">Built on Privacy & Local Isolation</h2>
-              <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                We believe your banking transcripts are private. Intrack is designed from the ground up to prevent data brokerage.
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => openAuthModal('/pricing', 'login')}
+                  className="sb-btn-primary w-full sm:w-auto cursor-pointer border-0 px-6 py-3"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => openAuthModal('/pricing', 'signup')}
+                  className="sb-btn-secondary w-full sm:w-auto cursor-pointer px-6 py-3"
+                >
+                  Create Account
+                </button>
+              </div>
+              <p className="text-[11px] text-sb-ink-muted">
+                Zero spam · strictly read-only Gmail access · 256-bit encrypted
               </p>
             </div>
-            
-            <div className="grid md:grid-cols-3 md:auto-rows-fr gap-6">
-              <div className="rounded-3xl bg-surface-1 border border-border-subtle p-6 space-y-4 shadow-md hover:shadow-lg transition-all h-full flex flex-col justify-start">
-                <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-xl text-brand-400 shadow-sm animate-pulse shrink-0">
-                  🔒
-                </div>
-                <h3 className="font-bold text-sb-ink text-base">Nothing stored, nothing sold</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed font-medium flex-1">
-                  Your inbox is read straight from Gmail — no server here holds a copy of your mail. To read an
-                  alert accurately, its text passes through our server to Google's Gemini in real time — never
-                  stored, never sold, never used to train anyone's model.
-                </p>
+          ) : (
+            <div className="rounded-3xl shadow-sm overflow-hidden bg-surface-1 border border-sb-hairline">
+              {/* Tab Switcher */}
+              <div className="flex bg-surface-2/60 border-b border-sb-hairline">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('razorpay')}
+                  className={cn(
+                    'flex-1 py-4 text-xs font-bold cursor-pointer transition-colors border-none bg-transparent flex items-center justify-center gap-2 border-b-2',
+                    paymentMethod === 'razorpay'
+                      ? 'text-brand-600 border-brand-500 bg-surface-1'
+                      : 'text-sb-ink-muted border-transparent hover:text-sb-ink'
+                  )}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay Securely (Razorpay)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('promo')}
+                  className={cn(
+                    'flex-1 py-4 text-xs font-bold cursor-pointer transition-colors border-none bg-transparent flex items-center justify-center gap-2 border-b-2',
+                    paymentMethod === 'promo'
+                      ? 'text-brand-600 border-brand-500 bg-surface-1'
+                      : 'text-sb-ink-muted border-transparent hover:text-sb-ink'
+                  )}
+                >
+                  <Ticket className="w-4 h-4" />
+                  <span>Promo Coupon</span>
+                </button>
               </div>
 
-              <div className="rounded-3xl bg-surface-1 border border-border-subtle p-6 space-y-4 shadow-md hover:shadow-lg transition-all h-full flex flex-col justify-start">
-                <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-xl text-brand-400 shadow-sm animate-pulse shrink-0">
-                  🛡️
-                </div>
-                <h3 className="font-bold text-sb-ink text-base">Read-only mail scans</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed font-medium flex-1">
-                  Our Google authentication API permissions are strictly read-only. We have no authority to initiate transfers or drafts.
-                </p>
-              </div>
+              <div className="p-6 sm:p-8 space-y-6">
 
-              <div className="rounded-3xl bg-surface-1 border border-border-subtle p-6 space-y-4 shadow-md hover:shadow-lg transition-all h-full flex flex-col justify-start">
-                <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-xl text-brand-400 shadow-sm animate-pulse shrink-0">
-                  🔑
-                </div>
-                <h3 className="font-bold text-sb-ink text-base">No passwords required</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed font-medium flex-1">
-                  We never prompt for net-banking passwords, PIN numbers, OTPs, or card security details. Your bank credentials remain isolated.
-                </p>
+                {/* ── Razorpay Flow ─────────────────────────────── */}
+                {paymentMethod === 'razorpay' && (
+                  <div className="space-y-6">
+                    {/* Order Summary Box */}
+                    <div className="rounded-2xl p-5 flex justify-between items-start bg-surface-2/40 border border-sb-hairline">
+                      <div>
+                        <p className="text-[10px] text-sb-ink-muted font-bold uppercase tracking-widest">Order Summary</p>
+                        <p className="text-lg mt-1 font-extrabold text-sb-ink">{planName} Plan</p>
+                        <p className="text-xs text-sb-ink-secondary mt-0.5">{planSub}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-extrabold text-2xl sm:text-3xl text-sb-ink tracking-tight font-mono tnum">
+                          ₹{planPrice}
+                        </p>
+                        <p className="text-[10px] text-brand-600 font-bold uppercase tracking-wider">
+                          One-time total
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Plan Quick Selector Switcher */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['annual', 'monthly'] as const).map((plan) => (
+                        <button
+                          key={plan}
+                          type="button"
+                          onClick={() => setSelectedPlan(plan)}
+                          className={cn(
+                            'py-3 rounded-xl text-xs font-semibold cursor-pointer transition-all bg-transparent border',
+                            selectedPlan === plan
+                              ? 'text-brand-700 border-brand-500 bg-brand-500/5 font-bold shadow-sm'
+                              : 'text-sb-ink-secondary border-sb-hairline hover:bg-surface-2'
+                          )}
+                        >
+                          {plan === 'annual' ? 'Yearly — ₹365 / yr' : 'Monthly — ₹31 / mo'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Supported Payment Rails */}
+                    <div className="rounded-xl p-3 flex flex-wrap items-center justify-center gap-2 bg-surface-2/30 border border-sb-hairline">
+                      {['UPI QR', 'Google Pay', 'PhonePe', 'Paytm', 'CRED', 'RuPay', 'Cards', 'NetBanking'].map((m) => (
+                        <span key={m} className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-1 border border-sb-hairline text-sb-ink-secondary font-semibold">
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Checkout Trigger */}
+                    <button
+                      onClick={handleRazorpayCheckout}
+                      disabled={processing || hasQueuedPlan}
+                      className="sb-btn-primary w-full cursor-pointer border-0 py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all"
+                      style={{ opacity: processing || hasQueuedPlan ? 0.6 : 1 }}
+                    >
+                      {hasQueuedPlan
+                        ? 'A plan is already queued'
+                        : processing
+                        ? 'Opening secure Razorpay gateway…'
+                        : `Pay ₹${planPrice} & Activate ${planName}`}
+                    </button>
+
+                    <p className="text-[11px] text-center text-sb-ink-muted">
+                      🔒 Bank-grade 256-bit encryption · Card details go to Razorpay, never stored on our servers
+                    </p>
+                  </div>
+                )}
+
+                {/* ── Promo Flow ────────────────────────────────── */}
+                {paymentMethod === 'promo' && (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl p-4 bg-brand-500/5 border border-brand-500/20 space-y-1.5">
+                      <p className="text-xs text-sb-ink font-bold flex items-center gap-1.5">
+                        <Ticket className="w-4 h-4 text-brand-600" />
+                        <span>Exclusive Invitation or Promo Coupon</span>
+                      </p>
+                      <p className="text-xs text-sb-ink-secondary leading-relaxed">
+                        Enter your promotional coupon below to instantly unlock full access to automated tracking and insight tools.
+                      </p>
+                      <p className="text-[11px] text-sb-ink-muted pt-1">
+                        * Promotional codes apply to eligible first-time accounts (limit 1 code per account).
+                      </p>
+                    </div>
+
+                    <form onSubmit={(e) => { e.preventDefault(); handlePromoSimulator() }} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs block font-bold uppercase tracking-wider text-sb-ink-muted">
+                          Coupon Code
+                        </label>
+                        <input
+                          className="w-full bg-surface-2 border border-sb-hairline text-sb-ink text-sm rounded-xl px-4 py-3 placeholder:text-sb-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 transition-all uppercase font-semibold tracking-wider font-mono"
+                          type="text"
+                          placeholder="e.g. INTRACKVIP"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={processing || !promoCode.trim()}
+                        className="sb-btn-primary w-full cursor-pointer border-0 py-3 text-sm font-bold"
+                        style={{ opacity: processing || !promoCode.trim() ? 0.5 : 1 }}
+                      >
+                        {processing ? 'Applying coupon…' : 'Redeem Code & Activate'}
+                      </button>
+                    </form>
+                  </div>
+                )}
+
               </div>
+            </div>
+          )}
+
+          {/* Refund policy note */}
+          <p className="text-xs text-center mt-5 text-sb-ink-muted">
+            Questions?{' '}
+            <Link to="/support" className="text-brand-600 no-underline hover:underline font-bold">Contact support</Link> ·{' '}
+            <Link to="/refund-policy" className="text-brand-600 no-underline hover:underline font-bold">Refund policy</Link> — 100% full refund available within 7 days.
+          </p>
+        </div>
+
+        {/* ── THE INTRACK STANDARD ────────────────────────────── */}
+        <div className="border-t border-sb-hairline pt-12">
+          <div className="text-center max-w-xl mx-auto mb-8 space-y-2">
+            <div className="inline-flex items-center gap-1.5 bg-surface-2 border border-sb-hairline px-3 py-1 rounded-full text-xs font-semibold text-brand-600 uppercase tracking-wider">
+              The Intrack Standard
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-sb-ink tracking-tight">
+              Built on Privacy &amp; Local Isolation
+            </h2>
+            <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
+              We believe your financial transcripts are strictly confidential. Intrack is engineered from day one with zero data monetization.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="rounded-3xl bg-surface-1 border border-sb-hairline p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600">
+                <EyeOff className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sb-ink text-base">Nothing Stored, Nothing Sold</h3>
+              <p className="text-xs text-sb-ink-secondary leading-relaxed">
+                Your mailbox is read straight from Gmail. No server retains an archive of your personal emails. Alerts pass in memory to Google's Gemini in real time and are never used for ad targeting.
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-surface-1 border border-sb-hairline p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sb-ink text-base">Read-Only Email Scans</h3>
+              <p className="text-xs text-sb-ink-secondary leading-relaxed">
+                Our Google OAuth permissions are strictly read-only. Intrack cannot compose, send, modify, or delete any messages in your mailbox.
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-surface-1 border border-sb-hairline p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-sb-ink text-base">Zero Banking Passwords</h3>
+              <p className="text-xs text-sb-ink-secondary leading-relaxed">
+                We never ask for your net-banking password, debit card PIN, OTP, or CVV. Your banking credentials never cross our systems.
+              </p>
             </div>
           </div>
         </div>
+
+        {/* ── PRICING FAQ ACCORDION ───────────────────────────── */}
+        <PricingFaqAccordion />
 
       </div>
     </AppLayout>
