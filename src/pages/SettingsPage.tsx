@@ -6,7 +6,8 @@
 import { APP_CONFIG } from '@/constants'
 import { useState, useEffect } from 'react'
 import { AppLayout } from '@/layouts'
-import { Card, Button, Input, Modal } from '@/components/ui'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { Card, Button, Input, Select, Modal, EmptyState, ACTION_BUTTON_DANGER } from '@/components/ui'
 import {
   getMerchantRules,
   deleteMerchantRule,
@@ -543,26 +544,35 @@ export default function SettingsPage() {
 
   const [tab, setTab] = useState<SettingsTab>('general')
 
+  // Motion here is state-carrying only — an indicator that follows the active
+  // tab, and one panel handing over to the next. Both collapse to nothing when
+  // the visitor has asked for reduced motion.
+  const reduceMotion = useReducedMotion()
+
   return (
     <AppLayout>
-      <div className="space-y-8 animate-fade-in">
+      <div className="animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Configuration Settings</h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Settings</h1>
+          <p className="mt-1.5 text-sm text-zinc-400 max-w-2xl">
             Your categories and cards, how your inbox is read, and what happens to your data.
           </p>
         </div>
 
-        {/* Section nav.
-            Nine sections stacked in one column is what made this page unusable
-            on a phone. Only one group renders at a time now; the strip scrolls
-            sideways where it does not fit and wraps where it does. */}
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
-          <div
+        {/* Nav and panel sit side by side from md up — the shape every settings
+            screen a user has met uses — and stack on a phone, where a vertical
+            rail would eat the whole first screen. Below md the strip scrolls
+            sideways and bleeds to the viewport edge so it reads as scrollable. */}
+        <div className="mt-6 flex flex-col gap-6 md:mt-8 md:flex-row md:items-start md:gap-8">
+          <nav
             role="tablist"
             aria-label="Settings sections"
-            className="flex gap-1.5 min-w-max sm:min-w-0 sm:flex-wrap pb-1"
+            className={cn(
+              'flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6',
+              'md:mx-0 md:px-0 md:pb-0 md:flex-col md:overflow-visible',
+              'md:w-52 lg:w-56 md:shrink-0 md:sticky md:top-20'
+            )}
           >
             {SETTINGS_TABS.map((t) => {
               const Icon = t.icon
@@ -571,26 +581,50 @@ export default function SettingsPage() {
                 <button
                   key={t.id}
                   role="tab"
+                  id={`settings-tab-${t.id}`}
                   aria-selected={isActive}
+                  aria-controls={`settings-panel-${t.id}`}
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    'flex items-center gap-2 rounded-xl px-3.5 h-11 text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer',
-                    isActive
-                      ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 shadow-sm'
-                      : 'bg-surface-1 border-border-subtle text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+                    'relative flex items-center gap-2.5 rounded-xl px-3.5 h-11 text-sm font-medium',
+                    'whitespace-nowrap cursor-pointer transition-colors md:w-full',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+                    isActive ? 'text-brand-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-surface-2/70'
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {t.label}
+                  {isActive && (
+                    // One indicator that travels to whichever tab is active —
+                    // horizontally on a phone, vertically on the rail — instead
+                    // of four that blink on and off.
+                    <motion.span
+                      layoutId="settings-tab-indicator"
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-xl bg-brand-500/10 border border-brand-500/30"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                    />
+                  )}
+                  <Icon className="h-4 w-4 shrink-0 relative" />
+                  <span className="relative">{t.label}</span>
                 </button>
               )
             })}
-          </div>
-        </div>
+          </nav>
 
-        {/* One column throughout. The old 7/5 split only ever applied above
-            md, and below it produced a single very long scroll. */}
-        <div className="space-y-6 max-w-3xl">
+          {/* One column of sections. The old 7/5 split only ever applied above
+              md, and below it produced a single very long scroll. */}
+          <div className="min-w-0 flex-1 md:max-w-3xl">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={tab}
+                role="tabpanel"
+                id={`settings-panel-${tab}`}
+                aria-labelledby={`settings-tab-${tab}`}
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+                transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-6"
+              >
           {tab === 'general' && (
             <>
             {/* Manage Categories Card */}
@@ -604,13 +638,27 @@ export default function SettingsPage() {
             <>
             {/* Gmail Connection Card */}
             <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
                 <Mail className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Gmail Inbox Connection</span>
               </h2>
+              {/* Connection state is said in words and shown with an icon, never
+                  by colour alone. */}
+              <p
+                className={cn(
+                  'mb-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold',
+                  hasGoogleToken
+                    ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
+                    : 'bg-surface-2 text-zinc-400'
+                )}
+              >
+                {hasGoogleToken
+                  ? <><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Connected</>
+                  : <><XCircle className="h-3.5 w-3.5" aria-hidden="true" /> Not connected</>}
+              </p>
               {hasGoogleToken ? (
                 <>
-                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                  <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
                     Intrack reads bank transaction alerts from your Gmail when you run a scan,
                     and logs them as expenses for you to approve. Disconnecting revokes our access
                     at Google immediately, so no further scan can run. Your already-imported
@@ -619,7 +667,7 @@ export default function SettingsPage() {
                   <Button
                     onClick={handleDisconnectGmail}
                     variant="secondary"
-                    className="w-full text-xs justify-center gap-1.5 cursor-pointer"
+                    className="w-full sm:w-auto justify-center gap-1.5"
                     disabled={disconnectLoading}
                   >
                     <XCircle className="h-4 w-4 shrink-0" />
@@ -628,15 +676,14 @@ export default function SettingsPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                    Gmail is not connected. Intrack has no access to your inbox. Connect it to let
-                    scans read your bank transaction alerts and log them as expenses for you to
-                    approve.
+                  <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
+                    Intrack has no access to your inbox. Connect it to let scans read your bank
+                    transaction alerts and log them as expenses for you to approve.
                   </p>
                   <Button
                     onClick={handleConnectGmail}
                     variant="secondary"
-                    className="w-full text-xs justify-center gap-1.5 cursor-pointer"
+                    className="w-full sm:w-auto justify-center gap-1.5"
                     disabled={connectLoading}
                   >
                     <Key className="h-4 w-4 shrink-0" />
@@ -647,7 +694,7 @@ export default function SettingsPage() {
             </Card>
             {/* Smart Merchant Rules Card */}
             <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
                 <Brain className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Smart Merchant Rules</span>
               </h2>
@@ -661,7 +708,7 @@ export default function SettingsPage() {
                   implied a user could turn OFF a protection that is actually
                   unconditional. Both are gone; the copy now says what the
                   scanner does. */}
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+              <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
                 Rules learned from your manual approvals. Intrack applies the category
                 automatically to matching transactions — but every one still lands in
                 Pending for you to approve. Nothing is ever added to your accounts
@@ -669,94 +716,102 @@ export default function SettingsPage() {
               </p>
 
               {/* Inline Rule Creator Form */}
-              <form onSubmit={handleAddCustomRule} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 mb-4 p-3 bg-surface-2/40 border border-border-subtle/30 rounded-xl">
-                <div>
-                  <Input
-                    placeholder="Keyword (e.g. Swiggy)"
-                    value={newKeyword}
-                    onChange={(e) => setNewKeyword(e.target.value)}
-                    className="text-xs h-11"
-                    aria-label="Merchant Name Keyword"
-                    required
-                  />
-                </div>
-                <div>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    aria-label="Merchant Category"
-                    className="w-full bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>{cat.emoji} {cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <select
-                    value={newRuleType}
-                    onChange={(e) => setNewRuleType(e.target.value as 'income' | 'expense')}
-                    aria-label="Merchant Rule Type"
-                    className="w-full bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                  >
-                    <option value="expense">🔴 Expense</option>
-                    <option value="income">🟢 Income</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button size="md" type="submit" className="px-3 text-xs gap-1.5">
-                    <Plus className="h-3.5 w-3.5" /> Add Rule
+              <form
+                onSubmit={handleAddCustomRule}
+                className="grid grid-cols-1 gap-3 mb-5 p-4 bg-surface-2/40 border border-border-subtle/40 rounded-xl sm:grid-cols-2"
+              >
+                <Input
+                  label="Keyword"
+                  placeholder="e.g. Swiggy"
+                  value={newKeyword}
+                  onChange={(e) => setNewKeyword(e.target.value)}
+                  required
+                />
+                <Select
+                  label="Category"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                >
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.emoji} {cat.name}</option>
+                  ))}
+                </Select>
+                <Select
+                  label="Treat as"
+                  value={newRuleType}
+                  onChange={(e) => setNewRuleType(e.target.value as 'income' | 'expense')}
+                >
+                  <option value="expense">🔴 Expense</option>
+                  <option value="income">🟢 Income</option>
+                </Select>
+                <div className="flex items-end">
+                  <Button type="submit" block className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Add rule
                   </Button>
                 </div>
               </form>
 
               {Object.keys(merchantRules).length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-xs text-zinc-500">
-                  No rules learned yet. Approve pending alerts or add one above!
-                </div>
+                <EmptyState
+                  icon="🧠"
+                  title="No rules yet"
+                  description="Approve a pending transaction and Intrack learns the merchant, or add a rule above."
+                />
               ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                  {Object.entries(merchantRules).map(([key, rule]) => {
-                    return (
-                      <div
+                <ul className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  <AnimatePresence initial={false}>
+                    {Object.entries(merchantRules).map(([key, rule]) => (
+                      <motion.li
                         key={key}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-surface-2/60 border border-border-subtle/30 text-xs transition-colors hover:bg-surface-2 gap-2"
+                        layout={!reduceMotion}
+                        initial={reduceMotion ? false : { opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+                        className="flex flex-col gap-3 p-3 rounded-xl bg-surface-2/50 border border-border-subtle/40 transition-colors hover:border-border-hover sm:flex-row sm:items-center sm:gap-2"
                       >
-                        <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-zinc-200 capitalize truncate max-w-[150px]">{key}</span>
-                        </div>
-                        <div className="flex items-center gap-2 justify-between sm:justify-end">
-                          <select
-                            value={rule.category}
-                            onChange={(e) => handleUpdateRuleCategory(key, e.target.value)}
-                            className="bg-surface-0 border border-border-subtle/50 text-xs rounded-xl p-1 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                          >
-                            {categories.map((cat) => (
-                              <option key={cat.id} value={cat.name}>{cat.emoji} {cat.name}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={rule.ruleType}
-                            onChange={(e) => handleUpdateRuleType(key, e.target.value)}
-                            aria-label={`Rule type for ${key}`}
-                            className="bg-surface-0 border border-border-subtle/50 text-xs rounded-xl p-1 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                          >
-                            <option value="expense">🔴 Expense</option>
-                            <option value="income">🟢 Income</option>
-                          </select>
+                        <span className="text-sm font-semibold text-zinc-100 capitalize truncate sm:flex-1">
+                          {key}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {/* Select puts className on the <select> and renders
+                              its own wrapper, so widths go on the wrapper. */}
+                          <div className="flex-1 min-w-0 sm:flex-none sm:w-40">
+                            <Select
+                              value={rule.category}
+                              aria-label={`Category for ${key}`}
+                              onChange={(e) => handleUpdateRuleCategory(key, e.target.value)}
+                              className="h-10 text-sm"
+                            >
+                              {categories.map((cat) => (
+                                <option key={cat.id} value={cat.name}>{cat.emoji} {cat.name}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="flex-1 min-w-0 sm:flex-none sm:w-32">
+                            <Select
+                              value={rule.ruleType}
+                              aria-label={`Rule type for ${key}`}
+                              onChange={(e) => handleUpdateRuleType(key, e.target.value)}
+                              className="h-10 text-sm"
+                            >
+                              <option value="expense">🔴 Expense</option>
+                              <option value="income">🟢 Income</option>
+                            </Select>
+                          </div>
                           <button
                             onClick={() => handleDeleteRule(key)}
-                            className="h-10 w-10 rounded text-zinc-500 hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] transition-colors flex items-center justify-center shrink-0"
-                            title="Delete Rule"
+                            className={`${ACTION_BUTTON_DANGER} shrink-0`}
+                            title="Delete rule"
                             aria-label={`Delete rule for ${key}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
+                </ul>
               )}
             </Card>
             </>
@@ -767,12 +822,12 @@ export default function SettingsPage() {
             <>
             {/* Encrypted Backup & Restore Card */}
             <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
                 <Lock className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Privacy-First Encrypted Backup</span>
               </h2>
-              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-zinc-300">AES-256-GCM</strong> before downloading.
+              <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-zinc-200">AES-256-GCM</strong> before downloading.
               </p>
 
               <div className="space-y-6">
@@ -781,7 +836,7 @@ export default function SettingsPage() {
                   <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Download Backup</h3>
                   <form onSubmit={handleBackup} className="space-y-3">
                     {backupSuccess && (
-                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
+                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-sm text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
                         <span>Encrypted backup generated and downloaded successfully.</span>
                       </div>
@@ -805,26 +860,29 @@ export default function SettingsPage() {
                   <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Restore Backup</h3>
                   <form onSubmit={handleRestore} className="space-y-3">
                     {restoreError && (
-                      <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
+                      <div className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-sm text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
                         <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
                         <span>{restoreError}</span>
                       </div>
                     )}
                     {restoreSuccess && (
-                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
+                      <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-sm text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
                         <span>Backup successfully decrypted and data merged!</span>
                       </div>
                     )}
                     <div>
-                      <label htmlFor="restore-file-input" className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5 cursor-pointer">
-                        Select Backup File (.drbak)
+                      <label htmlFor="restore-file-input" className="block text-sm font-medium text-zinc-300 mb-1.5 cursor-pointer">
+                        Backup file (.drbak)
                       </label>
                       <input
                         id="restore-file-input"
                         type="file"
                         accept=".drbak"
-                        className="w-full text-xs text-zinc-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-surface-2 file:text-zinc-300 hover:file:bg-surface-3 cursor-pointer"
+                        className="w-full text-sm text-zinc-400 rounded-lg border border-border-default bg-surface-1 p-2
+                          file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                          file:bg-surface-2 file:text-zinc-200 hover:file:bg-surface-3 file:cursor-pointer cursor-pointer
+                          focus-within:ring-2 focus-within:ring-brand-500/30 focus-within:border-brand-500"
                       />
                     </div>
                     <Input
@@ -843,51 +901,41 @@ export default function SettingsPage() {
               </div>
             </Card>
             <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
                 <Download className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Data Portability (Plain Export)</span>
               </h2>
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+              <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
                 Export your transactions — approved and pending — in standard, human-readable formats for tax filing, spreadsheets, or migrations.
               </p>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="export-from" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    From
-                  </label>
-                  <input
-                    id="export-from"
-                    type="date"
-                    value={exportFrom}
-                    max={exportTo || undefined}
-                    onChange={(e) => { setExportFrom(e.target.value); setExportRangeError('') }}
-                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="export-to" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    To
-                  </label>
-                  <input
-                    id="export-to"
-                    type="date"
-                    value={exportTo}
-                    min={exportFrom || undefined}
-                    onChange={(e) => { setExportTo(e.target.value); setExportRangeError('') }}
-                    className="bg-surface-2 border border-border-subtle/50 text-xs rounded-xl h-11 px-3 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                  />
-                </div>
+              <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
+                <Input
+                  label="From"
+                  id="export-from"
+                  type="date"
+                  value={exportFrom}
+                  max={exportTo || undefined}
+                  onChange={(e) => { setExportFrom(e.target.value); setExportRangeError('') }}
+                />
+                <Input
+                  label="To"
+                  id="export-to"
+                  type="date"
+                  value={exportTo}
+                  min={exportFrom || undefined}
+                  onChange={(e) => { setExportTo(e.target.value); setExportRangeError('') }}
+                />
               </div>
 
               {exportRangeError && (
-                <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 mb-3 text-xs text-[var(--status-danger-text)]">
+                <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 mb-3 text-sm text-[var(--status-danger-text)]">
                   {exportRangeError}
                 </div>
               )}
 
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-zinc-500">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <p className="text-sm text-zinc-400">
                   {exportFrom || exportTo
                     ? `Exporting ${exportFrom ? formatDate(exportFrom) : 'the beginning'} → ${exportTo ? formatDate(exportTo) : 'today'}`
                     : 'Leave both blank to export everything'}
@@ -895,54 +943,54 @@ export default function SettingsPage() {
                 {(exportFrom || exportTo) && (
                   <button
                     onClick={() => { setExportFrom(''); setExportTo(''); setExportRangeError('') }}
-                    className="text-xs text-brand-400 underline bg-transparent border-none cursor-pointer shrink-0"
+                    className="text-sm font-medium text-brand-400 underline underline-offset-2 bg-transparent border-none cursor-pointer shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                   >
                     Clear
                   </button>
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Button
                   onClick={() => handlePlainExport('csv')}
                   variant="secondary"
-                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
+                  className="justify-center gap-1.5"
                   disabled={exportLoading}
                 >
-                  <FileSpreadsheet className="h-4 w-4 text-zinc-400 shrink-0" /> Export CSV
+                  <FileSpreadsheet className="h-4 w-4 shrink-0" /> Export CSV
                 </Button>
                 <Button
                   onClick={() => handlePlainExport('json')}
                   variant="secondary"
-                  className="flex-1 text-xs justify-center gap-1.5 cursor-pointer"
+                  className="justify-center gap-1.5"
                   disabled={exportLoading}
                 >
-                  <FileJson className="h-4 w-4 text-zinc-400 shrink-0" /> Export JSON
+                  <FileJson className="h-4 w-4 shrink-0" /> Export JSON
                 </Button>
               </div>
             </Card>
             {/* Change Password Card */}
             <Card className="border-border-subtle bg-surface-1 shadow-md">
-              <h2 className="text-base font-bold text-zinc-200 mb-2 flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-100 mb-1.5 flex items-center gap-2">
                 <Key className="h-5 w-5 text-brand-400 shrink-0" />
                 <span>Change Account Password</span>
               </h2>
-              <p className="text-xs text-zinc-400 mb-2 leading-relaxed">
+              <p className="text-sm text-zinc-400 mb-2 leading-relaxed">
                 Update your account password. Passwords must be at least 6 characters.
               </p>
-              <p className="text-xs text-zinc-500 mb-4 leading-relaxed italic">
-                Forgotten your password entirely? Use "Reset My Password" on your Profile page
-                instead — it emails you a reset link.
+              <p className="text-sm text-zinc-500 mb-5 leading-relaxed">
+                Forgotten it entirely? Use “Reset My Password” on your Profile page instead —
+                it emails you a reset link.
               </p>
               <form onSubmit={handleChangePassword} className="space-y-3">
                 {changePasswordError && (
-                  <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-2.5 text-[11px] text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
+                  <div role="alert" className="rounded-xl bg-[var(--status-danger-subtle)] border border-[var(--status-danger-border)] p-3 text-sm text-[var(--status-danger-text)] leading-relaxed flex items-start gap-2">
                     <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-danger-text)]" />
                     <span>{changePasswordError}</span>
                   </div>
                 )}
                 {changePasswordSuccess && (
-                  <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-2.5 text-[11px] text-[var(--status-positive-text)] leading-relaxed flex items-start gap-2">
+                  <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-sm text-[var(--status-positive-text)] leading-relaxed flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
                     <span>Password updated successfully!</span>
                   </div>
@@ -972,6 +1020,9 @@ export default function SettingsPage() {
             </Card>
             </>
           )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

@@ -66,7 +66,33 @@ nested cards. Inputs/Selects: `bg-surface-1`, `border-default`, brand focus ring
 (`ring-brand-500/30`). Every interactive element has hover/focus/active/disabled.
 Badges use semantic status tokens. Empty states use a neutral icon tile.
 
+**Form controls are always the shared `Input` / `Select`.** Both render their own
+wrapper `div` and pass `className` to the control inside it, so any flex or grid
+sizing (`flex-1`, `col-span-2`) must go on a wrapper you add — putting it on the
+component styles the `<input>` and does nothing to the layout. Hand-rolled
+`<select>` elements are drift: they carried a different focus ring
+(`ring-1 brand-400`) for a year before anyone noticed.
+
+**Icon-only row actions** (edit / archive / delete) come from `ACTION_BUTTON` and
+`ACTION_BUTTON_DANGER` in `components/ui/styles.ts`. 36px, `rounded-lg`, with a
+focus ring in the recipe. Before it existed, Settings alone had three sizes and
+three hover colours.
+
+**Body copy in app UI is `text-sm`; `text-xs` is for field labels, metadata and
+badges only.** Settings was 12px throughout and read as small print.
+
+**Section navigation** (Settings) is a left rail from `md` up — `md:w-52`,
+`md:sticky md:top-20` to clear the 64px app header — and a horizontally scrolling
+pill strip below it, bleeding to the viewport edge with `-mx-4 px-4 sm:-mx-6
+sm:px-6` so it reads as scrollable.
+
 ## Motion
+
+Motion says *something changed* and nothing else. The three shapes in use:
+a single indicator that travels between tabs (`layoutId`, spring 420/36), a panel
+handing over to the next (180ms, `cubic-bezier(0.16, 1, 0.3, 1)`, 6px rise), and
+list rows that fade in on arrival and slide out on removal. Every one is gated on
+`useReducedMotion()` and collapses to `duration: 0`.
 
 Restrained, state-conveying only: 150–250ms transitions, subtle fade/slide/scale
 entrances, list stagger ≤0.24s. **Removed**: float, glow-pulse, aurora-drift,
