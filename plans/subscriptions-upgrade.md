@@ -16,33 +16,23 @@ categories, and `Subscriptions` is a seeded default category.
 
 Everything below is derived from data the app already holds. None of it needs a new table.
 
-## The four capabilities
+## The three capabilities
 
 ### 1. Annual cost beside the monthly one
 
 ₹649 reads as small. **₹7,788 a year** does not. One derived figure per subscription and
 one total, from the amount and the detected frequency.
 
-Cheapest of the four and the biggest change in how the page reads.
+Cheapest of the three and the biggest change in how the page reads.
 
-### 2. Price-rise detection
-
-Compare each subscription's latest charge against the one before it across the 24 months
-already loaded. Flag increases: *"Spotify went from ₹119 to ₹149 in March."*
-
-This is the one a user genuinely cannot do for themselves — banks never tell you, and
-nobody reads twelve statements looking for a ₹30 change. Needs care against false
-positives: a partial month, a plan change the user made deliberately, and currency
-differences all look like a rise.
-
-### 3. Renewal warnings, before the money moves
+### 2. Renewal warnings, before the money moves
 
 The renewal day and the amount are both known. *"Netflix takes ₹649 in 3 days"* while
 there is still time to cancel is worth more than recording the charge afterwards.
 
 **This is what forces the split below.** A warning that lives in Settings warns nobody.
 
-### 4. Burn as a share of income
+### 3. Burn as a share of income
 
 *"Subscriptions are 8% of what you earn."* Income already comes from the `income`
 analytics tag and subscription spend from the `subscription` tag, so this is a
@@ -57,7 +47,7 @@ warnings pull the other way. Three homes, by what each thing is for:
 |---|---|---|
 | **Settings**, beside Cards | The list you maintain: add, rename, hide, set renewal day | Configuration you visit on purpose |
 | **Home** | Renewal warnings for the next few days | Has to find you; nobody opens Settings to be warned |
-| **Insights** | Annual cost, price rises, burn as a share of income | Analysis belongs with the other analysis |
+| **Insights** | Annual cost and burn as a share of income | Analysis belongs with the other analysis |
 
 The cost is that one feature appears in three places, and each must not drift from the
 others. The alternative — one page carrying all three jobs — is what made it a list nobody
@@ -67,22 +57,26 @@ needed.
 
 1. **Annual cost.** Pure derivation, no new state. Ships alone.
 2. **Burn as a share of income.** Same, and it lands on Insights.
-3. **Price-rise detection.** The false-positive work is the real cost here, not the
-   comparison.
-4. **Renewal warnings on Home.** Needs a card and a decision about how loud it is.
-5. **Move the maintenance list into Settings** and retire the standalone page, once the
+3. **Renewal warnings on Home.** Needs a card and a decision about how loud it is.
+4. **Move the maintenance list into Settings** and retire the standalone page, once the
    other three have somewhere to live.
 
-Phase 5 last on purpose: removing the page before its contents have homes would lose
+Phase 4 last on purpose: removing the page before its contents have homes would lose
 features.
 
 ## Open
 
-- **Manual subscriptions vs detected ones.** Detected ones are derived from transactions;
-  manual ones are stored. Price-rise detection can only work on the detected kind. Decide
-  what a manual subscription shows instead of a comparison.
 - **How loud the renewal warning is.** A card, a badge, or a notification the app cannot
   currently send.
 - **Whether hiding a subscription should also hide it from the burn calculation.** Hidden
   today means "stop showing me this", which is not the same as "this is not a
   subscription".
+
+## Dropped
+
+**Price-rise detection — cut 2026-09-05.** It was the capability with the most teeth, and
+it is gone for the reason that made it risky: a partial month, a plan the user changed
+themselves and a currency difference all look exactly like a price increase. The owner's
+call, and the right one — a warning that cries wolf is worse than no warning, and this one
+would have had no reliable way to tell a real rise from the three things that mimic it.
+Do not reintroduce it without solving that first.
