@@ -112,7 +112,10 @@ describe('getCategoryUsage', () => {
   it('counts transactions and budgets referencing the category', async () => {
     const txEq = vi.fn().mockResolvedValue({ count: 4, error: null })
     const txSelect = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: txEq }) })
-    const budgetsEq = vi.fn().mockResolvedValue({ count: 1, error: null })
+    // The budgets count filters out deleted rows (migration 043 tombstones),
+    // so the chain ends in .is('deleted_at', null) rather than the second .eq.
+    const budgetsIs = vi.fn().mockResolvedValue({ count: 1, error: null })
+    const budgetsEq = vi.fn().mockReturnValue({ is: budgetsIs })
     const budgetsSelect = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: budgetsEq }) })
 
     fromMock.mockImplementationOnce(() => ({ select: txSelect })).mockImplementationOnce(() => ({ select: budgetsSelect }))
@@ -121,6 +124,7 @@ describe('getCategoryUsage', () => {
 
     expect(fromMock).toHaveBeenCalledWith('transactions')
     expect(fromMock).toHaveBeenCalledWith('budgets')
+    expect(budgetsIs).toHaveBeenCalledWith('deleted_at', null)
     expect(data).toEqual({ transactions: 4, budgets: 1 })
     expect(error).toBeNull()
   })

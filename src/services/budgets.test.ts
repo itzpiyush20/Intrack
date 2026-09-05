@@ -45,7 +45,6 @@ import {
   shouldCarryForward,
   pickSourceMonthRows,
   planCarryForward,
-  TOMBSTONE_AMOUNT,
 } from './budgets'
 import { getCurrentMonth } from '@/utils'
 
@@ -77,19 +76,28 @@ beforeEach(() => {
 // Pure helpers
 // ============================================================
 
+const TOMB = '2026-09-05T00:00:00.000Z'
+
 describe('isTombstone / visibleBudgets', () => {
-  it('treats a zero amount as a deliberate deletion', () => {
-    expect(isTombstone({ amount: 0 })).toBe(true)
-    expect(isTombstone({ amount: '0' })).toBe(true)
-    expect(isTombstone({ amount: 5000 })).toBe(false)
+  it('treats a deleted_at stamp as a deliberate deletion', () => {
+    expect(isTombstone({ deleted_at: '2026-09-05T00:00:00Z' })).toBe(true)
+    expect(isTombstone({ deleted_at: null })).toBe(false)
+    expect(isTombstone({})).toBe(false)
+  })
+
+  it('no longer treats a zero amount as one', () => {
+    // 043 replaced the amount-0 convention. A zero-amount row with no stamp is
+    // now an ordinary budget, which is the whole point: a stray zero written by
+    // some future code path can no longer delete someone's budget.
+    expect(isTombstone({ deleted_at: undefined })).toBe(false)
   })
 
   it('hides tombstones from anything that reads budgets', () => {
     const rows = [
-      { category: 'Food', amount: 5000 },
-      { category: 'Travel', amount: TOMBSTONE_AMOUNT },
+      { category: 'Food', amount: 5000, deleted_at: null },
+      { category: 'Travel', amount: 5000, deleted_at: '2026-09-05T00:00:00Z' },
     ]
-    expect(visibleBudgets(rows)).toEqual([{ category: 'Food', amount: 5000 }])
+    expect(visibleBudgets(rows)).toEqual([{ category: 'Food', amount: 5000, deleted_at: null }])
   })
 })
 
@@ -165,7 +173,7 @@ describe('planCarryForward', () => {
     // very next read.
     const plan = planCarryForward({
       targetMonth: '2026-06',
-      existingRows: [{ month: '2026-06', category: 'Food', amount: TOMBSTONE_AMOUNT }],
+      existingRows: [{ month: '2026-06', category: 'Food', amount: 5000, deleted_at: TOMB }],
       priorRows: [{ month: '2026-05', category: 'Food', amount: 5000 }],
       eligibleCategories,
     })
@@ -177,7 +185,7 @@ describe('planCarryForward', () => {
       targetMonth: '2026-06',
       existingRows: [],
       priorRows: [
-        { month: '2026-05', category: 'Food', amount: TOMBSTONE_AMOUNT },
+        { month: '2026-05', category: 'Food', amount: 5000, deleted_at: TOMB },
         { month: '2026-05', category: 'Travel', amount: 2000 },
       ],
       eligibleCategories,
@@ -194,7 +202,7 @@ describe('planCarryForward', () => {
       existingRows: [],
       priorRows: [
         { month: '2026-04', category: 'Food', amount: 5000 },
-        { month: '2026-05', category: 'Food', amount: TOMBSTONE_AMOUNT },
+        { month: '2026-05', category: 'Food', amount: 5000, deleted_at: TOMB },
       ],
       eligibleCategories,
     })
@@ -276,7 +284,7 @@ describe('getBudgets carry-forward', () => {
 
   it('does not carry forward when a tombstone is all that is left', async () => {
     queueFor('budgets', {
-      data: [{ id: 'b1', category: 'Food', amount: TOMBSTONE_AMOUNT, month: CURRENT }],
+      data: [{ id: 'b1', category: 'Food', amount: 5000, month: CURRENT, deleted_at: TOMB }],
       error: null,
     })
 
@@ -290,7 +298,7 @@ describe('getBudgets carry-forward', () => {
     queueFor('budgets', {
       data: [
         { id: 'b1', category: 'Food', amount: 5000, month: CURRENT },
-        { id: 'b2', category: 'Travel', amount: TOMBSTONE_AMOUNT, month: CURRENT },
+        { id: 'b2', category: 'Travel', amount: 5000, month: CURRENT, deleted_at: TOMB },
       ],
       error: null,
     })
@@ -354,7 +362,9 @@ describe('deleteBudget', () => {
     expect(callsFor('budgets', 'delete')).toHaveLength(0)
     const updates = callsFor('budgets', 'update')
     expect(updates).toHaveLength(1)
-    expect(updates[0].args[0]).toEqual({ amount: TOMBSTONE_AMOUNT })
+    const patch = updates[0].args[0] as { deleted_at?: unknown }
+    expect(Object.keys(patch)).toEqual(['deleted_at'])
+    expect(typeof patch.deleted_at).toBe('string')
     expect(callsFor('budgets', 'eq')[0].args).toEqual(['id', 'b1'])
   })
 

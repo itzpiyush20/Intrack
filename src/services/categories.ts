@@ -80,7 +80,10 @@ export async function getCategoryUsage(name: string) {
 
   const [tx, budgets] = await Promise.all([
     supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category', name),
-    supabase.from('budgets').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category', name),
+    // Deleted budgets are kept as rows carrying deleted_at (migration 043),
+    // so counting them would overstate how much a category is still used
+    // in the delete-category confirmation.
+    supabase.from('budgets').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category', name).is('deleted_at', null),
   ])
 
   return {

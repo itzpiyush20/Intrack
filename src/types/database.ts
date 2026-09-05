@@ -173,6 +173,8 @@ export interface Database {
           category: string
           amount: number
           month: string
+          /** Set when the user deliberately deleted this budget (migration 043). */
+          deleted_at: string | null
           created_at: string
           updated_at: string
         }

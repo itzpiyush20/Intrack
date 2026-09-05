@@ -44,21 +44,30 @@ import type { Database } from '@/types/database'
 
 type BudgetRow = Database['public']['Tables']['budgets']['Row']
 
-/** A row whose amount is 0 is a deliberate deletion, not a budget. */
-export const TOMBSTONE_AMOUNT = 0
+/**
+ * A deliberate deletion is a row with `deleted_at` set (migration 043).
+ *
+ * This used to be `amount = 0`, which worked only because the one form that
+ * writes an amount carries min="1" — a convention held up by a form attribute
+ * rather than the database. Any code writing a zero for an innocent reason
+ * would have silently deleted someone's budget.
+ *
+ * Rows stamped by 043's backfill still carry amount 0 alongside their
+ * timestamp; that is harmless, since a deleted budget's amount is never read.
+ */
 
 /** How many prior rows to scan when looking for a source month to copy. */
 const SOURCE_LOOKBACK_ROWS = 500
 
-type MonthRow = { category: string; amount: number; month: string }
+type MonthRow = { category: string; amount: number; month: string; deleted_at?: string | null }
 
 /** True when the row records "the user removed this budget", not a real limit. */
-export function isTombstone(row: { amount: number | string }): boolean {
-  return Number(row.amount) <= TOMBSTONE_AMOUNT
+export function isTombstone(row: { deleted_at?: string | null }): boolean {
+  return row.deleted_at != null
 }
 
 /** Drop tombstones — nothing outside this module should ever see one. */
-export function visibleBudgets<T extends { amount: number | string }>(rows: T[]): T[] {
+export function visibleBudgets<T extends { deleted_at?: string | null }>(rows: T[]): T[] {
   return rows.filter((r) => !isTombstone(r))
 }
 
@@ -93,9 +102,9 @@ export function pickSourceMonthRows<T extends { month: string }>(rows: T[], befo
 export function planCarryForward(input: {
   targetMonth: string
   /** Rows that already exist for targetMonth, tombstones included. */
-  existingRows: Array<{ category: string; amount: number; month: string }>
+  existingRows: MonthRow[]
   /** Rows for months older than targetMonth (any number of months). */
-  priorRows: Array<{ category: string; amount: number; month: string }>
+  priorRows: MonthRow[]
   /** Categories that still exist AND can still hold a budget. */
   eligibleCategories: string[]
 }): MonthRow[] {
@@ -151,7 +160,7 @@ async function carryForwardInto(userId: string, month: string): Promise<boolean>
     const [priorRes, eligibleCategories] = await Promise.all([
       supabase
         .from('budgets')
-        .select('category, amount, month')
+        .select('category, amount, month, deleted_at')
         .eq('user_id', userId)
         .lt('month', month)
         .order('month', { ascending: false })
@@ -263,7 +272,7 @@ export async function deleteBudget(id: string, budget?: { month: string }) {
   if (budget && shouldCarryForward(budget.month)) {
     const { error } = await supabase
       .from('budgets')
-      .update({ amount: TOMBSTONE_AMOUNT })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
     return { error }
   }
