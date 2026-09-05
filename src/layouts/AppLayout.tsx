@@ -888,7 +888,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </Link>
         </div>
       )}
-      <main className="mx-auto flex-1 max-w-7xl w-full px-4 py-6 sm:px-6 lg:px-8" id="main-content">
+      {/* pb-28 clears the fixed mobile bottom nav (h-16 plus its safe-area inset).
+          Without it the last row of every list and the last button of every form
+          sat underneath the nav on a phone. md:pb-6 restores normal spacing from
+          the breakpoint where that nav is hidden. */}
+      <main
+        className="mx-auto flex-1 max-w-7xl w-full px-4 pt-6 pb-28 sm:px-6 md:pb-6 lg:px-8"
+        id="main-content"
+      >
         {user && isAppRoute && showPrivacyNote && (
           <div className="mb-6 rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-3 shadow-[var(--shadow-sm)]">
             <div className="flex-1 space-y-1.5 text-xs text-zinc-400 leading-relaxed">

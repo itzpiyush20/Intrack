@@ -171,7 +171,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
 
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Emoji</label>
-          <div className="grid grid-cols-10 gap-1.5">
+          <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-10">
             {CATEGORY_EMOJI_CHOICES.map((e) => (
               <button
                 key={e}
@@ -194,7 +194,7 @@ export default function CategoryFormModal({ editing, onClose, onSaved }: Categor
 
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
-          <div className="grid grid-cols-12 gap-1.5">
+          <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-12">
             {CATEGORY_COLOR_CHOICES.map((c) => (
               <button
                 key={c}
