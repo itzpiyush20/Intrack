@@ -48,8 +48,12 @@ const navItems = [
   { label: 'Pending', path: ROUTES.PENDING },
   { label: 'Insights', path: ROUTES.INSIGHTS },
   { label: 'Subscriptions', path: ROUTES.SUBSCRIPTIONS },
-  { label: 'Pricing', path: ROUTES.PRICING },
 ]
+// Pricing is deliberately NOT here. It is a marketing page, not a daily tool:
+// the six entries above are the app. Anyone who actually wants to change plans
+// is going to billing, so Pricing lives in the profile/user menu instead
+// ("Pricing & Plans", in the dropdown below, the mobile menu and UserMenu).
+// The /pricing route itself is untouched and stays exempt in ProtectedRoute.
 
 /**
  * What plan an active account actually holds.
@@ -451,7 +455,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
               ariaLabel="Desktop navigation"
             >
                 {navItems
-                  .filter(item => item.path !== ROUTES.PRICING)
                   .map((item) => {
                     const isActive = location.pathname === item.path
                     return (
@@ -731,7 +734,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {user && isAppRoute ? (
               <>
                 {navItems
-                  .filter(item => item.path !== ROUTES.PRICING)
                   .map((item) => {
                     const isActive = location.pathname === item.path
                   return (
