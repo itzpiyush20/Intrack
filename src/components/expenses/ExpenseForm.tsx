@@ -189,7 +189,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
           <legend className="sr-only">Amount and direction</legend>
 
           <div className="space-y-1.5">
-            <span id="direction-label" className="block text-sm font-medium text-zinc-300">
+            <span id="direction-label" className="block text-sm font-semibold text-sb-ink">
               Direction
             </span>
             <div
@@ -208,12 +208,12 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
                     aria-checked={active}
                     onClick={() => setType(d.value)}
                     className={cn(
-                      'flex h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium',
-                      'cursor-pointer transition-colors',
+                      'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold',
+                      'cursor-pointer transition-all',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                       active
-                        ? 'border-brand-500 bg-brand-500/10 text-brand-400'
-                        : 'border-border-default bg-surface-1 text-zinc-400 hover:border-border-hover hover:text-zinc-100'
+                        ? 'border-brand-600 bg-brand-500/10 text-brand-700 shadow-xs'
+                        : 'border-sb-hairline bg-surface-1 text-sb-ink-secondary hover:border-brand-500/30 hover:text-sb-ink'
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -312,33 +312,33 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
                 {parsedTags.map((t, idx) => (
                   <li
                     key={idx}
-                    className="inline-flex items-center rounded-lg border border-brand-500/25 bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-400"
+                    className="inline-flex items-center rounded-lg border border-brand-500/25 bg-brand-500/10 px-2 py-0.5 text-xs font-semibold text-brand-700"
                   >
                     #{t}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-sb-ink-muted">
                 Separate with commas. Tags let you group spending across categories.
               </p>
             )}
           </div>
 
           {type === 'debit' && (
-            <div className="rounded-xl border border-border-subtle bg-surface-2/50 p-3.5">
+            <div className="rounded-xl border border-sb-hairline bg-surface-2/40 p-3.5">
               <label className="flex cursor-pointer select-none items-start gap-2.5">
                 <input
                   type="checkbox"
                   checked={isReturnable}
                   onChange={(e) => setIsReturnable(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-default bg-surface-1 text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-sb-hairline bg-surface-1 accent-[var(--brand-600)] focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 />
                 <span>
-                  <span className="block text-sm font-medium text-zinc-200">
+                  <span className="block text-sm font-semibold text-sb-ink">
                     I expect this money back
                   </span>
-                  <span className="mt-0.5 block text-xs text-zinc-400">
+                  <span className="mt-0.5 block text-xs text-sb-ink-muted">
                     Money you lent or fronted for someone. Intrack tracks it until it returns.
                   </span>
                 </span>

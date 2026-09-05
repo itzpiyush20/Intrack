@@ -450,7 +450,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 "bg-brand-50 border-brand-200/60 text-brand-700"
               )}>
                 <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", "bg-brand-600")} />
-                Automated Tracker
+                Autonomous Finance
               </span>
             </div>
           </Link>
@@ -549,7 +549,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           )}
                         </div>
                         {notifications.length === 0 ? (
-                          <p className="text-xs text-zinc-500 py-4 text-center font-medium">
+                          <p className="text-xs text-sb-ink-muted py-4 text-center font-medium">
                             No new notifications. All caught up!
                           </p>
                         ) : (
@@ -595,7 +595,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 ) : profile?.subscription_status === 'active' ? (
                   activePlan === 'monthly' ? (
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="px-2.5 py-1 rounded-[6px] text-xs font-bold uppercase tracking-wider text-zinc-300 bg-surface-2 border border-border-subtle shrink-0 select-none">
+                      <span className="px-2.5 py-1 rounded-[6px] text-xs font-bold uppercase tracking-wider text-sb-ink-secondary bg-surface-2 border border-sb-hairline shrink-0 select-none">
                         Monthly Plan 👑
                       </span>
                       <Link
@@ -665,14 +665,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           onClick={() => setProfileDropdownOpen(false)}
                           className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
-                          <User className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Profile Section
+                          <User className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Profile
                         </Link>
                         <Link
                           to="/settings"
                           onClick={() => setProfileDropdownOpen(false)}
                           className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
-                          <Settings className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Settings Section
+                          <Settings className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Settings
                         </Link>
                         {canAccessAdmin(profile) && (
                           <Link
@@ -680,7 +680,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             onClick={() => setProfileDropdownOpen(false)}
                             className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                           >
-                            <ShieldCheck className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Admin Section
+                            <ShieldCheck className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Admin
                           </Link>
                         )}
                         <Link
@@ -688,7 +688,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           onClick={() => setProfileDropdownOpen(false)}
                           className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
-                          <Crown className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Pricing & Plans
+                          <Crown className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Pricing & Plans
                         </Link>
                         <button
                           onClick={() => {
@@ -697,7 +697,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           }}
                           className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors cursor-pointer", "text-sb-ink hover:bg-sb-canvas-soft")}
                         >
-                          <MessageSquare className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> Send Feedback
+                          <MessageSquare className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Send Feedback
                         </button>
                         <button
                           onClick={() => {
@@ -706,7 +706,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           }}
                           className={cn("w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors border-t mt-1.5 pt-1.5 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
                         >
-                          <LogOut className="h-3.5 w-3.5 text-red-400 shrink-0" /> Sign Out
+                          <LogOut className="h-3.5 w-3.5 text-[var(--status-danger-text)] shrink-0" /> Sign Out
                         </button>
                       </div>
                     </>
@@ -771,7 +771,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn("flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-2 pt-3", "text-sb-ink border-sb-hairline hover:bg-sb-canvas-soft")}
                 >
-                  <User className="h-4 w-4 mr-2 text-zinc-500 shrink-0" /> Profile Section
+                  <User className="h-4 w-4 mr-2 text-sb-ink-muted shrink-0" /> Profile
                 </Link>
                 <Link
                   to="/settings"
@@ -783,7 +783,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       : ''
                   )}
                 >
-                  <Settings className="h-4 w-4 mr-2 text-zinc-500 shrink-0" /> Settings Section
+                  <Settings className="h-4 w-4 mr-2 text-sb-ink-muted shrink-0" /> Settings
                 </Link>
                 {canAccessAdmin(profile) && (
                   <Link
@@ -794,7 +794,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       location.pathname === '/admin' ? 'font-bold' : ''
                     )}
                   >
-                    <ShieldCheck className="h-4 w-4 mr-2 text-zinc-500 shrink-0" /> Admin Section
+                    <ShieldCheck className="h-4 w-4 mr-2 text-sb-ink-muted shrink-0" /> Admin
                   </Link>
                 )}
                 <Link
@@ -807,7 +807,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       : ''
                   )}
                 >
-                  <Crown className="h-4 w-4 mr-2 text-zinc-500 shrink-0" /> Pricing & Plans
+                  <Crown className="h-4 w-4 mr-2 text-sb-ink-muted shrink-0" /> Pricing & Plans
                 </Link>
 
                 <button
@@ -817,7 +817,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   }}
                   className={cn("w-full text-left flex items-center rounded-lg px-3 py-2.5 text-sm font-medium border-t mt-1 pt-3 cursor-pointer", "border-sb-hairline text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)]")}
                 >
-                  <LogOut className="h-4 w-4 mr-2 text-red-400 shrink-0" /> Sign Out
+                  <LogOut className="h-4 w-4 mr-2 text-[var(--status-danger-text)] shrink-0" /> Sign Out
                 </button>
               </>
             ) : (
@@ -927,7 +927,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         id="main-content"
       >
         {user && isAppRoute && showPrivacyNote && (
-          <div className="mb-6 rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 shadow-[var(--shadow-sm)]">
+          <div className="mb-6 rounded-2xl border border-sb-hairline bg-surface-1 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 shadow-[var(--shadow-sm)]">
             <span
               aria-hidden="true"
               className="h-10 w-10 shrink-0 rounded-xl bg-brand-500/10 text-brand-700 flex items-center justify-center"
@@ -935,8 +935,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <ShieldCheck className="h-5 w-5" />
             </span>
             <div className="flex-1 min-w-0 space-y-1.5">
-              <p className="text-sm font-semibold text-zinc-100">How your data is handled</p>
-              <p className="text-sm text-zinc-400 leading-relaxed">
+              <p className="text-sm font-semibold text-sb-ink">How your data is handled</p>
+              <p className="text-sm text-sb-ink-secondary leading-relaxed">
                 Your inbox is read straight from Gmail — we never hold a copy of your mailbox. To
                 classify an alert, its subject and the start of its body pass through our server to
                 Google’s Gemini in real time and are not retained. Your Google access is read-only,
@@ -973,8 +973,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <CheckCircle2 className="h-7 w-7" />
                 </span>
-                <h3 className="mt-4 text-lg font-semibold text-zinc-100">Sent — thank you</h3>
-                <p className="mt-1.5 max-w-xs text-sm text-zinc-400 leading-relaxed">
+                <h3 className="mt-4 text-lg font-semibold text-sb-ink">Sent — thank you</h3>
+                <p className="mt-1.5 max-w-xs text-sm text-sb-ink-secondary leading-relaxed">
                   We read every note. If you reported a bug, this is what tells us where to look.
                 </p>
               </div>
@@ -985,7 +985,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
                   {/* Category Selection */}
                   <fieldset>
-                    <legend className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                    <legend className="block text-xs font-bold text-sb-ink-muted uppercase tracking-wider mb-2">
                       What is this about?
                     </legend>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1004,12 +1004,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             'min-h-11 p-3 rounded-xl border text-left transition-colors cursor-pointer',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                             feedbackCategory === cat.key
-                              ? 'bg-brand-500/10 border-brand-500/40 text-zinc-100'
-                              : 'bg-surface-2/50 border-border-subtle/50 text-zinc-300 hover:border-border-hover'
+                              ? 'bg-brand-500/10 border-brand-500/40 text-brand-700 font-bold'
+                              : 'bg-surface-2 border-sb-hairline text-sb-ink-secondary hover:border-sb-border'
                           )}
                         >
                           <span className="block text-sm font-semibold">{cat.label}</span>
-                          <span className="block text-xs text-zinc-400 mt-0.5 leading-normal">{cat.desc}</span>
+                          <span className="block text-xs text-sb-ink-muted mt-0.5 leading-normal">{cat.desc}</span>
                         </button>
                       ))}
                     </div>
@@ -1017,10 +1017,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
                   {/* Rating Selector */}
                   <fieldset>
-                    <legend className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                    <legend className="block text-xs font-bold text-sb-ink-muted uppercase tracking-wider mb-2">
                       How is it going?
                     </legend>
-                    <div className="flex items-stretch justify-between gap-1 bg-surface-2/40 border border-border-subtle/40 rounded-xl p-1.5">
+                    <div className="flex items-stretch justify-between gap-1 bg-surface-2 border border-sb-hairline rounded-xl p-1.5">
                       {[
                         { val: 1, emoji: '😠', label: 'Bad' },
                         { val: 2, emoji: '🙁', label: 'Poor' },
@@ -1038,8 +1038,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             'flex flex-1 min-w-0 min-h-11 flex-col items-center justify-center gap-1 rounded-lg py-2 cursor-pointer transition-colors',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                             feedbackRating === rt.val
-                              ? 'bg-surface-1 border border-brand-500/40'
-                              : 'border border-transparent hover:bg-surface-2'
+                              ? 'bg-surface-1 border border-brand-500/40 shadow-sm'
+                              : 'border border-transparent hover:bg-surface-1'
                           )}
                         >
                           <span aria-hidden="true" className={cn('text-xl select-none', feedbackRating === rt.val ? 'opacity-100' : 'opacity-50')}>
@@ -1049,7 +1049,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             aria-hidden="true"
                             className={cn(
                               'text-xs font-medium truncate max-w-full',
-                              feedbackRating === rt.val ? 'text-zinc-100' : 'text-zinc-400'
+                              feedbackRating === rt.val ? 'text-sb-ink font-semibold' : 'text-sb-ink-muted'
                             )}
                           >
                             {rt.label}
@@ -1061,7 +1061,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
                   {/* Suggestion Text */}
                   <div>
-                    <label htmlFor="feedback-message" className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    <label htmlFor="feedback-message" className="block text-sm font-medium text-sb-ink-secondary mb-1.5">
                       Tell us what happened
                     </label>
                     <textarea
@@ -1073,9 +1073,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       maxLength={500}
                       rows={4}
                       required
-                      className="w-full bg-surface-1 border border-border-default rounded-lg p-3 text-sm text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 hover:border-border-hover transition-[border-color,box-shadow] duration-150 resize-y leading-relaxed"
+                      className="w-full bg-surface-1 border border-sb-hairline rounded-lg p-3 text-sm text-sb-ink placeholder:text-sb-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 hover:border-sb-border transition-[border-color,box-shadow] duration-150 resize-y leading-relaxed"
                     />
-                    <div className="flex justify-between items-center gap-3 mt-1.5 text-xs text-zinc-400 px-0.5">
+                    <div className="flex justify-between items-center gap-3 mt-1.5 text-xs text-sb-ink-muted px-0.5">
                       <span>At least 5 characters</span>
                       <span className="tnum">{feedbackMessage.length}/500</span>
                     </div>
@@ -1110,7 +1110,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           transition={transition(reduceMotion, 0.24)}
           className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] left-4 right-4 z-40 lg:hidden"
         >
-          <div className="bg-surface-1 border border-border-default rounded-2xl p-4 shadow-[var(--shadow-lg)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="bg-surface-1 border border-sb-hairline rounded-2xl p-4 shadow-xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3 min-w-0">
               <span
                 aria-hidden="true"
@@ -1119,8 +1119,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <BrandMark size={22} className="text-static-white" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-zinc-100 leading-tight">Add Intrack to your home screen</p>
-                <p className="text-sm text-zinc-400 mt-0.5 leading-relaxed">Opens like an app, straight to your dashboard.</p>
+                <p className="text-sm font-semibold text-sb-ink leading-tight">Add Intrack to your home screen</p>
+                <p className="text-sm text-sb-ink-secondary mt-0.5 leading-relaxed">Opens like an app, straight to your dashboard.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -1137,21 +1137,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* =========================================================== */}
       {/* Mobile Bottom Navigation Bar — shown only on mobile (<md) */}
       {/* =========================================================== */}
-      {/* Four destinations either side of one action.
-          The labels are deliberately short: at 360px each slot is roughly 70px
-          wide, and "Transactions" at 12px does not fit in that — it used to
-          overflow its slot. Every label also carries `truncate` so no future
-          rename can push the bar wider than the viewport. The full word stays
-          in the desktop nav, the mobile menu and each page's own heading. */}
       {user && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-surface-1 border-t border-border-subtle safe-area-inset-bottom"
+          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-sb-canvas/95 backdrop-blur-xl border-t border-sb-hairline safe-area-inset-bottom shadow-lg"
           aria-label="Mobile navigation"
         >
           <div className="flex items-stretch justify-around h-16 px-1">
             {([
               { to: ROUTES.DASHBOARD, icon: Home, label: 'Home', aria: 'Home' },
-              { to: ROUTES.EXPENSES, icon: CreditCard, label: 'Spends', aria: 'Transactions' },
+              { to: ROUTES.EXPENSES, icon: CreditCard, label: 'Transactions', aria: 'Transactions' },
             ] as const).map(({ to, icon: TabIcon, label, aria }) => {
               const isActive = location.pathname === to
               return (
@@ -1163,25 +1157,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   className={cn(
                     'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                    isActive ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
+                    isActive ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
                   )}
                 >
                   <TabIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  <span className="text-xs font-medium truncate max-w-full">{label}</span>
+                  <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">{label}</span>
                 </Link>
               )
             })}
 
             {/* Quick Add — the one action in the bar, so it is the one filled
-                shape. No hover scale: on a touch device hover never resolves,
-                and the press already reports itself. */}
+                shape. */}
             <div className="flex-1 flex items-center justify-center">
               <Link
                 to={ROUTES.EXPENSES}
                 state={{ openForm: true }}
                 className={cn(
-                  'flex h-12 w-12 items-center justify-center rounded-2xl shadow-[var(--shadow-md)] transition-colors active:scale-95',
-                  'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] text-[var(--btn-primary-fg)]',
+                  'flex h-12 w-12 items-center justify-center rounded-2xl shadow-md shadow-brand-500/25 transition-all active:scale-95',
+                  'bg-brand-600 hover:bg-brand-700 text-white',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
                 )}
                 aria-label="Add a transaction"
@@ -1202,7 +1195,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               className={cn(
                 'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                location.pathname === ROUTES.PENDING ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
+                location.pathname === ROUTES.PENDING ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
               )}
             >
               <span className="relative inline-flex shrink-0">
@@ -1216,7 +1209,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </span>
                 )}
               </span>
-              <span className="text-xs font-medium truncate max-w-full">Pending</span>
+              <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">Pending</span>
             </Link>
 
             {/* Insights */}
@@ -1227,11 +1220,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
               className={cn(
                 'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                location.pathname === ROUTES.INSIGHTS ? 'text-brand-700' : 'text-zinc-400 hover:text-zinc-200'
+                location.pathname === ROUTES.INSIGHTS ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
               )}
             >
               <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
-              <span className="text-xs font-medium truncate max-w-full">Insights</span>
+              <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">Insights</span>
             </Link>
           </div>
         </nav>

@@ -147,7 +147,6 @@ export default function ExpensesPage() {
 
   // The three figures that describe the fetched range. Kept as data so the
   // markup below is one loop rather than three near-identical cards that drift
-  // apart the first time one of them is edited.
   const totals = [
     {
       key: 'income',
@@ -155,6 +154,9 @@ export default function ExpensesPage() {
       value: totalIncome,
       icon: ArrowUp,
       tone: 'text-[var(--status-positive-text)]',
+      accent: 'before:via-emerald-500',
+      pill: 'bg-emerald-500/10 text-emerald-700',
+      pillLabel: 'Inflow',
       note: 'Everything credited in this range',
     },
     {
@@ -162,9 +164,10 @@ export default function ExpensesPage() {
       label: 'Money out',
       value: totalExpenses,
       icon: ArrowDown,
-      tone: 'text-zinc-50',
-      // Say why the figure may be smaller than the rows add up to, rather than
-      // letting the user find the discrepancy and distrust the page.
+      tone: 'text-sb-ink',
+      accent: 'before:via-brand-500/40',
+      pill: 'bg-surface-2 text-sb-ink-muted',
+      pillLabel: 'Outflow',
       note: 'Card bill payments left out — their purchases already count',
     },
     {
@@ -173,28 +176,45 @@ export default function ExpensesPage() {
       value: Math.abs(net),
       icon: Scale,
       tone: inSurplus ? 'text-[var(--status-positive-text)]' : 'text-[var(--status-danger-text)]',
+      accent: 'before:via-brand-500',
+      pill: inSurplus ? 'bg-brand-500/10 text-brand-700' : 'bg-red-500/10 text-red-700',
+      pillLabel: inSurplus ? 'Surplus' : 'Deficit',
       note: inSurplus ? 'In came to more than out' : 'Out came to more than in',
     },
   ] as const
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      {/* Ambient luxury emerald backlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/3 -translate-x-1/2 h-72 w-[40rem] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl"
+      />
+
+      <div className="relative z-10 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Transactions</h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Every rupee in and out, for the range you pick. Edit anything that landed under the
-              wrong name or category.
-            </p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">Transactions</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+              <p className="text-sm font-medium text-sb-ink-secondary">
+                Every rupee in and out, for the range you pick.
+              </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-700 shadow-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
+                </span>
+                <span>Real-time Ledger</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center md:shrink-0">
             <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
             <Button
               onClick={() => setShowForm(true)}
-              className="h-11 justify-center gap-1.5 whitespace-nowrap"
+              className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
             >
               <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add transaction
             </Button>
@@ -220,36 +240,39 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* What the range came to. Above the filters because these describe the
-            whole range, not the search below them. */}
+        {/* What the range came to */}
         <motion.div
           className="grid gap-3 sm:grid-cols-3"
           variants={staggerParent(reduceMotion, 3)}
           initial="initial"
           animate="animate"
         >
-          {totals.map(({ key, label, value, icon: Icon, tone, note }) => (
+          {totals.map(({ key, label, value, icon: Icon, tone, accent, pill, pillLabel, note }) => (
             <motion.div key={key} variants={staggerChild(reduceMotion)}>
-              <Card className="h-full p-4 sm:p-5">
-                <p className={SECTION_LABEL}>{label}</p>
-                {/* Icon plus a named label, so none of the three figures depends
-                    on its colour to be understood. */}
-                <p className={cn('mt-2 flex items-center gap-1.5 text-2xl font-semibold tracking-tight tnum', tone)}>
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <Card className={cn(
+                'relative overflow-hidden h-full p-4 sm:p-5 border-sb-hairline bg-surface-1 shadow-card group hover:shadow-card-hover transition-all duration-300',
+                'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:to-transparent',
+                accent
+              )}>
+                <div className="flex items-center justify-between">
+                  <p className={SECTION_LABEL}>{label}</p>
+                  <span className={cn('text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full', pill)}>
+                    {pillLabel}
+                  </span>
+                </div>
+                <p className={cn('mt-3 flex items-center gap-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight tnum', tone)}>
+                  <Icon className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
                   {formatCurrency(value)}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">{note}</p>
+                <p className="mt-2 text-xs font-medium leading-relaxed text-sb-ink-muted">{note}</p>
               </Card>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Search and filters. Their own card so it is obvious they act on the
-            list beneath and not on the totals above. */}
-        <Card className="p-3 sm:p-4">
+        {/* Search and filters */}
+        <Card className="p-3 sm:p-4 border-sb-hairline bg-surface-1 shadow-card">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-            {/* Input renders its own wrapper and puts className on the <input>,
-                so the flex sizing has to live out here. */}
             <div className="min-w-0 flex-1">
               <label htmlFor="txn-search" className="sr-only">Search transactions</label>
               <Input
@@ -299,7 +322,7 @@ export default function ExpensesPage() {
                 <button
                   type="button"
                   onClick={() => { setSearchQuery(''); setFilterType('all'); setFilterCategory('all') }}
-                  className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-default px-3 text-sm font-medium text-zinc-400 transition-colors hover:border-border-hover hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                  className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-sb-hairline bg-surface-1 px-3 text-sm font-semibold text-sb-ink-muted transition-colors hover:border-brand-500/30 hover:text-sb-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   <X className="h-4 w-4 shrink-0" aria-hidden="true" /> Clear
                 </button>
@@ -325,11 +348,11 @@ export default function ExpensesPage() {
         {/* The list */}
         <section className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="text-base font-semibold tracking-tight text-zinc-50">
+            <h2 className="text-base font-bold tracking-tight text-sb-ink">
               {isFiltered ? 'Matching transactions' : 'All transactions'}
             </h2>
             {!loading && (
-              <p className="tnum text-xs text-zinc-400">
+              <p className="tnum text-xs font-semibold text-sb-ink-muted bg-surface-2/60 border border-sb-hairline px-2.5 py-0.5 rounded-full">
                 {filteredTransactions.length !== transactions.length
                   ? `${filteredTransactions.length} of ${transactions.length}`
                   : `${transactions.length} ${transactions.length === 1 ? 'transaction' : 'transactions'}`}
@@ -344,7 +367,7 @@ export default function ExpensesPage() {
             onRefresh={fetchTransactions}
             isFiltered={isFiltered}
             emptyAction={
-              <Button onClick={() => setShowForm(true)} className="h-11 justify-center gap-1.5">
+              <Button onClick={() => setShowForm(true)} className="h-11 justify-center gap-1.5 font-semibold shadow-xs">
                 <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add transaction
               </Button>
             }

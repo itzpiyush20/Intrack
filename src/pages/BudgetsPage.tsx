@@ -194,13 +194,18 @@ export default function BudgetsPage() {
   const projectPace = (spent: number) =>
     daysElapsed > 0 ? (spent / daysElapsed) * daysInSelectedMonth : spent
 
+  const overallBurnPct = totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0
+
   const summaryCards = [
     {
       key: 'budgeted',
       label: 'Budgeted',
       value: totalBudgeted,
       icon: Target,
-      tone: 'text-zinc-50',
+      tone: 'text-sb-ink',
+      accent: 'before:via-brand-500/40',
+      pill: 'bg-brand-500/10 text-brand-700',
+      pillLabel: 'Limit',
       note: 'Every limit you have set, added up',
     },
     {
@@ -208,7 +213,10 @@ export default function BudgetsPage() {
       label: 'Spent against it',
       value: totalSpent,
       icon: Wallet,
-      tone: 'text-zinc-50',
+      tone: 'text-sb-ink',
+      accent: 'before:via-brand-500/40',
+      pill: 'bg-surface-2 text-sb-ink-muted',
+      pillLabel: `${overallBurnPct}% used`,
       note: 'Only spending in categories you budgeted',
     },
     {
@@ -219,21 +227,38 @@ export default function BudgetsPage() {
       tone: remainingBudget >= 0
         ? 'text-[var(--status-positive-text)]'
         : 'text-[var(--status-danger-text)]',
+      accent: remainingBudget >= 0 ? 'before:via-emerald-500' : 'before:via-red-500',
+      pill: remainingBudget >= 0 ? 'bg-emerald-500/10 text-emerald-700' : 'bg-red-500/10 text-red-700',
+      pillLabel: remainingBudget >= 0 ? 'Available' : 'Exceeded',
       note: remainingBudget >= 0 ? 'Left before you hit your limits' : 'Spent past your limits',
     },
   ] as const
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      {/* Ambient luxury emerald backlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/3 -translate-x-1/2 h-72 w-[40rem] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl"
+      />
+
+      <div className="relative z-10 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">Budgets</h1>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-400">
-              Set a monthly limit per category and Intrack warns you before you pass it. A limit
-              carries into next month on its own — set it once.
-            </p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">Budgets</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+              <p className="max-w-2xl text-sm font-medium leading-relaxed text-sb-ink-secondary">
+                Set a monthly limit per category and Intrack warns you before you pass it.
+              </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-700 shadow-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
+                </span>
+                <span>Pace Forecast Active</span>
+              </div>
+            </div>
           </div>
 
           <div className="md:shrink-0">
@@ -251,15 +276,13 @@ export default function BudgetsPage() {
           </div>
         )}
 
-        {/* Where each budget stands. Under budget is reported as loudly as over
-            budget — an app that only ever speaks up to scold you is an app
-            people stop opening. */}
+        {/* Where each budget stands */}
         {allOnTrack && (
-          <p className="flex items-start gap-2.5 rounded-2xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-4 text-sm leading-relaxed text-[var(--status-positive-text)]">
+          <p className="flex items-start gap-2.5 rounded-2xl border border-[var(--status-positive-border)] bg-[var(--status-positive-subtle)] p-4 text-sm leading-relaxed text-[var(--status-positive-text)] shadow-xs">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>
               All {budgets.length} budget{budgets.length === 1 ? '' : 's'} on track, with{' '}
-              <strong className="tnum font-semibold">{formatCurrency(remainingBudget)}</strong> left
+              <strong className="tnum font-bold">{formatCurrency(remainingBudget)}</strong> left
               across them.
             </span>
           </p>
@@ -276,7 +299,7 @@ export default function BudgetsPage() {
                 <li
                   key={b.id}
                   className={cn(
-                    'flex items-start gap-2.5 rounded-2xl border p-4 text-sm leading-relaxed',
+                    'flex items-start gap-2.5 rounded-2xl border p-4 text-sm leading-relaxed shadow-xs',
                     isExceeded
                       ? 'border-[var(--status-danger-border)] bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)]'
                       : 'border-[var(--status-warning-border)] bg-[var(--status-warning-subtle)] text-[var(--status-warning-text)]'
@@ -286,14 +309,14 @@ export default function BudgetsPage() {
                   <span>
                     {isExceeded ? (
                       <>
-                        <strong className="font-semibold">{cat.label}</strong> is over its limit —{' '}
-                        <strong className="tnum font-semibold">{formatCurrency(spent)}</strong> spent
+                        <strong className="font-bold">{cat.label}</strong> is over its limit —{' '}
+                        <strong className="tnum font-bold">{formatCurrency(spent)}</strong> spent
                         against <span className="tnum">{formatCurrency(b.amount)}</span>.
                       </>
                     ) : (
                       <>
-                        <strong className="font-semibold">{cat.label}</strong> is at{' '}
-                        <strong className="tnum font-semibold">
+                        <strong className="font-bold">{cat.label}</strong> is at{' '}
+                        <strong className="tnum font-bold">
                           {Math.round((spent / b.amount) * 100)}%
                         </strong>{' '}
                         of its limit — <span className="tnum">{formatCurrency(spent)}</span> of{' '}
@@ -314,15 +337,24 @@ export default function BudgetsPage() {
           initial="initial"
           animate="animate"
         >
-          {summaryCards.map(({ key, label, value, icon: Icon, tone, note }) => (
+          {summaryCards.map(({ key, label, value, icon: Icon, tone, accent, pill, pillLabel, note }) => (
             <motion.div key={key} variants={staggerChild(reduceMotion)}>
-              <Card className="h-full p-4 sm:p-5">
-                <p className={SECTION_LABEL}>{label}</p>
-                <p className={cn('mt-2 flex items-center gap-1.5 text-2xl font-semibold tracking-tight tnum', tone)}>
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <Card className={cn(
+                'relative overflow-hidden h-full p-4 sm:p-5 border-sb-hairline bg-surface-1 shadow-card group hover:shadow-card-hover transition-all duration-300',
+                'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:to-transparent',
+                accent
+              )}>
+                <div className="flex items-center justify-between">
+                  <p className={SECTION_LABEL}>{label}</p>
+                  <span className={cn('text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full', pill)}>
+                    {pillLabel}
+                  </span>
+                </div>
+                <p className={cn('mt-3 flex items-center gap-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight tnum', tone)}>
+                  <Icon className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
                   {formatCurrency(value)}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">{note}</p>
+                <p className="mt-2 text-xs font-medium leading-relaxed text-sb-ink-muted">{note}</p>
               </Card>
             </motion.div>
           ))}
@@ -330,9 +362,9 @@ export default function BudgetsPage() {
 
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left column: the limits themselves */}
-          <Card className="lg:col-span-8">
-            <h2 className="text-base font-semibold tracking-tight text-zinc-50">Your limits</h2>
-            <p className="mt-1 text-xs text-zinc-400">
+          <Card className="lg:col-span-8 border-sb-hairline bg-surface-1 shadow-card">
+            <h2 className="text-base font-bold tracking-tight text-sb-ink">Your limits</h2>
+            <p className="mt-1 text-xs font-medium text-sb-ink-muted">
               {formatDateFilterLabel(dateFilter)}
             </p>
 
@@ -364,7 +396,7 @@ export default function BudgetsPage() {
                 />
               ) : (
                 <motion.ul
-                  className="divide-y divide-border-subtle"
+                  className="divide-y divide-sb-hairline"
                   variants={staggerParent(reduceMotion, budgets.length)}
                   initial="initial"
                   animate="animate"
@@ -376,10 +408,6 @@ export default function BudgetsPage() {
                       const remaining = budget.amount - spent
                       const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
 
-                      // The bar agrees with the badge beside it. It used to turn
-                      // red at 90% while the badge still read "Warning", which
-                      // asked the user to reconcile two different verdicts on
-                      // the same number.
                       const barColor =
                         pct >= 100 ? 'var(--status-danger-text)'
                         : pct >= 70 ? 'var(--status-warning-text)'
@@ -402,18 +430,16 @@ export default function BudgetsPage() {
                             <div className="flex min-w-0 items-start gap-3">
                               <span
                                 aria-hidden="true"
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-xs"
                                 style={{ backgroundColor: `${cat.color}15` }}
                               >
                                 {cat.emoji}
                               </span>
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <h3 className="truncate text-sm font-semibold text-zinc-100">
+                                  <h3 className="truncate text-sm font-bold text-sb-ink">
                                     {cat.label}
                                   </h3>
-                                  {/* Icon and word, so the verdict never rests
-                                      on the badge's colour alone. */}
                                   {pct >= 100 ? (
                                     <Badge variant="danger">
                                       <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -431,8 +457,8 @@ export default function BudgetsPage() {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="mt-1 text-xs text-zinc-400">
-                                  Limit <span className="tnum font-medium text-zinc-300">{formatCurrency(budget.amount)}</span>
+                                <p className="mt-1 text-xs font-medium text-sb-ink-muted">
+                                  Limit <span className="tnum font-bold text-sb-ink-secondary">{formatCurrency(budget.amount)}</span>
                                   {budget.monthCount > 1 && (
                                     <span> · across {budget.monthCount} months</span>
                                   )}
@@ -440,18 +466,15 @@ export default function BudgetsPage() {
                               </div>
                             </div>
 
-                            {/* Fixed-width figures column so the amounts read
-                                straight down the list instead of drifting with
-                                the length of each category name. */}
                             <div className="flex items-start justify-between gap-3 sm:justify-end">
                               <div className="min-w-0 sm:w-40 sm:text-right">
-                                <p className="tnum text-sm font-semibold text-zinc-100">
+                                <p className="tnum text-sm font-bold text-sb-ink">
                                   {formatCurrency(spent)}{' '}
-                                  <span className="text-xs font-normal text-zinc-400">spent</span>
+                                  <span className="text-xs font-normal text-sb-ink-muted">spent</span>
                                 </p>
                                 <p
                                   className={cn(
-                                    'tnum mt-0.5 text-xs font-medium',
+                                    'tnum mt-0.5 text-xs font-bold',
                                     remaining >= 0
                                       ? 'text-[var(--status-positive-text)]'
                                       : 'text-[var(--status-danger-text)]'
@@ -487,28 +510,26 @@ export default function BudgetsPage() {
                             aria-valuemax={100}
                             aria-valuenow={Math.round(Math.min(100, pct))}
                             aria-label={`${cat.label}: ${Math.round(pct)}% of the limit spent`}
-                            className="h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                            className="h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
                           >
                             <div
-                              className="h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                              className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
                               style={{ width: `${Math.min(100, pct)}%`, backgroundColor: barColor }}
                             />
                           </div>
 
                           {pct > 100 && (
-                            <p className="tnum text-right text-xs font-medium text-[var(--status-danger-text)]">
+                            <p className="tnum text-right text-xs font-bold text-[var(--status-danger-text)]">
                               {Math.round(pct - 100)}% past the limit
                             </p>
                           )}
 
-                          {/* Pace projection — needs at least 4 days elapsed so
-                              a single big buy on the 2nd does not raise an alarm. */}
                           {showPace && (
-                            <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--status-warning-text)]">
-                              <TrendingDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--status-warning-text)]">
+                              <TrendingDown className="h-3.5 w-3.5 shrink-0 animate-pulse" aria-hidden="true" />
                               <span>
                                 At this pace it ends the month{' '}
-                                <span className="tnum">{formatCurrency(projectedOver)}</span> over.
+                                <span className="tnum font-bold">{formatCurrency(projectedOver)}</span> over.
                               </span>
                             </p>
                           )}
@@ -521,16 +542,15 @@ export default function BudgetsPage() {
             </div>
           </Card>
 
-          {/* Right column: set or update a limit. Sticky from lg so it stays
-              reachable beside a long list, the way the Settings rail does. */}
-          <Card className="self-start lg:col-span-4 lg:sticky lg:top-20">
-            <h2 className="text-base font-semibold tracking-tight text-zinc-50">Set a limit</h2>
-            <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+          {/* Right column: set or update a limit */}
+          <Card className="self-start lg:col-span-4 lg:sticky lg:top-20 border-sb-hairline bg-surface-1 shadow-card">
+            <h2 className="text-base font-bold tracking-tight text-sb-ink">Set a limit</h2>
+            <p className="mt-1 text-xs leading-relaxed text-sb-ink-muted">
               Setting a limit for a category that already has one replaces it.
               {dateFilter.mode === 'custom' && (
                 <>
                   {' '}Applies to{' '}
-                  <span className="font-medium text-zinc-300">
+                  <span className="font-semibold text-sb-ink-secondary">
                     {formatDateFilterLabel({ mode: 'month', month: targetMonth })}
                   </span>.
                 </>
@@ -567,17 +587,17 @@ export default function BudgetsPage() {
                 required
               />
 
-              <Button type="submit" block loading={actionLoading} disabled={actionLoading} className="h-11">
+              <Button type="submit" block loading={actionLoading} disabled={actionLoading} className="h-11 font-semibold shadow-xs">
                 Save limit
               </Button>
             </form>
 
             <Link
               to="/insights"
-              className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface-2/50 px-3.5 py-3 text-sm text-zinc-400 transition-colors hover:border-border-hover hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-sb-hairline bg-surface-2/40 px-3.5 py-3 text-sm font-medium text-sb-ink-secondary transition-colors hover:border-brand-500/30 hover:bg-surface-2/70 hover:text-sb-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
             >
               <span>See where the money actually went</span>
-              <ArrowRight className="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true" />
+              <ArrowRight className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
             </Link>
           </Card>
         </div>

@@ -73,8 +73,8 @@ export default function ReceivablesCard({ onSettled }: ReceivablesCardProps) {
           <HandCoins className="h-4.5 w-4.5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-bold text-zinc-100">Owed back to you</h2>
-          <p className="mt-0.5 text-sm text-zinc-400">
+          <h2 className="text-base font-bold text-sb-ink">Owed back to you</h2>
+          <p className="mt-0.5 text-sm text-sb-ink-muted">
             Spending you fronted for someone else. Marking it received files the repayment.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default function ReceivablesCard({ onSettled }: ReceivablesCardProps) {
             ? 'text-[var(--status-danger-text)]'
             : isDueSoon
             ? 'text-[var(--status-warning-text)]'
-            : 'text-zinc-400'
+            : 'text-sb-ink-muted'
           const StatusIcon = isOverdue ? AlertTriangle : Clock
 
           return (
@@ -107,18 +107,18 @@ export default function ReceivablesCard({ onSettled }: ReceivablesCardProps) {
               key={r.id}
               variants={rowVariants(reduce)}
               transition={transition(reduce)}
-              className="flex flex-col gap-3 rounded-xl border border-border-subtle/50 bg-surface-2/50 p-3.5 transition-colors hover:border-border-hover sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-xl border border-sb-hairline bg-surface-2/40 p-3.5 transition-colors hover:border-brand-500/30 hover:bg-surface-2/70 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm text-zinc-100">
-                  <span className="font-semibold">{r.counterparty || 'Someone'}</span> owes you{' '}
-                  <span className="font-semibold tnum">{formatCurrency(Number(r.amount))}</span>
+                <p className="truncate text-sm text-sb-ink">
+                  <span className="font-semibold text-sb-ink">{r.counterparty || 'Someone'}</span> owes you{' '}
+                  <span className="font-bold tnum text-sb-ink">{formatCurrency(Number(r.amount))}</span>
                 </p>
                 <p className={`mt-1 flex items-start gap-1.5 text-xs ${statusInk}`}>
                   <StatusIcon className="h-3.5 w-3.5 shrink-0 mt-px" aria-hidden="true" />
                   <span>
                     {isOverdue ? 'Overdue since ' : isDueSoon ? 'Due soon — ' : 'Due '}
-                    <span className="tnum">
+                    <span className="tnum font-medium">
                       {r.expected_return_date ? formatDate(r.expected_return_date) : 'no date set'}
                     </span>
                     {r.notes ? ` · ${r.notes}` : ''}
@@ -130,7 +130,7 @@ export default function ReceivablesCard({ onSettled }: ReceivablesCardProps) {
                 loading={settlingId === r.id}
                 onClick={() => handleSettle(r.id)}
                 aria-label={`Mark ${formatCurrency(Number(r.amount))} from ${r.counterparty || 'someone'} as received`}
-                className="h-11 w-full shrink-0 sm:w-auto"
+                className="h-11 w-full shrink-0 sm:w-auto font-semibold"
               >
                 Mark received
               </Button>

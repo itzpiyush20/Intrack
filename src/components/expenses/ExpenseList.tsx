@@ -200,7 +200,7 @@ export default function ExpenseList({
               onChange={handleToggleAll}
               aria-label={allSelected ? 'Clear selection' : 'Select every transaction shown'}
             />
-            <span className="text-xs font-medium text-zinc-400">
+            <span className="text-xs font-semibold text-sb-ink-muted">
               {selectedIds.length > 0 ? `${selectedIds.length} selected` : 'Select all'}
             </span>
           </label>
@@ -241,13 +241,12 @@ export default function ExpenseList({
           )}
         </div>
 
-        {/* Column header — only where the columns actually exist. It is what
-            makes the alignment below read as deliberate rather than lucky. */}
+        {/* Column header */}
         <div
           aria-hidden="true"
           className={cn(
             ROW_GRID,
-            'hidden border-b border-border-subtle px-4 py-2 text-xs font-medium uppercase tracking-wider text-zinc-400 sm:px-5 md:grid'
+            'hidden border-b border-sb-hairline px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-sb-ink-muted sm:px-5 md:grid bg-surface-2/30'
           )}
         >
           <span />
@@ -316,7 +315,7 @@ export default function ExpenseList({
                         {txn.tags && txn.tags.length > 0 && (
                           <ul className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
                             {txn.tags.map((tag, idx) => (
-                              <li key={idx} className="text-xs font-medium text-zinc-400">
+                              <li key={idx} className="text-xs font-semibold text-brand-700 bg-brand-500/10 px-1.5 py-0.2 rounded">
                                 #{tag}
                               </li>
                             ))}
@@ -327,35 +326,31 @@ export default function ExpenseList({
 
                     {/* Below md the date and category live here, under the
                         name, because there are no columns to put them in. */}
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400 md:hidden">
-                      <span className="tnum">{formatDate(txn.date)}</span>
-                      <span aria-hidden="true" className="text-zinc-500">·</span>
-                      <span className="truncate">{cat.emoji} {cat.label}</span>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sb-ink-muted md:hidden">
+                      <span className="tnum font-medium">{formatDate(txn.date)}</span>
+                      <span aria-hidden="true" className="text-sb-ink-muted/40">·</span>
+                      <span className="truncate font-medium">{cat.emoji} {cat.label}</span>
                     </p>
 
                     <div className="hidden min-w-0 md:block">
-                      <Badge className="max-w-full truncate" title={cat.label}>
+                      <Badge className="max-w-full truncate font-medium" title={cat.label}>
                         {cat.label}
                       </Badge>
                     </div>
                   </div>
 
-                  {/* Amount, date and actions. Same trick: one right-hand stack
-                      on a phone, three aligned columns on a desk. */}
+                  {/* Amount, date and actions */}
                   <div className="shrink-0 md:contents">
                     <div className="text-right">
                       <p
                         className={cn(
-                          'tnum text-sm font-semibold tracking-tight',
-                          isDebit ? 'text-zinc-50' : 'text-[var(--status-positive-text)]'
+                          'tnum text-sm font-bold tracking-tight',
+                          isDebit ? 'text-sb-ink' : 'text-[var(--status-positive-text)]'
                         )}
                       >
                         {formatCurrency(Number(txn.amount))}
                       </p>
-                      {/* Never colour alone: an arrow and a word carry the
-                          direction for anyone who cannot separate the two
-                          greens and reds. */}
-                      <p className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-zinc-400">
+                      <p className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-sb-ink-muted">
                         {isDebit ? (
                           <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         ) : (
@@ -365,7 +360,7 @@ export default function ExpenseList({
                       </p>
                     </div>
 
-                    <p className="tnum hidden text-right text-xs text-zinc-400 md:block">
+                    <p className="tnum hidden text-right text-xs font-medium text-sb-ink-muted md:block">
                       {formatDate(txn.date)}
                     </p>
 

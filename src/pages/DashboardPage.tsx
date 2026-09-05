@@ -743,32 +743,40 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
+      {/* Ambient luxury emerald backlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/3 -translate-x-1/2 h-72 w-[40rem] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl"
+      />
+
       <motion.div
         variants={staggerParent(reduce, 8)}
         initial="initial"
         animate="animate"
-        className="space-y-6 md:space-y-8"
+        className="relative z-10 space-y-6 md:space-y-8"
       >
-        {/* ── Greeting and period controls ───────────────────────────────
-            The controls wrap under the greeting on a phone. DateFilterPicker
-            already wraps internally, so at 360px it breaks onto its own lines
-            rather than pushing the page wider. */}
+        {/* ── Greeting and period controls ─────────────────────────────── */}
         <motion.header variants={staggerChild(reduce)} className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 md:text-3xl">
+            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">
               Hello, {getFirstName()}
             </h1>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <p className="text-sm text-zinc-400">
-                {/* A month reads as "in September 2026"; a custom range is a
-                    span, not a place, so it takes a comma instead. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <p className="text-sm font-medium text-sb-ink-secondary">
                 What your money did{dateFilter.mode === 'month' ? ' in ' : ', '}
-                {periodLabel}.
+                <span className="font-semibold text-sb-ink">{periodLabel}</span>.
               </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-700 shadow-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
+                </span>
+                <span>Autonomous Ledger</span>
+              </div>
               {streakInfo.streak > 1 && (
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle/50 bg-surface-2 px-2 py-0.5 text-xs font-semibold text-zinc-400">
-                  <Flame className="h-3 w-3 shrink-0" aria-hidden="true" />
-                  <span className="tnum">{streakInfo.streak}</span> days logged in a row
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-800 shadow-xs">
+                  <Flame className="h-3.5 w-3.5 shrink-0 text-amber-600 animate-pulse" aria-hidden="true" />
+                  <span className="tnum">{streakInfo.streak}</span> day streak
                 </span>
               )}
             </div>
@@ -928,11 +936,11 @@ export default function DashboardPage() {
             checklist back for an established user. */}
         {!checklistDismissed && isCurrentMonth && (recentTransactions.length === 0 || monthBudgetTotal === 0) && (
           <motion.div variants={staggerChild(reduce)}>
-            <Card>
+            <Card className="border-sb-hairline bg-surface-1 shadow-card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-base font-bold text-zinc-100">Three things to set up</h2>
-                  <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                  <h2 className="text-base font-bold text-sb-ink">Three things to set up</h2>
+                  <p className="mt-1 text-sm text-sb-ink-muted leading-relaxed">
                     Each one takes under a minute, and the dashboard fills in as you go.
                   </p>
                 </div>
@@ -940,7 +948,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={dismissChecklist}
                   aria-label="Dismiss the setup checklist"
-                  className="h-11 w-11 -mr-2 -mt-2 flex shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-surface-2 hover:text-zinc-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                  className="h-11 w-11 -mr-2 -mt-2 flex shrink-0 items-center justify-center rounded-lg text-sb-ink-muted transition-colors hover:bg-surface-2 hover:text-sb-ink cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -964,30 +972,28 @@ export default function DashboardPage() {
                     done: visitedAnalytics,
                     label: 'Look at your Insights',
                     hint: 'Trends, forecasts and where the money actually goes.',
-                    // '/analytics' is not a route — App.tsx's catch-all
-                    // redirected this straight out of the app.
                     to: visitedAnalytics ? null : '/insights',
                   },
                 ].map((step) => (
-                  <li key={step.label} className={`${ROW_TILE} flex items-center gap-3 p-3.5`}>
+                  <li key={step.label} className={`${ROW_TILE} flex items-center gap-3 p-3.5 border-sb-hairline bg-surface-2/40`}>
                     {step.done ? (
                       <CheckCircle2
                         className="h-5 w-5 shrink-0 text-[var(--status-positive-text)]"
                         aria-hidden="true"
                       />
                     ) : (
-                      <Circle className="h-5 w-5 shrink-0 text-zinc-400" aria-hidden="true" />
+                      <Circle className="h-5 w-5 shrink-0 text-sb-ink-muted" aria-hidden="true" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium ${step.done ? 'text-zinc-400 line-through' : 'text-zinc-100'}`}>
+                      <p className={`text-sm font-semibold ${step.done ? 'text-sb-ink-muted line-through' : 'text-sb-ink'}`}>
                         {step.label}
                         <span className="sr-only">{step.done ? ' — done' : ' — not done yet'}</span>
                       </p>
-                      {!step.done && <p className="mt-0.5 text-xs text-zinc-400 leading-relaxed">{step.hint}</p>}
+                      {!step.done && <p className="mt-0.5 text-xs text-sb-ink-muted leading-relaxed">{step.hint}</p>}
                     </div>
                     {step.to && (
                       <Link to={step.to} className="shrink-0">
-                        <Button variant="secondary" className="h-11">Start</Button>
+                        <Button variant="secondary" className="h-11 font-semibold">Start</Button>
                       </Link>
                     )}
                   </li>
@@ -1004,7 +1010,7 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {loading ? (
                 [0, 1, 2].map((i) => (
-                  <Card key={i} className={i === 2 ? 'sm:col-span-2 lg:col-span-1' : undefined}>
+                  <Card key={i} className={`border-sb-hairline bg-surface-1 shadow-card ${i === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
                     <div role="status" aria-label="Loading totals">
                       <div className="flex items-center gap-2.5">
                         <Skeleton shape="block" className="h-9 w-9" />
@@ -1017,51 +1023,64 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <>
-                  <Card>
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]"
-                      >
-                        <TrendingUp className="h-4.5 w-4.5" />
-                      </span>
-                      <h2 className={SECTION_LABEL}>Money in</h2>
+                  <Card className="relative overflow-hidden group hover:shadow-card-hover transition-all duration-300 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-emerald-500 before:to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] shadow-xs"
+                        >
+                          <TrendingUp className="h-4.5 w-4.5" />
+                        </span>
+                        <h2 className={SECTION_LABEL}>Money in</h2>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">Inflow</span>
                     </div>
-                    <p className="mt-4 text-3xl font-semibold tracking-tight tnum text-[var(--status-positive-text)]">
+                    <p className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-[var(--status-positive-text)]">
                       {formatCurrency(summary?.total_income || 0)}
                     </p>
-                    <p className="mt-2 text-xs text-zinc-400">Received in {periodLabel}</p>
+                    <p className="mt-2 text-xs font-medium text-sb-ink-muted">Received in {periodLabel}</p>
                   </Card>
 
                   {/* Expenses are a neutral fact, not a warning — no red. */}
-                  <Card>
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-zinc-300"
-                      >
-                        <TrendingDown className="h-4.5 w-4.5" />
-                      </span>
-                      <h2 className={SECTION_LABEL}>Money out</h2>
+                  <Card className="relative overflow-hidden group hover:shadow-card-hover transition-all duration-300 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-sb-ink-secondary shadow-xs"
+                        >
+                          <TrendingDown className="h-4.5 w-4.5" />
+                        </span>
+                        <h2 className={SECTION_LABEL}>Money out</h2>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-sb-ink-muted">Outflow</span>
                     </div>
-                    <p className="mt-4 text-3xl font-semibold tracking-tight tnum text-zinc-50">
+                    <p className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-sb-ink">
                       {formatCurrency(summary?.total_expenses || 0)}
                     </p>
-                    <p className="mt-2 text-xs text-zinc-400">Spent in {periodLabel}</p>
+                    <p className="mt-2 text-xs font-medium text-sb-ink-muted">Spent in {periodLabel}</p>
                   </Card>
 
-                  <Card className="sm:col-span-2 lg:col-span-1">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
-                      >
-                        <Shield className="h-4.5 w-4.5" />
+                  <Card className="sm:col-span-2 lg:col-span-1 relative overflow-hidden group hover:shadow-card-hover transition-all duration-300 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500 before:to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-700 shadow-xs"
+                        >
+                          <Shield className="h-4.5 w-4.5" />
+                        </span>
+                        <h2 className={SECTION_LABEL}>Kept</h2>
+                      </div>
+                      <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                        (summary?.savings || 0) >= 0 ? 'bg-brand-500/10 text-brand-700' : 'bg-red-500/10 text-red-700'
+                      }`}>
+                        {(summary?.savings || 0) >= 0 ? 'Surplus' : 'Deficit'}
                       </span>
-                      <h2 className={SECTION_LABEL}>Kept</h2>
                     </div>
                     <p
-                      className={`mt-4 text-3xl font-semibold tracking-tight tnum ${
+                      className={`mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum ${
                         (summary?.savings || 0) >= 0
                           ? 'text-[var(--status-positive-text)]'
                           : 'text-[var(--status-danger-text)]'
@@ -1071,13 +1090,11 @@ export default function DashboardPage() {
                     </p>
                     <div className="mt-3">
                       <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-                        {/* Said in words as well as colour: a negative rate is
-                            "overspent", not just a red number. */}
-                        <span className="text-zinc-400">
+                        <span className="font-medium text-sb-ink-muted">
                           {(summary?.savings || 0) >= 0 ? 'Of what came in' : 'Overspent'}
                         </span>
                         <span
-                          className={`font-semibold tnum ${
+                          className={`font-bold tnum ${
                             (summary?.savings || 0) >= 0
                               ? 'text-[var(--status-positive-text)]'
                               : 'text-[var(--status-danger-text)]'
@@ -1092,12 +1109,12 @@ export default function DashboardPage() {
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-label="Share of income kept"
-                        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
+                        className="h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
                       >
                         <div
                           className={`h-full rounded-full ${
-                            reduce ? '' : 'transition-[width] duration-500 ease-out'
-                          } ${(summary?.savings || 0) >= 0 ? 'bg-brand-500' : 'bg-[var(--status-danger-text)]'}`}
+                            reduce ? '' : 'transition-[width] duration-700 ease-out'
+                          } ${(summary?.savings || 0) >= 0 ? 'bg-gradient-to-r from-brand-600 to-emerald-500' : 'bg-[var(--status-danger-text)]'}`}
                           style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
                         />
                       </div>
@@ -1117,15 +1134,15 @@ export default function DashboardPage() {
         {summary?.other_currency_totals && Object.keys(summary.other_currency_totals).length > 0 && (
           <motion.aside
             variants={staggerChild(reduce)}
-            className="rounded-2xl border border-border-subtle bg-surface-1 p-4 sm:p-5"
+            className="rounded-2xl border border-sb-hairline bg-surface-1 p-4 sm:p-5 shadow-card"
           >
-            <p className="text-sm font-semibold text-zinc-100">Also spent in other currencies</p>
-            <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+            <p className="text-sm font-bold text-sb-ink">Also spent in other currencies</p>
+            <p className="mt-1 text-xs text-sb-ink-muted leading-relaxed">
               Left out of the totals above — Intrack does not convert between currencies.
             </p>
             <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
               {Object.entries(summary.other_currency_totals).map(([code, totals]) => (
-                <li key={code} className="text-sm tnum text-zinc-300">
+                <li key={code} className="text-sm tnum font-medium text-sb-ink-secondary">
                   {totals.expenses > 0 && <>{formatCurrency(totals.expenses, code)} spent</>}
                   {totals.expenses > 0 && totals.income > 0 && ' · '}
                   {totals.income > 0 && <>{formatCurrency(totals.income, code)} received</>}
@@ -1135,22 +1152,19 @@ export default function DashboardPage() {
           </motion.aside>
         )}
 
-        {/* ── Two findings, side by side ───────────────────────────────
-            Both are the same object: one sentence about the period, and a way
-            through to the screen that explains it. They were two stacked
-            full-width strips, which read as two unrelated banners. */}
+        {/* ── Two findings, side by side ─────────────────────────────── */}
         {linkTileCount > 0 && (
           <motion.section variants={staggerChild(reduce)} className="grid gap-4 sm:grid-cols-2">
             {widgets.insights && (
               <Link
                 to="/insights"
-                className={`group flex items-start gap-4 rounded-2xl border border-border-subtle bg-surface-1 p-5 shadow-[var(--shadow-sm)] transition-colors hover:border-border-hover hover:bg-surface-2/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
+                className={`group flex items-start gap-4 rounded-2xl border border-sb-hairline bg-surface-1 p-5 shadow-card transition-all duration-300 hover:border-brand-500/30 hover:shadow-card-hover hover:bg-surface-2/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-700 shadow-xs group-hover:scale-105 transition-transform"
                 >
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5 animate-pulse" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 className={SECTION_LABEL}>Worth knowing</h2>
@@ -1160,29 +1174,29 @@ export default function DashboardPage() {
                       <Skeleton className="mt-1.5 h-4 w-2/3" />
                     </div>
                   ) : insightsTeaser === 'none' ? (
-                    <p className="mt-1.5 text-sm text-zinc-200 leading-relaxed">
+                    <p className="mt-1.5 text-sm text-sb-ink-secondary leading-relaxed font-medium">
                       Nothing unusual this month — your spending is steady.
                     </p>
                   ) : (
-                    <p className="mt-1.5 text-sm text-zinc-200 leading-relaxed">
+                    <p className="mt-1.5 text-sm text-sb-ink-secondary leading-relaxed font-medium">
                       {(() => {
                         const cat = getStyle(insightsTeaser.category)
                         return (
                           <>
-                            <span className="font-semibold">{cat.emoji} {cat.label}</span> spending is
+                            <span className="font-semibold text-sb-ink">{cat.emoji} {cat.label}</span> spending is
                             {insightsTeaser.isProjection ? ' on track to be up ' : ' up '}
-                            <span className="font-semibold tnum text-[var(--status-warning-text)]">
+                            <span className="font-bold tnum text-[var(--status-warning-text)]">
                               {Math.round(insightsTeaser.spike)}%
                             </span>{' '}
-                            this month — <span className="tnum">{formatCurrency(insightsTeaser.projectedMonth)}</span>
+                            this month — <span className="tnum font-semibold text-sb-ink">{formatCurrency(insightsTeaser.projectedMonth)}</span>
                             {insightsTeaser.isProjection ? ' projected' : ''} against a{' '}
-                            <span className="tnum">{formatCurrency(insightsTeaser.baseline)}</span> average.
+                            <span className="tnum font-semibold text-sb-ink">{formatCurrency(insightsTeaser.baseline)}</span> average.
                           </>
                         )
                       })()}
                     </p>
                   )}
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand-700 group-hover:translate-x-0.5 transition-transform">
                     See all insights
                     <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
@@ -1194,11 +1208,11 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowCcBillModal(true)}
-                className={`group flex items-start gap-4 rounded-2xl border border-border-subtle bg-surface-1 p-5 text-left shadow-[var(--shadow-sm)] transition-colors hover:border-border-hover hover:bg-surface-2/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
+                className={`group flex items-start gap-4 rounded-2xl border border-sb-hairline bg-surface-1 p-5 text-left shadow-card transition-all duration-300 hover:border-brand-500/30 hover:shadow-card-hover hover:bg-surface-2/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${linkTileSpan}`}
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-700 shadow-xs group-hover:scale-105 transition-transform"
                 >
                   <CreditCard className="h-5 w-5" />
                 </span>
@@ -1211,21 +1225,19 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <>
-                      <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                      <p className="mt-1.5 text-2xl font-bold tracking-tight tnum text-sb-ink">
                         {formatCurrency(ccBillTotal)}
                       </p>
-                      <p className="mt-1 text-sm text-zinc-400 leading-relaxed">
+                      <p className="mt-1 text-sm text-sb-ink-muted leading-relaxed">
                         {ccBillHomeTxns.length === 0
                           ? ccBillTxns.length > 0
-                            // Foreign-currency payments only: ₹0 with a flat
-                            // "none" would contradict the list the modal shows.
                             ? `Only foreign-currency payments in ${periodLabel}.`
                             : `No bill payments in ${periodLabel}.`
                           : `${ccBillHomeTxns.length} payment${ccBillHomeTxns.length === 1 ? '' : 's'} in ${periodLabel}, kept out of Money out — the purchases behind them were already counted.`}
                       </p>
                     </>
                   )}
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand-700 group-hover:translate-x-0.5 transition-transform">
                     View payments
                     <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   </span>
@@ -1261,17 +1273,17 @@ export default function DashboardPage() {
         {(widgets.breakdown || widgets.recent) && (
           <motion.section variants={staggerChild(reduce)} className="grid gap-4 lg:grid-cols-12 lg:gap-6">
             {widgets.breakdown && (
-              <Card className={`flex flex-col ${widgets.recent ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+              <Card className={`flex flex-col border-sb-hairline bg-surface-1 shadow-card ${widgets.recent ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-base font-bold text-zinc-100">Where it went</h2>
-                    <p className="mt-1 text-sm text-zinc-400">By category, {periodLabel}</p>
+                    <h2 className="text-base font-bold text-sb-ink">Where it went</h2>
+                    <p className="mt-1 text-sm text-sb-ink-muted">By category, {periodLabel}</p>
                   </div>
                   {summary && summary.category_breakdown.length > CATEGORY_BREAKDOWN_PREVIEW_COUNT && (
                     <Button
                       variant="ghost"
                       onClick={() => setShowAllCategories((prev) => !prev)}
-                      className="h-11 shrink-0 px-3"
+                      className="h-11 shrink-0 px-3 font-semibold"
                     >
                       {showAllCategories
                         ? 'Show fewer'
@@ -1295,7 +1307,7 @@ export default function DashboardPage() {
                     </div>
                   ) : !summary || summary.category_breakdown.length === 0 ? (
                     <EmptyState
-                      icon={<BarChart2 className="h-8 w-8 text-zinc-400" />}
+                      icon={<BarChart2 className="h-8 w-8 text-sb-ink-muted" />}
                       title="Nothing spent in this period"
                       description={
                         isCurrentMonth
@@ -1307,7 +1319,7 @@ export default function DashboardPage() {
                           <Button
                             variant="secondary"
                             onClick={() => setDateFilter({ mode: 'month', month: getCurrentMonth() })}
-                            className="h-11"
+                            className="h-11 font-semibold"
                           >
                             Back to this month
                           </Button>
@@ -1337,21 +1349,21 @@ export default function DashboardPage() {
                               type="button"
                               onClick={() => handleCategoryClick(item.category)}
                               aria-label={`${cat.label}: ${formatCurrency(item.amount)} across ${item.count} transactions`}
-                              className="-mx-2 w-full space-y-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-surface-2/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                              className="-mx-2 w-full space-y-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-surface-2/60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                             >
                               <div className="flex items-baseline justify-between gap-3">
                                 <span className="flex min-w-0 items-baseline gap-2">
                                   <span aria-hidden="true" className="text-base leading-none">{cat.emoji}</span>
-                                  <span className="truncate text-sm font-medium text-zinc-100">{cat.label}</span>
-                                  <span className="shrink-0 text-xs tnum text-zinc-400">
+                                  <span className="truncate text-sm font-semibold text-sb-ink">{cat.label}</span>
+                                  <span className="shrink-0 text-xs tnum font-medium text-sb-ink-muted">
                                     {item.count}
                                   </span>
                                 </span>
                                 <span className="shrink-0 text-right">
-                                  <span className="text-sm font-semibold tnum text-zinc-100">
+                                  <span className="text-sm font-bold tnum text-sb-ink">
                                     {formatCurrency(item.amount)}
                                   </span>
-                                  <span className="ml-2 text-xs tnum text-zinc-400">
+                                  <span className="ml-2 text-xs tnum font-medium text-sb-ink-muted">
                                     {item.percentage.toFixed(0)}%
                                   </span>
                                 </span>
@@ -1362,7 +1374,7 @@ export default function DashboardPage() {
                                 aria-valuemin={0}
                                 aria-valuemax={100}
                                 aria-label={`${cat.label} share of spending`}
-                                className="block h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                                className="block h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
                               >
                                 <span
                                   className={`block h-full rounded-full ${reduce ? '' : 'transition-[width] duration-500 ease-out'}`}
@@ -1382,19 +1394,19 @@ export default function DashboardPage() {
             {widgets.recent && (
               <Card
                 noPadding
-                className={`flex flex-col ${widgets.breakdown ? 'lg:col-span-5' : 'lg:col-span-12'}`}
+                className={`flex flex-col border-sb-hairline bg-surface-1 shadow-card ${widgets.breakdown ? 'lg:col-span-5' : 'lg:col-span-12'}`}
               >
                 <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 md:px-6 md:pt-6">
                   <div className="min-w-0">
-                    <h2 className="text-base font-bold text-zinc-100">Latest activity</h2>
-                    <p className="mt-1 text-sm text-zinc-400">Across every period</p>
+                    <h2 className="text-base font-bold text-sb-ink">Latest activity</h2>
+                    <p className="mt-1 text-sm text-sb-ink-muted">Across every period</p>
                   </div>
-                  <Button variant="ghost" onClick={handleOpenRecentModal} className="h-11 shrink-0 px-3">
+                  <Button variant="ghost" onClick={handleOpenRecentModal} className="h-11 shrink-0 px-3 font-semibold">
                     View more
                   </Button>
                 </div>
 
-                <div className="flex-1 border-t border-border-subtle">
+                <div className="flex-1 border-t border-sb-hairline">
                   {loading ? (
                     <div role="status" aria-label="Loading recent activity" className="space-y-4 p-5 md:p-6">
                       {[0, 1, 2, 3].map((i) => (
@@ -1411,12 +1423,12 @@ export default function DashboardPage() {
                   ) : recentTransactions.length === 0 ? (
                     <div className="px-5 md:px-6">
                       <EmptyState
-                        icon={<DollarSign className="h-8 w-8 text-zinc-400" />}
+                        icon={<DollarSign className="h-8 w-8 text-sb-ink-muted" />}
                         title="No transactions yet"
                         description="Every transaction you add or approve shows up here, newest first — so you can check at a glance that nothing is missing."
                         action={
                           <Link to="/expenses">
-                            <Button>Add a transaction</Button>
+                            <Button className="font-semibold">Add a transaction</Button>
                           </Link>
                         }
                       />
@@ -1426,7 +1438,7 @@ export default function DashboardPage() {
                       variants={staggerParent(reduce, recentTransactions.length)}
                       initial="initial"
                       animate="animate"
-                      className="divide-y divide-border-subtle"
+                      className="divide-y divide-sb-hairline"
                     >
                       {recentTransactions.map((txn) => {
                         const cat = getStyle(txn.category)
@@ -1436,35 +1448,28 @@ export default function DashboardPage() {
                             key={txn.id}
                             variants={rowVariants(reduce)}
                             transition={transition(reduce)}
-                            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2/40 md:px-6"
+                            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2/60 md:px-6"
                           >
                             <span
                               aria-hidden="true"
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base shadow-xs"
                               style={{ backgroundColor: `${cat.color}15` }}
                             >
                               {cat.emoji}
                             </span>
 
-                            {/* Resolved identity, never raw narration. This list
-                                used to print txn.description, so one payment read
-                                "Swiggy" in the modal and "UPI/4412/SWIGGY-BLR"
-                                here. */}
                             <div className="min-w-0 flex-1">
                               <TransactionIdentity {...resolveTransactionIdentity(txn)} size="md" />
-                              <span className="mt-0.5 block text-xs tnum text-zinc-400">
+                              <span className="mt-0.5 block text-xs tnum font-medium text-sb-ink-muted">
                                 {formatDate(txn.date)}
                               </span>
                             </div>
 
                             <p
-                              className={`shrink-0 text-sm font-semibold tnum ${
-                                isDebit ? 'text-zinc-100' : 'text-[var(--status-positive-text)]'
+                              className={`shrink-0 text-sm font-bold tnum ${
+                                isDebit ? 'text-sb-ink' : 'text-[var(--status-positive-text)]'
                               }`}
                             >
-                              {/* The row's own currency — without it a $200
-                                  charge renders as "-₹200" here and "-$200" in
-                                  the modal below. */}
                               {isDebit ? '−' : '+'}
                               {formatCurrencyCompact(Number(txn.amount), txn.currency)}
                               <span className="sr-only">{isDebit ? ' spent' : ' received'}</span>
@@ -1499,7 +1504,7 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4">
-            <p className="text-sm text-zinc-400">Your fifteen most recent transactions.</p>
+            <p className="text-sm font-medium text-sb-ink-muted">Your fifteen most recent transactions.</p>
             {loadingAllRecent ? (
               <div role="status" aria-label="Loading transactions" className="space-y-4">
                 {[0, 1, 2, 3, 4].map((i) => (
@@ -1514,12 +1519,12 @@ export default function DashboardPage() {
               </div>
             ) : allRecentTransactions.length === 0 ? (
               <EmptyState
-                icon={<DollarSign className="h-8 w-8 text-zinc-400" />}
+                icon={<DollarSign className="h-8 w-8 text-sb-ink-muted" />}
                 title="Nothing recorded yet"
                 description="Add a transaction, or scan your inbox from Pending, and it will appear here."
               />
             ) : (
-              <ul className="divide-y divide-border-subtle/40">
+              <ul className="divide-y divide-sb-hairline">
                 {allRecentTransactions.map((txn) => {
                   const cat = getStyle(txn.category)
                   const isDebit = txn.type === 'debit'
@@ -1529,14 +1534,14 @@ export default function DashboardPage() {
                         <span aria-hidden="true" className="shrink-0 text-xl">{cat.emoji}</span>
                         <div className="min-w-0">
                           <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                          <span className="mt-0.5 block text-xs tnum text-zinc-400">
+                          <span className="mt-0.5 block text-xs tnum font-medium text-sb-ink-muted">
                             {formatDate(txn.date)}
                           </span>
                         </div>
                       </div>
                       <span
-                        className={`shrink-0 text-sm font-semibold tnum ${
-                          isDebit ? 'text-zinc-100' : 'text-[var(--status-positive-text)]'
+                        className={`shrink-0 text-sm font-bold tnum ${
+                          isDebit ? 'text-sb-ink' : 'text-[var(--status-positive-text)]'
                         }`}
                       >
                         {isDebit ? '−' : '+'}{formatCurrency(Number(txn.amount), txn.currency)}
@@ -1561,19 +1566,19 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4">
-            <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+            <div className="rounded-xl border border-sb-hairline bg-surface-2/50 p-4">
               <p className={SECTION_LABEL}>{periodLabel}</p>
-              <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+              <p className="mt-1.5 text-2xl font-bold tracking-tight tnum text-sb-ink">
                 {formatCurrency(ccBillTotal)}
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
-                across <span className="tnum">{ccBillHomeTxns.length}</span> payment
+              <p className="mt-1 text-sm font-medium text-sb-ink-muted">
+                across <span className="tnum font-semibold text-sb-ink">{ccBillHomeTxns.length}</span> payment
                 {ccBillHomeTxns.length === 1 ? '' : 's'}
               </p>
               {Object.keys(ccBillForeignTotals).length > 0 && (
-                <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                <p className="mt-2 text-xs text-sb-ink-muted leading-relaxed">
                   Also paid in other currencies, not added to the figure above:{' '}
-                  <span className="tnum">
+                  <span className="tnum font-semibold text-sb-ink-secondary">
                     {Object.entries(ccBillForeignTotals)
                       .map(([code, amount]) => formatCurrency(amount, code))
                       .join(' · ')}
@@ -1581,7 +1586,7 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            <p className="text-sm text-zinc-400 leading-relaxed">
+            <p className="text-sm text-sb-ink-muted leading-relaxed">
               These sit outside Money out. Paying a card bill is not new spending — the
               purchases behind it were counted the day each one happened.
             </p>
@@ -1599,19 +1604,19 @@ export default function DashboardPage() {
               </div>
             ) : ccBillTxns.length === 0 ? (
               <EmptyState
-                icon={<CreditCard className="h-8 w-8 text-zinc-400" />}
+                icon={<CreditCard className="h-8 w-8 text-sb-ink-muted" />}
                 title="No bill payments in this period"
                 description="Tag a transaction with a credit-card-bill category and it is counted here instead of in Money out."
               />
             ) : (
-              <ul className="divide-y divide-border-subtle/40">
+              <ul className="divide-y divide-sb-hairline">
                 {ccBillTxns.map((txn) => (
                   <li key={txn.id} className="flex items-center justify-between gap-3 py-3">
                     <div className="flex min-w-0 flex-col">
                       <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                      <span className="mt-0.5 text-xs tnum text-zinc-400">{formatDate(txn.date)}</span>
+                      <span className="mt-0.5 text-xs tnum font-medium text-sb-ink-muted">{formatDate(txn.date)}</span>
                     </div>
-                    <span className="shrink-0 text-sm font-semibold tnum text-zinc-100">
+                    <span className="shrink-0 text-sm font-bold tnum text-sb-ink">
                       {formatCurrency(Number(txn.amount), txn.currency)}
                     </span>
                   </li>
@@ -1645,13 +1650,13 @@ export default function DashboardPage() {
               }
             >
               <div className="space-y-4">
-                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                <div className="rounded-xl border border-sb-hairline bg-surface-2/50 p-4">
                   <p className={SECTION_LABEL}>{periodLabel}</p>
-                  <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                  <p className="mt-1.5 text-2xl font-bold tracking-tight tnum text-sb-ink">
                     {formatCurrency(totalAmount)}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    across <span className="tnum">{totalCount}</span> transaction
+                  <p className="mt-1 text-sm font-medium text-sb-ink-muted">
+                    across <span className="tnum font-semibold text-sb-ink">{totalCount}</span> transaction
                     {totalCount === 1 ? '' : 's'}
                   </p>
                 </div>
@@ -1669,19 +1674,19 @@ export default function DashboardPage() {
                   </div>
                 ) : categoryTransactions.length === 0 ? (
                   <EmptyState
-                    icon={<BarChart2 className="h-8 w-8 text-zinc-400" />}
+                    icon={<BarChart2 className="h-8 w-8 text-sb-ink-muted" />}
                     title="Nothing to list"
                     description="No transactions in this category fall inside the selected period."
                   />
                 ) : (
-                  <ul className="divide-y divide-border-subtle/40">
+                  <ul className="divide-y divide-sb-hairline">
                     {categoryTransactions.map((txn) => (
                       <li key={txn.id} className="flex items-center justify-between gap-3 py-3">
                         <div className="flex min-w-0 flex-col">
                           <TransactionIdentity {...resolveTransactionIdentity(txn)} size="sm" />
-                          <span className="mt-0.5 text-xs tnum text-zinc-400">{formatDate(txn.date)}</span>
+                          <span className="mt-0.5 text-xs tnum font-medium text-sb-ink-muted">{formatDate(txn.date)}</span>
                         </div>
-                        <span className="shrink-0 text-sm font-semibold tnum text-zinc-100">
+                        <span className="shrink-0 text-sm font-bold tnum text-sb-ink">
                           −{formatCurrency(Number(txn.amount), txn.currency)}
                           <span className="sr-only"> spent</span>
                         </span>
@@ -1694,9 +1699,7 @@ export default function DashboardPage() {
           )
         })()}
 
-        {/* Customise — one switch per optional section, listed in the order
-            they appear on the page. Each row is the target, not a 16px
-            checkbox floating at the end of it. */}
+        {/* Customise */}
         <Modal
           isOpen={showConfigModal}
           onClose={() => setShowConfigModal(false)}
@@ -1708,7 +1711,7 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4">
-            <p className="text-sm text-zinc-400 leading-relaxed">
+            <p className="text-sm text-sb-ink-muted leading-relaxed">
               Turn off anything you do not use. This is saved on this device only, and
               hiding a section never deletes the data behind it.
             </p>
@@ -1722,24 +1725,24 @@ export default function DashboardPage() {
                       role="switch"
                       aria-checked={on}
                       onClick={() => toggleWidget(key)}
-                      className={`${ROW_TILE} flex min-h-14 w-full items-center gap-3 p-3.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40`}
+                      className={`${ROW_TILE} flex min-h-14 w-full items-center gap-3 p-3.5 text-left border-sb-hairline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40`}
                     >
                       <span
                         aria-hidden="true"
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                          on ? 'bg-brand-500/10 text-brand-700' : 'bg-surface-3 text-zinc-400'
+                          on ? 'bg-brand-500/10 text-brand-700' : 'bg-surface-2 text-sb-ink-muted'
                         }`}
                       >
                         <WidgetIcon className="h-4.5 w-4.5" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-zinc-100">{label}</span>
-                        <span className="mt-0.5 block text-xs text-zinc-400 leading-relaxed">{hint}</span>
+                        <span className="block text-sm font-bold text-sb-ink">{label}</span>
+                        <span className="mt-0.5 block text-xs text-sb-ink-muted leading-relaxed">{hint}</span>
                       </span>
                       <span
                         aria-hidden="true"
                         className={`flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors ${
-                          on ? 'border-brand-500/40 bg-brand-500' : 'border-border-default bg-surface-3'
+                          on ? 'border-brand-500/40 bg-brand-500' : 'border-sb-hairline bg-surface-2'
                         }`}
                       >
                         <span
@@ -1756,14 +1759,13 @@ export default function DashboardPage() {
           </div>
         </Modal>
 
-        {/* Month-end recap — a session that closes on a summary is remembered
-            better, and it is a reason to open the app again next month. */}
+        {/* Month-end recap */}
         <Modal
           isOpen={!!monthEndRecap}
           onClose={() => setMonthEndRecap(null)}
           title={monthEndRecap ? `${formatMonthName(monthEndRecap.month)} in review` : 'Recap'}
           footer={
-            <Button block onClick={() => setMonthEndRecap(null)}>
+            <Button block onClick={() => setMonthEndRecap(null)} className="font-semibold">
               Got it
             </Button>
           }
@@ -1771,16 +1773,16 @@ export default function DashboardPage() {
           {monthEndRecap && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                <div className="rounded-xl border border-sb-hairline bg-surface-2/50 p-4">
                   <p className={SECTION_LABEL}>Money out</p>
-                  <p className="mt-1.5 text-2xl font-semibold tracking-tight tnum text-zinc-50">
+                  <p className="mt-1.5 text-2xl font-bold tracking-tight tnum text-sb-ink">
                     {formatCurrency(monthEndRecap.totalExpenses)}
                   </p>
                 </div>
-                <div className="rounded-xl border border-border-subtle/40 bg-surface-2/50 p-4">
+                <div className="rounded-xl border border-sb-hairline bg-surface-2/50 p-4">
                   <p className={SECTION_LABEL}>Kept</p>
                   <p
-                    className={`mt-1.5 text-2xl font-semibold tracking-tight tnum ${
+                    className={`mt-1.5 text-2xl font-bold tracking-tight tnum ${
                       monthEndRecap.totalIncome - monthEndRecap.totalExpenses >= 0
                         ? 'text-[var(--status-positive-text)]'
                         : 'text-[var(--status-danger-text)]'
@@ -1792,19 +1794,19 @@ export default function DashboardPage() {
               </div>
 
               {monthEndRecap.topCategory && (
-                <p className="text-sm text-zinc-300 leading-relaxed">
+                <p className="text-sm text-sb-ink-secondary leading-relaxed">
                   Biggest category:{' '}
-                  <strong className="font-semibold text-zinc-100">{monthEndRecap.topCategory.label}</strong>{' '}
-                  <span className="tnum">({formatCurrency(monthEndRecap.topCategory.amount)})</span>
+                  <strong className="font-bold text-sb-ink">{monthEndRecap.topCategory.label}</strong>{' '}
+                  <span className="tnum font-semibold text-sb-ink">({formatCurrency(monthEndRecap.topCategory.amount)})</span>
                 </p>
               )}
 
               {monthEndRecap.priorExpenses !== null && monthEndRecap.priorExpenses > 0 && (
-                <p className="text-sm text-zinc-300 leading-relaxed">
+                <p className="text-sm text-sb-ink-secondary leading-relaxed">
                   {monthEndRecap.totalExpenses < monthEndRecap.priorExpenses ? (
                     <>
                       That is{' '}
-                      <span className="tnum font-semibold text-zinc-100">
+                      <span className="tnum font-bold text-sb-ink">
                         {formatCurrency(monthEndRecap.priorExpenses - monthEndRecap.totalExpenses)}
                       </span>{' '}
                       less than the month before.
@@ -1812,7 +1814,7 @@ export default function DashboardPage() {
                   ) : (
                     <>
                       That is{' '}
-                      <span className="tnum font-semibold text-zinc-100">
+                      <span className="tnum font-bold text-sb-ink">
                         {formatCurrency(monthEndRecap.totalExpenses - monthEndRecap.priorExpenses)}
                       </span>{' '}
                       more than the month before.

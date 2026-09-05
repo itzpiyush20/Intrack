@@ -195,9 +195,9 @@ export default function AuthModal() {
         animate={{ opacity: 1, y: 0 }}
         transition={transition(reduce)}
         className={cn(
-          'relative w-full max-w-md bg-surface-1 border border-border-subtle shadow-[var(--shadow-lg)]',
-          'flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl',
-          'max-h-[92svh] sm:max-h-[85svh]'
+          'relative w-full max-w-md bg-surface-1 border border-sb-hairline shadow-[0_20px_60px_-15px_rgba(14,122,93,0.18)]',
+          'flex flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl',
+          'max-h-[92svh] sm:max-h-[88svh]'
         )}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -205,29 +205,37 @@ export default function AuthModal() {
         aria-labelledby="auth-modal-title"
         tabIndex={-1}
       >
+        {/* Subtle Ambient Emerald Top Arc */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(14,122,93,0.12),transparent_70%)] pointer-events-none" />
+
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle px-5 py-4 sm:px-6">
-          <h2 id="auth-modal-title" className="text-base font-semibold tracking-tight text-zinc-50">
-            {isSignUp ? `Create your ${APP_CONFIG.APP_NAME} account` : `Sign in to ${APP_CONFIG.APP_NAME}`}
-          </h2>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-sb-hairline px-5 py-4 sm:px-6 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
+            </span>
+            <h2 id="auth-modal-title" className="text-base font-bold tracking-tight text-sb-ink">
+              {isSignUp ? `Create your ${APP_CONFIG.APP_NAME} account` : `Sign in to ${APP_CONFIG.APP_NAME}`}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={closeAuthModal}
-            className="flex h-11 w-11 shrink-0 -mr-2 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-zinc-400 transition-colors hover:bg-surface-2 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+            className="flex h-9 w-9 shrink-0 -mr-1 cursor-pointer items-center justify-center rounded-xl border border-sb-hairline bg-surface-2/60 text-sb-ink-muted transition-colors hover:bg-surface-2 hover:text-sb-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
             aria-label="Close"
           >
-            <X className="h-5 w-5" aria-hidden="true" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {/* Tab switcher — one indicator that travels, rather than two that
-              blink on and off. */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 relative z-10">
+          {/* Tab switcher — traveling indicator */}
           <div
             role="tablist"
             aria-label="Sign in or create an account"
-            className="flex gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1"
+            className="flex gap-1 rounded-2xl border border-sb-hairline bg-surface-2/60 p-1 shadow-inner"
           >
             {tabs.map((t) => (
               <button
@@ -237,21 +245,21 @@ export default function AuthModal() {
                 aria-selected={t.active}
                 onClick={t.select}
                 className={cn(
-                  'relative flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent',
-                  'text-sm font-medium transition-colors',
+                  'relative flex h-10 flex-1 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent',
+                  'text-xs sm:text-sm font-semibold transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-                  t.active ? 'text-zinc-50' : 'text-zinc-400 hover:text-zinc-100'
+                  t.active ? 'text-brand-700 font-bold' : 'text-sb-ink-muted hover:text-sb-ink'
                 )}
               >
                 {t.active && (
                   <motion.span
                     layoutId="auth-tab-indicator"
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-lg border border-border-subtle bg-surface-1 shadow-[var(--shadow-sm)]"
+                    className="absolute inset-0 rounded-xl border border-brand-500/30 bg-surface-1 shadow-sm"
                     transition={reduce ? { duration: 0 } : INDICATOR_SPRING}
                   />
                 )}
-                <span className="relative">{t.label}</span>
+                <span className="relative z-10">{t.label}</span>
               </button>
             ))}
           </div>
@@ -304,7 +312,7 @@ export default function AuthModal() {
                 <Link
                   to="/forgot-password"
                   onClick={closeAuthModal}
-                  className="rounded py-1.5 text-sm font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                  className="rounded py-1.5 text-xs sm:text-sm font-semibold text-brand-600 underline underline-offset-4 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   Forgot password?
                 </Link>
@@ -313,9 +321,6 @@ export default function AuthModal() {
 
             {isSignUp && (
               <div className="flex items-start gap-2.5">
-                {/* 44px touch target without a 44px hole in the layout: the
-                    -m-3 collapses the box back to ~20px of flow, the same trick
-                    ExpenseList.tsx:183 uses for its row checkbox. */}
                 <label
                   htmlFor="agree_terms"
                   className="-m-3 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
@@ -325,31 +330,31 @@ export default function AuthModal() {
                     id="agree_terms"
                     checked={agreeToTerms}
                     onChange={(e) => setAgreeToTerms(e.target.checked)}
-                    className="h-4 w-4 shrink-0 cursor-pointer rounded border-border-default bg-surface-2 accent-[var(--brand-500)]"
+                    className="h-4 w-4 shrink-0 cursor-pointer rounded border-sb-hairline bg-surface-1 accent-[var(--brand-600)]"
                   />
                 </label>
                 <label
                   htmlFor="agree_terms"
-                  className="cursor-pointer select-none text-sm leading-relaxed text-zinc-400"
+                  className="cursor-pointer select-none text-xs sm:text-sm leading-relaxed text-sb-ink-secondary"
                 >
                   I agree to the{' '}
-                  <Link to="/terms" onClick={closeAuthModal} className="font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300">Terms of Service</Link>,{' '}
-                  <Link to="/privacy" onClick={closeAuthModal} className="font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300">Privacy Policy</Link>{' '}and{' '}
-                  <Link to="/refund-policy" onClick={closeAuthModal} className="font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300">Refund Policy</Link>, and consent to my bank alert emails being read to extract transactions, including by Google’s Gemini as described in the Privacy Policy.
+                  <Link to="/terms" onClick={closeAuthModal} className="font-semibold text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700">Terms of Service</Link>,{' '}
+                  <Link to="/privacy" onClick={closeAuthModal} className="font-semibold text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700">Privacy Policy</Link>{' '}and{' '}
+                  <Link to="/refund-policy" onClick={closeAuthModal} className="font-semibold text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700">Refund Policy</Link>, and consent to my bank alert emails being read to extract transactions, including by Google’s Gemini as described in the Privacy Policy.
                 </label>
               </div>
             )}
 
-            <Button type="submit" block size="md" loading={loading} className="!h-11">
+            <Button type="submit" block size="md" loading={loading} className="!h-11 shadow-sm font-semibold">
               {isSignUp ? 'Create account' : 'Sign in'}
             </Button>
           </form>
 
           {/* Divider */}
           <div className="my-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border-subtle" aria-hidden="true" />
-            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">or</span>
-            <span className="h-px flex-1 bg-border-subtle" aria-hidden="true" />
+            <span className="h-px flex-1 bg-sb-hairline" aria-hidden="true" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">or</span>
+            <span className="h-px flex-1 bg-sb-hairline" aria-hidden="true" />
           </div>
 
           {/* Google OAuth */}
@@ -359,7 +364,7 @@ export default function AuthModal() {
             block
             size="md"
             onClick={handleGoogleAuth}
-            className="justify-center gap-2.5 !h-11"
+            className="justify-center gap-2.5 !h-11 border-sb-hairline bg-surface-1 font-semibold text-sb-ink hover:bg-surface-2 transition-all"
           >
             <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -382,41 +387,36 @@ export default function AuthModal() {
             Continue with Google
           </Button>
 
-          {/* What signing in with Google actually asks for. This block used to
-              describe inbox reading, because the modal requested gmail.readonly
-              along with login. It no longer does — see handleGoogleAuth — so the
-              inbox explanation now lives where the inbox permission is actually
-              requested: the Pending Alerts page. What belongs here is the fact
-              that this button does NOT touch the user's mail. */}
-          <div className="mt-5 rounded-2xl border border-border-subtle bg-surface-2 p-4">
+          {/* What signing in with Google actually asks for */}
+          <div className="mt-5 rounded-2xl border border-sb-hairline bg-surface-2/60 p-4">
             <ul className="flex flex-col gap-3">
               <li className="flex items-start gap-2.5">
-                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
-                <p className="text-sm leading-relaxed text-zinc-300">
-                  <span className="font-semibold text-zinc-100">Google is asked for your name and email.</span>{' '}
+                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+                <p className="text-xs sm:text-sm leading-relaxed text-sb-ink-secondary">
+                  <span className="font-semibold text-sb-ink">Google is asked for your name and email.</span>{' '}
                   That is the whole request — this button does not ask for access to your inbox.
                 </p>
               </li>
               <li className="flex items-start gap-2.5">
-                <Inbox className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
-                <p className="text-sm leading-relaxed text-zinc-300">
-                  <span className="font-semibold text-zinc-100">Inbox scanning is separate.</span>{' '}
+                <Inbox className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+                <p className="text-xs sm:text-sm leading-relaxed text-sb-ink-secondary">
+                  <span className="font-semibold text-sb-ink">Inbox scanning is separate.</span>{' '}
                   If you want {APP_CONFIG.APP_NAME} to pull transactions out of your bank alert
                   emails, you connect Gmail later from the Pending Alerts page — read-only, and
                   explained in full there before you decide.
                 </p>
               </li>
               <li className="flex items-start gap-2.5">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
-                <p className="text-sm leading-relaxed text-zinc-300">
-                  <span className="font-semibold text-zinc-100">Never connect it and nothing breaks.</span>{' '}
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+                <p className="text-xs sm:text-sm leading-relaxed text-sb-ink-secondary">
+                  <span className="font-semibold text-sb-ink">Never connect it and nothing breaks.</span>{' '}
                   Every part of {APP_CONFIG.APP_NAME} works with expenses you enter yourself.
                 </p>
               </li>
             </ul>
-            <p className="mt-3 border-t border-border-subtle pt-3 text-xs leading-relaxed text-zinc-400">
+            <p className="mt-3 border-t border-sb-hairline pt-3 text-xs leading-relaxed text-sb-ink-muted">
               How your data is handled is set out in our{' '}
-              <Link to="/privacy" onClick={closeAuthModal} className="font-medium text-brand-400 underline underline-offset-2 transition-colors hover:text-brand-300">Privacy Policy</Link>.
+              <Link to="/privacy" onClick={closeAuthModal} className="font-semibold text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700">Privacy Policy</Link>.
             </p>
           </div>
         </div>

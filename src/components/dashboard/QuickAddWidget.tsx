@@ -119,8 +119,8 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-zinc-100">Add it now</h2>
-            <p className="mt-1 text-sm text-zinc-400">Dated today, approved straight away.</p>
+            <h2 className="text-base font-bold text-sb-ink">Add it now</h2>
+            <p className="mt-1 text-sm text-sb-ink-muted">Dated today, approved straight away.</p>
           </div>
 
           {/* Direction. Said in words, not by colour alone, and both halves are
@@ -128,16 +128,16 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
           <div
             role="group"
             aria-label="Money in or out"
-            className="flex items-center rounded-xl border border-border-subtle/60 bg-surface-2 p-1"
+            className="flex items-center rounded-xl border border-sb-hairline bg-surface-2/70 p-1 shadow-xs"
           >
             <button
               type="button"
               onClick={() => setType('debit')}
               aria-pressed={type === 'debit'}
-              className={`${CHIP_BASE} border-transparent ${
+              className={`${CHIP_BASE} border-transparent transition-colors ${
                 type === 'debit'
-                  ? 'bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)]'
-                  : 'text-zinc-400 hover:text-zinc-100'
+                  ? 'bg-[var(--status-danger-subtle)] text-[var(--status-danger-text)] font-semibold shadow-xs'
+                  : 'text-sb-ink-muted hover:text-sb-ink'
               }`}
             >
               <ArrowDownRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Expense
@@ -146,10 +146,10 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
               type="button"
               onClick={() => setType('credit')}
               aria-pressed={type === 'credit'}
-              className={`${CHIP_BASE} border-transparent ${
+              className={`${CHIP_BASE} border-transparent transition-colors ${
                 type === 'credit'
-                  ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
-                  : 'text-zinc-400 hover:text-zinc-100'
+                  ? 'bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)] font-semibold shadow-xs'
+                  : 'text-sb-ink-muted hover:text-sb-ink'
               }`}
             >
               <ArrowUpRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Income
@@ -195,7 +195,7 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
         </div>
 
         <div>
-          <p id="quick-add-category-label" className="mb-2 text-xs font-medium text-zinc-400">
+          <p id="quick-add-category-label" className="mb-2 text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">
             Category
           </p>
           <div role="group" aria-labelledby="quick-add-category-label" className="flex flex-wrap gap-2">
@@ -209,10 +209,10 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
                   type="button"
                   onClick={() => { setCategory(code); setShowMore(false) }}
                   aria-pressed={selected}
-                  className={`${CHIP_BASE} ${
+                  className={`${CHIP_BASE} transition-all ${
                     selected
-                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 font-semibold'
-                      : 'border-border-subtle/60 bg-surface-2 text-zinc-300 hover:border-border-hover hover:text-zinc-100'
+                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 font-bold shadow-xs'
+                      : 'border-sb-hairline bg-surface-1 text-sb-ink-secondary hover:border-brand-500/30 hover:text-sb-ink'
                   }`}
                 >
                   <span aria-hidden="true">{cat.emoji}</span> {cat.name}
@@ -224,10 +224,10 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
               onClick={() => setShowMore((v) => !v)}
               aria-pressed={showMore || pickedFromList}
               aria-expanded={showMore}
-              className={`${CHIP_BASE} ${
+              className={`${CHIP_BASE} transition-all ${
                 showMore || pickedFromList
-                  ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 font-semibold'
-                  : 'border-border-subtle/60 bg-surface-2 text-zinc-300 hover:border-border-hover hover:text-zinc-100'
+                  ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 font-bold shadow-xs'
+                  : 'border-sb-hairline bg-surface-1 text-sb-ink-secondary hover:border-brand-500/30 hover:text-sb-ink'
               }`}
             >
               {pickedFromList && !showMore ? `${getStyle(category).emoji} ${getStyle(category).label}` : 'Something else'}
@@ -256,7 +256,7 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           {footnote ? (
-            <p className="text-sm text-zinc-400">{footnote}</p>
+            <p className="text-sm font-medium text-sb-ink-muted">{footnote}</p>
           ) : (
             <span aria-hidden="true" />
           )}

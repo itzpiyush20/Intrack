@@ -93,17 +93,17 @@ export default function ActiveSubscriptionsWidget({ isVisible }: ActiveSubscript
             >
               <RefreshCw className="h-4.5 w-4.5" />
             </span>
-            <h2 className="text-base font-bold text-zinc-100">
+            <h2 className="text-base font-bold text-sb-ink">
               Recurring payments
-              <span className="ml-2 align-middle text-xs font-medium text-zinc-400">
+              <span className="ml-2 align-middle text-xs font-semibold text-sb-ink-muted">
                 found in your history
               </span>
             </h2>
           </div>
-          <p className="mt-2 text-sm text-zinc-400">
-            About <span className="font-semibold tnum text-zinc-100">{formatCurrency(monthlyBurn)}</span>{' '}
+          <p className="mt-2 text-sm text-sb-ink-secondary">
+            About <span className="font-bold tnum text-sb-ink">{formatCurrency(monthlyBurn)}</span>{' '}
             leaves your accounts every month across{' '}
-            <span className="tnum">{subs.length}</span> service{subs.length === 1 ? '' : 's'}.
+            <span className="tnum font-semibold text-sb-ink">{subs.length}</span> service{subs.length === 1 ? '' : 's'}.
           </p>
         </div>
         <Link
@@ -123,15 +123,12 @@ export default function ActiveSubscriptionsWidget({ isVisible }: ActiveSubscript
       >
         {shown.map((sub) => {
           const due = sub.daysToRenewal
-          // Urgency is carried by the wording first; the colour only agrees
-          // with it. "Due!" alone in red told a colour-blind reader nothing a
-          // green "18d" did not.
           const tone =
             due <= 3
               ? 'text-[var(--status-danger-text)] bg-[var(--status-danger-subtle)] border-[var(--status-danger-border)]'
               : due <= 7
               ? 'text-[var(--status-warning-text)] bg-[var(--status-warning-subtle)] border-[var(--status-warning-border)]'
-              : 'text-zinc-300 bg-surface-2 border-border-subtle/60'
+              : 'text-sb-ink-secondary bg-surface-1 border-sb-hairline'
           const dueLabel =
             due <= 0 ? 'Due now' : due === 1 ? 'Tomorrow' : `${due} days`
           const cat = getStyle(sub.category)
@@ -140,14 +137,14 @@ export default function ActiveSubscriptionsWidget({ isVisible }: ActiveSubscript
             <motion.li
               key={sub.merchant}
               variants={staggerChild(reduce)}
-              className="flex items-center gap-3 rounded-xl border border-border-subtle/50 bg-surface-2/50 px-3.5 py-3 transition-colors hover:border-border-hover"
+              className="flex items-center gap-3 rounded-xl border border-sb-hairline bg-surface-2/40 px-3.5 py-3 transition-colors hover:border-brand-500/30 hover:bg-surface-2/70"
             >
               <span aria-hidden="true" className="shrink-0 text-xl">{cat.emoji}</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-zinc-100" title={sub.merchant}>
+                <p className="truncate text-sm font-semibold text-sb-ink" title={sub.merchant}>
                   {sub.merchant}
                 </p>
-                <p className="mt-0.5 text-xs tnum text-zinc-400">
+                <p className="mt-0.5 text-xs tnum font-medium text-sb-ink-muted">
                   {formatCurrency(sub.amount)} a month
                 </p>
               </div>
@@ -163,8 +160,8 @@ export default function ActiveSubscriptionsWidget({ isVisible }: ActiveSubscript
       </motion.ul>
 
       {subs.length > PREVIEW_COUNT && (
-        <p className="mt-4 text-center text-sm text-zinc-400">
-          <span className="tnum">{subs.length - PREVIEW_COUNT}</span> more —{' '}
+        <p className="mt-4 text-center text-sm text-sb-ink-muted">
+          <span className="tnum font-semibold text-sb-ink">{subs.length - PREVIEW_COUNT}</span> more —{' '}
           <Link
             to="/subscriptions"
             className="rounded font-semibold text-brand-700 underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"

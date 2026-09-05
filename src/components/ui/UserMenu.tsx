@@ -88,16 +88,16 @@ export default function UserMenu({ className }: UserMenuProps) {
               📊 Home
             </Link>
             <Link to="/profile" onClick={() => setOpen(false)} className={menuLink} role="menuitem">
-              👤 Profile Section
+              👤 Profile
             </Link>
             <Link to="/settings" onClick={() => setOpen(false)} className={menuLink} role="menuitem">
-              ⚙️ Settings Section
+              ⚙️ Settings
             </Link>
             <Link to="/pricing" onClick={() => setOpen(false)} className={menuLink} role="menuitem">
               👑 Pricing & Plans
             </Link>
             <Link to="/#install-guide" onClick={() => setOpen(false)} className={menuLink} role="menuitem">
-              📱 Install App Guide
+              📱 Install App
             </Link>
             <button
               onClick={() => {

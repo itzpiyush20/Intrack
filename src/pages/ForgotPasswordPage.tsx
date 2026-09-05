@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
 
-          <ul className="flex flex-col gap-2 text-sm leading-relaxed text-zinc-400">
+          <ul className="flex flex-col gap-2 text-sm leading-relaxed text-sb-ink-secondary">
             <li>The link works once. If it has expired, request another.</li>
             <li>Nothing arrived? Check spam, then try again in a minute.</li>
           </ul>
