@@ -18,18 +18,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import {
-  Card, Button, Input, Select, Badge, EmptyState, ConfirmDialog, DateFilterPicker,
-  Skeleton, SECTION_LABEL, ACTION_BUTTON_DANGER, transition, rowVariants, staggerParent, staggerChild,
+  Card, Button, Input, Select, ConfirmDialog, DateFilterPicker,
+  SECTION_LABEL, staggerParent, staggerChild,
 } from '@/components/ui'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { getBudgets, upsertBudget, deleteBudget } from '@/services/budgets'
+import { motion, useReducedMotion } from 'framer-motion'
+import { getBudgets, upsertBudget, deleteBudget, getPreviousMonthRollovers } from '@/services/budgets'
+import { BudgetList } from '@/components/budget'
 import { getSummary } from '@/services/transactions'
 import { cn, formatCurrency, getCurrentMonth, withTimeout, resolveDateFilter, getMonthsInRange, formatDateFilterLabel, creditCardBillCategoryNames, type DateFilter } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import type { Database } from '@/types/database'
 import { useToast, useAuth } from '@/context'
 import {
-  AlertTriangle, AlertCircle, CheckCircle2, Bell, Trash2, TrendingDown,
+  AlertTriangle, CheckCircle2, Bell,
   ArrowRight, Target, Wallet, PiggyBank,
 } from 'lucide-react'
 
@@ -53,6 +54,7 @@ export default function BudgetsPage() {
   type BudgetSource = { id: string; month: string }
   const [budgets, setBudgets] = useState<(BudgetRow & { monthCount: number; rows: BudgetSource[] })[]>([])
   const [spentMap, setSpentMap] = useState<Record<string, number>>({})
+  const [rolloverMap, setRolloverMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,11 +79,13 @@ export default function BudgetsPage() {
     try {
       const { dateFrom, dateTo } = resolveDateFilter(filter)
       const months = filter.mode === 'month' ? [filter.month] : getMonthsInRange(dateFrom, dateTo)
+      const primaryMonth = filter.mode === 'month' ? filter.month : dateTo.slice(0, 7)
 
-      const [budgetsResults, summaryRes] = await withTimeout(
+      const [budgetsResults, summaryRes, rolloversRes] = await withTimeout(
         Promise.all([
           Promise.all(months.map((m) => getBudgets(m))),
           getSummary({ dateFrom, dateTo }, { creditCardBillCategories: ccBillCategories }),
+          getPreviousMonthRollovers(primaryMonth),
         ]),
         45000,
         'Budget data fetch'
@@ -91,6 +95,8 @@ export default function BudgetsPage() {
         if (r.error) throw r.error
       }
       if (summaryRes.error) throw summaryRes.error
+
+      setRolloverMap(rolloversRes.data || {})
 
       // Merge same-category budgets across months (Custom mode can touch several).
       const merged = new Map<string, BudgetRow & { monthCount: number; rows: BudgetSource[] }>()
@@ -369,176 +375,17 @@ export default function BudgetsPage() {
             </p>
 
             <div className="mt-5">
-              {loading ? (
-                <ul role="status" aria-label="Loading your budgets" className="space-y-5">
-                  {[0, 1, 2].map((i) => (
-                    <li key={i} className="space-y-2.5">
-                      <div className="flex items-center gap-3">
-                        <Skeleton shape="block" className="h-10 w-10 shrink-0 rounded-xl" />
-                        <div className="flex-1 space-y-1.5">
-                          <Skeleton className="h-4 w-32 max-w-full" />
-                          <Skeleton className="h-3 w-24 max-w-full" />
-                        </div>
-                        <div className="hidden w-32 space-y-1.5 sm:block">
-                          <Skeleton className="ml-auto h-4 w-24" />
-                          <Skeleton className="ml-auto h-3 w-20" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-2 w-full rounded-full" />
-                    </li>
-                  ))}
-                </ul>
-              ) : budgets.length === 0 ? (
-                <EmptyState
-                  icon="🎯"
-                  title="No limits set yet"
-                  description="Pick a category and a monthly cap to start. Intrack tells you where you stand as the month goes on, and warns you before you pass it."
-                />
-              ) : (
-                <motion.ul
-                  className="divide-y divide-sb-hairline"
-                  variants={staggerParent(reduceMotion, budgets.length)}
-                  initial="initial"
-                  animate="animate"
-                >
-                  <AnimatePresence initial={false}>
-                    {budgets.map((budget) => {
-                      const cat = getStyle(budget.category)
-                      const spent = spentMap[budget.category] || 0
-                      const remaining = budget.amount - spent
-                      const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
-
-                      const barColor =
-                        pct >= 100 ? 'var(--status-danger-text)'
-                        : pct >= 70 ? 'var(--status-warning-text)'
-                        : 'var(--brand-500)'
-
-                      const projected = projectPace(spent)
-                      const projectedOver = projected - budget.amount
-                      const showPace = isCurrentMonth && daysElapsed >= 4 && pct < 100 && projectedOver > 0
-
-                      return (
-                        <motion.li
-                          key={budget.id}
-                          layout={!reduceMotion}
-                          variants={rowVariants(reduceMotion)}
-                          exit="exit"
-                          transition={transition(reduceMotion)}
-                          className="space-y-3 py-4 first:pt-0 last:pb-0"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="flex min-w-0 items-start gap-3">
-                              <span
-                                aria-hidden="true"
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-xs"
-                                style={{ backgroundColor: `${cat.color}15` }}
-                              >
-                                {cat.emoji}
-                              </span>
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <h3 className="truncate text-sm font-bold text-sb-ink">
-                                    {cat.label}
-                                  </h3>
-                                  {pct >= 100 ? (
-                                    <Badge variant="danger">
-                                      <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
-                                      Over limit
-                                    </Badge>
-                                  ) : pct >= 70 ? (
-                                    <Badge variant="warning">
-                                      <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
-                                      Close
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="success">
-                                      <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
-                                      On track
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="mt-1 text-xs font-medium text-sb-ink-muted">
-                                  Limit <span className="tnum font-bold text-sb-ink-secondary">{formatCurrency(budget.amount)}</span>
-                                  {budget.monthCount > 1 && (
-                                    <span> · across {budget.monthCount} months</span>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-start justify-between gap-3 sm:justify-end">
-                              <div className="min-w-0 sm:w-40 sm:text-right">
-                                <p className="tnum text-sm font-bold text-sb-ink">
-                                  {formatCurrency(spent)}{' '}
-                                  <span className="text-xs font-normal text-sb-ink-muted">spent</span>
-                                </p>
-                                <p
-                                  className={cn(
-                                    'tnum mt-0.5 text-xs font-bold',
-                                    remaining >= 0
-                                      ? 'text-[var(--status-positive-text)]'
-                                      : 'text-[var(--status-danger-text)]'
-                                  )}
-                                >
-                                  {remaining >= 0
-                                    ? `${formatCurrency(remaining)} left`
-                                    : `${formatCurrency(Math.abs(remaining))} over`}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteTarget({
-                                  rows: budget.rows ?? [{ id: budget.id, month: budget.month }],
-                                  categoryLabel: cat.label,
-                                  monthCount: budget.monthCount,
-                                })}
-                                disabled={actionLoading}
-                                aria-label={`Remove the ${cat.label} limit`}
-                                title={budget.monthCount > 1
-                                  ? `Remove this limit across ${budget.monthCount} months`
-                                  : 'Remove this limit'}
-                                className={cn(ACTION_BUTTON_DANGER, 'h-11 w-11 shrink-0 sm:h-9 sm:w-9 disabled:opacity-50')}
-                              >
-                                <Trash2 className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div
-                            role="progressbar"
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-valuenow={Math.round(Math.min(100, pct))}
-                            aria-label={`${cat.label}: ${Math.round(pct)}% of the limit spent`}
-                            className="h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
-                          >
-                            <div
-                              className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
-                              style={{ width: `${Math.min(100, pct)}%`, backgroundColor: barColor }}
-                            />
-                          </div>
-
-                          {pct > 100 && (
-                            <p className="tnum text-right text-xs font-bold text-[var(--status-danger-text)]">
-                              {Math.round(pct - 100)}% past the limit
-                            </p>
-                          )}
-
-                          {showPace && (
-                            <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--status-warning-text)]">
-                              <TrendingDown className="h-3.5 w-3.5 shrink-0 animate-pulse" aria-hidden="true" />
-                              <span>
-                                At this pace it ends the month{' '}
-                                <span className="tnum font-bold">{formatCurrency(projectedOver)}</span> over.
-                              </span>
-                            </p>
-                          )}
-                        </motion.li>
-                      )
-                    })}
-                  </AnimatePresence>
-                </motion.ul>
-              )}
+              <BudgetList
+                budgets={budgets}
+                spentMap={spentMap}
+                rolloverMap={rolloverMap}
+                getCategoryStyle={getStyle}
+                isCurrentMonth={isCurrentMonth}
+                daysElapsed={daysElapsed}
+                loading={loading}
+                actionLoading={actionLoading}
+                onDeleteBudget={setDeleteTarget}
+              />
             </div>
           </Card>
 

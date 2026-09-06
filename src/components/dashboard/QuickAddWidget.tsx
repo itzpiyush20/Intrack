@@ -14,13 +14,15 @@
 // 360px it was being pushed onto a line of its own at roughly 60px wide.
 // ============================================
 
-import { useState, useRef, type FormEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Button, Card, Input, Select, transition } from '@/components/ui'
 import { useCategories } from '@/context/CategoriesContext'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { createTransaction } from '@/services/transactions'
+import { getCards } from '@/services/cards'
+import type { Card as CardRow } from '@/types'
 import { Plus, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react'
 
 const FALLBACK_CATEGORIES = ['Food & Dining', 'Transport', 'Shopping', 'Utilities & Bills']
@@ -62,6 +64,15 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const [userCards, setUserCards] = useState<CardRow[]>([])
+  const [cardId, setCardId] = useState('')
+
+  useEffect(() => {
+    getCards().then(({ data }) => {
+      if (data) setUserCards(data.filter((c) => !c.is_archived))
+    })
+  }, [])
+
   const chips = (topCategories.length > 0 ? topCategories : FALLBACK_CATEGORIES).slice(0, 4)
 
   const handleSubmit = async (e: FormEvent) => {
@@ -89,6 +100,7 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
       date: new Date().toISOString().split('T')[0],
       source: 'manual',
       approval_status: 'approved',
+      card_id: type === 'debit' && cardId ? cardId : null,
       // Explicitly stamp this rather than relying on the DB column
       // default — a manually entered, self-approved transaction should
       // never resurface in the "awaiting your confirmation" review modal
@@ -106,6 +118,7 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
     setAmount('')
     setDescription('')
     setCategory('')
+    setCardId('')
     setShowMore(false)
     amountFieldRef.current?.querySelector('input')?.focus()
     onAdded()
@@ -252,6 +265,23 @@ export default function QuickAddWidget({ topCategories, onAdded, footnote }: Qui
               }))}
             />
           </motion.div>
+        )}
+
+        {userCards.length > 0 && type === 'debit' && (
+          <div className="pt-1">
+            <Select
+              value={cardId}
+              onChange={(e) => setCardId(e.target.value)}
+              aria-label="Payment account or card"
+              options={[
+                { value: '', label: 'Cash in hand & Bank balance' },
+                ...userCards.map((c) => ({
+                  value: c.id,
+                  label: `Credit Card — ${c.name} (•••• ${c.last4})`,
+                })),
+              ]}
+            />
+          </div>
         )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

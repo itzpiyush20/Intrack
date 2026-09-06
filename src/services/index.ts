@@ -6,11 +6,17 @@ export {
   deleteTransaction,
   getMonthlySummary,
   getTransactionById,
+  getDistinctTags,
+  splitTransaction,
 } from './transactions'
 export {
   getBudgets,
   upsertBudget,
   deleteBudget,
+  getPreviousMonthRollovers,
+  calculateRollovers,
+  calculateCategoryRollover,
+  getPreviousMonth,
 } from './budgets'
 export {
   getCategories,
@@ -85,3 +91,46 @@ export {
   monthKey,
   todayKey,
 } from './cards'
+
+export {
+  parseCSV,
+  parseStatementDate,
+  parseStatementAmount,
+  parseStatementCSV,
+  saveImportedTransactions,
+  extractCardInfo,
+  detectPaymentMode,
+  extractReferenceId,
+  type ParsedStatementRow,
+  type ParseStatementOptions,
+  type ParseStatementResult,
+  type SupportedBank,
+} from './statementImporter'
+
+export {
+  detectPlannedPayments,
+  calculateUpcomingBillsForNext30Days,
+  resolveCardOrAccount,
+  classifyPaymentType,
+  isSubscriptionTabItem,
+  isBillRentOrEmiTabItem,
+  type PlannedPayment,
+  type PlannedPaymentDetectableTxn,
+  type PaymentCadence,
+  type PlannedPaymentType,
+  type UpcomingBillsSummary,
+  type TimelineDay,
+} from './plannedPayments'
+
+export {
+  getActiveDebts,
+  recordDebtTransaction,
+  calculateDebtSummary,
+  resolveLoanSource,
+  LOAN_SOURCE_LABELS,
+  LOAN_SOURCE_DESCRIPTIONS,
+  type ActiveDebtSummary,
+  type DebtSourceSummary,
+  type DebtTransactionItem,
+  type LoanSource,
+} from './debts'

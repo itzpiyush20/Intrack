@@ -39,7 +39,7 @@ import {
   LineChart as LineChartIcon,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { detectAnomalies, generateForecast, generateAIInsights } from '@/services/aiService'
+import { detectAnomalies, generateAIInsights } from '@/services/aiService'
 import type { FinancialContext } from '@/services/aiService'
 import { getBudgets } from '@/services/budgets'
 import { DrillDownProvider, useDrillDown } from '@/context/DrillDownContext'
@@ -50,7 +50,7 @@ import {
   AnomalyAlerts,
   AIInsights,
   ScenarioSimulator,
-  ForecastPanel,
+  CashFlowRunway,
   TrendChart,
   ExpenseBreakdown,
   CreditCardPaymentTrend,
@@ -58,6 +58,7 @@ import {
   MerchantLeaderboard,
   CategoryTrendChart,
   BudgetBurndown,
+  EventRollupSection,
   type RangeType,
   type MerchantLeaderboardItem,
   type CategoryTrendMonth,
@@ -785,9 +786,8 @@ export default function InsightsPage() {
   const summary = useMemo(() => getAllocationData(expenseTransactions, range), [expenseTransactions, range])
   const trend = useMemo(() => getMoMTrend(expenseTransactions), [expenseTransactions])
 
-  // 2. Anomaly detection & forecasting (memoized)
+  // 2. Anomaly detection (memoized)
   const anomalies = useMemo(() => detectAnomalies(expenseTransactions), [expenseTransactions])
-  const forecast = useMemo(() => generateForecast(expenseTransactions), [expenseTransactions])
 
   const savingsRate =
     summary && summary.total_income > 0
@@ -1173,6 +1173,13 @@ export default function InsightsPage() {
                 />
               </Section>
 
+              {/* Event & Trip Rollup: cross-cutting tagged expenses */}
+              <EventRollupSection
+                transactions={transactions}
+                loading={loading}
+                ccBillCategories={ccBillCategories}
+              />
+
               {/* Progressive disclosure. Eight analytics modules at once is how
                   a mixed-literacy audience bounces off this page, so the deeper
                   set stays folded until it is asked for. */}
@@ -1304,7 +1311,7 @@ export default function InsightsPage() {
                             />
                           </div>
 
-                          <ForecastPanel forecast={forecast} />
+                          <CashFlowRunway transactions={transactions} />
                         </Section>
                       )}
                     </motion.div>

@@ -18,6 +18,7 @@ interface DrillDownListItem {
   date: string
   merchant?: string | null
   description?: string | null
+  tags?: string[] | null
 }
 
 /** Pure: given the currently visible rows and an id that was just saved, return the new visible list with that row removed. Extracted from the component so it's testable without rendering. */

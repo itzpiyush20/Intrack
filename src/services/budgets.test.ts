@@ -10,7 +10,7 @@ const queue: Record<string, Result[]> = {}
 let calls: Array<{ table: string; method: string; args: unknown[] }> = []
 
 const BUILDER_METHODS = [
-  'select', 'eq', 'lt', 'gt', 'order', 'limit', 'upsert', 'update', 'delete', 'insert',
+  'select', 'eq', 'lt', 'gt', 'gte', 'lte', 'order', 'limit', 'upsert', 'update', 'delete', 'insert',
 ]
 
 function makeChain(table: string) {
@@ -45,6 +45,10 @@ import {
   shouldCarryForward,
   pickSourceMonthRows,
   planCarryForward,
+  getPreviousMonth,
+  calculateCategoryRollover,
+  calculateRollovers,
+  getPreviousMonthRollovers,
 } from './budgets'
 import { getCurrentMonth } from '@/utils'
 
@@ -385,3 +389,97 @@ describe('deleteBudget', () => {
     expect(callsFor('budgets', 'delete')).toHaveLength(1)
   })
 })
+
+// ============================================================
+// Rollover Budget Calculations
+// ============================================================
+
+describe('getPreviousMonth', () => {
+  it('correctly calculates previous month within the same year', () => {
+    expect(getPreviousMonth('2026-09')).toBe('2026-08')
+    expect(getPreviousMonth('2026-05')).toBe('2026-04')
+  })
+
+  it('correctly rolls over across year boundary', () => {
+    expect(getPreviousMonth('2026-01')).toBe('2025-12')
+  })
+})
+
+describe('calculateCategoryRollover & calculateRollovers', () => {
+  it('calculates unspent surplus when spend is below budget', () => {
+    expect(calculateCategoryRollover(5000, 3000)).toBe(2000)
+    expect(calculateCategoryRollover(10000, 0)).toBe(10000)
+  })
+
+  it('returns 0 when spend exceeds or meets budget (no negative rollover)', () => {
+    expect(calculateCategoryRollover(5000, 5000)).toBe(0)
+    expect(calculateCategoryRollover(5000, 6500)).toBe(0)
+  })
+
+  it('computes rollovers map across multiple categories', () => {
+    const budgets = [
+      { category: 'Food', amount: 5000 },
+      { category: 'Travel', amount: 3000 },
+      { category: 'Utilities', amount: 2000 },
+    ]
+    const spentMap = {
+      Food: 3000,     // 2000 surplus
+      Travel: 3500,   // 0 surplus
+      Utilities: 1500 // 500 surplus
+    }
+    const result = calculateRollovers(budgets, spentMap)
+    expect(result).toEqual({
+      Food: 2000,
+      Utilities: 500,
+    })
+  })
+
+  it('ignores tombstones when calculating rollovers', () => {
+    const budgets = [
+      { category: 'Food', amount: 5000, deleted_at: null },
+      { category: 'Travel', amount: 4000, deleted_at: '2026-08-15T00:00:00Z' },
+    ]
+    const spentMap = {
+      Food: 2500,
+      Travel: 1000,
+    }
+    const result = calculateRollovers(budgets, spentMap)
+    expect(result).toEqual({
+      Food: 2500,
+    })
+  })
+})
+
+describe('getPreviousMonthRollovers', () => {
+  it('fetches previous month budgets and transactions to compute rollovers', async () => {
+    queueFor('budgets', {
+      data: [
+        { category: 'Food', amount: 5000, month: '2026-08' },
+        { category: 'Entertainment', amount: 2000, month: '2026-08' },
+      ],
+      error: null,
+    })
+    queueFor('transactions', {
+      data: [
+        { category: 'Food', amount: 3000, type: 'debit' },
+        { category: 'Entertainment', amount: 2500, type: 'debit' },
+      ],
+      error: null,
+    })
+
+    const { data, error } = await getPreviousMonthRollovers('2026-09')
+    expect(error).toBeNull()
+    expect(data).toEqual({
+      Food: 2000,
+    })
+  })
+
+  it('returns empty object when no previous budgets exist', async () => {
+    queueFor('budgets', { data: [], error: null })
+
+    const { data, error } = await getPreviousMonthRollovers('2026-09')
+    expect(error).toBeNull()
+    expect(data).toEqual({})
+  })
+})
+

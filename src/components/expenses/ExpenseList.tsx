@@ -27,7 +27,7 @@ import { cn, formatCurrency, formatDate, resolveTransactionIdentity } from '@/ut
 import { deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsCategory } from '@/services/transactions'
 import type { Database } from '@/types/database'
 import { useState, useEffect, type ReactNode } from 'react'
-import { Pencil, Trash2, ArrowDown, ArrowUp } from 'lucide-react'
+import { Pencil, Trash2, ArrowDown, ArrowUp, Users } from 'lucide-react'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 
@@ -35,6 +35,7 @@ interface ExpenseListProps {
   transactions: TransactionRow[]
   loading: boolean
   onEdit: (transaction: TransactionRow) => void
+  onSplit?: (transaction: TransactionRow) => void
   onRefresh: () => void
   /**
    * True when a search or filter is narrowing the list. Changes only the copy
@@ -66,6 +67,7 @@ export default function ExpenseList({
   transactions,
   loading,
   onEdit,
+  onSplit,
   onRefresh,
   isFiltered = false,
   emptyAction,
@@ -365,6 +367,17 @@ export default function ExpenseList({
                     </p>
 
                     <div className="mt-2 flex items-center justify-end gap-0.5 md:mt-0">
+                      {isDebit && onSplit && (
+                        <button
+                          type="button"
+                          onClick={() => onSplit(txn)}
+                          aria-label={`Split ${identity.title}`}
+                          title="Split bill with friends"
+                          className={cn(ACTION_BUTTON, 'h-11 w-11 md:h-9 md:w-9')}
+                        >
+                          <Users className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => onEdit(txn)}

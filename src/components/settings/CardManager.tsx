@@ -28,15 +28,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
-  Card, Button, Input, ConfirmDialog, EmptyState, ACTION_BUTTON, ACTION_BUTTON_DANGER,
+  Card, Button, Input, Modal, ConfirmDialog, EmptyState, ACTION_BUTTON, ACTION_BUTTON_DANGER,
 } from '@/components/ui'
 import { useToast } from '@/context'
 import {
   getCards, setCardArchived, deleteCard, getCardPeriods, setCardOpening,
   getCardMovementsSince, getCardUsageCounts, monthKey, todayKey,
 } from '@/services/cards'
+import { recordDriftReconciliation } from '@/services/balances'
 import { formatCurrency } from '@/utils'
-import { CreditCard, Plus, Archive, ArchiveRestore, Trash2, Pencil, Lock, AlertTriangle, Check, X } from 'lucide-react'
+import { CreditCard, Plus, Archive, ArchiveRestore, Trash2, Pencil, Lock, AlertTriangle, Check, X, Scale } from 'lucide-react'
 import CardFormModal from './CardFormModal'
 import type { Card as CardRow, CardPeriod } from '@/types'
 
@@ -59,6 +60,11 @@ export default function CardManager() {
   const [balanceEditId, setBalanceEditId] = useState<string | null>(null)
   const [balanceDraft, setBalanceDraft] = useState('')
   const [savingBalance, setSavingBalance] = useState(false)
+
+  const [driftTarget, setDriftTarget] = useState<CardRow | null>(null)
+  const [driftActualAmount, setDriftActualAmount] = useState('')
+  const [driftNotes, setDriftNotes] = useState('')
+  const [savingDrift, setSavingDrift] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<CardRow | null>(null)
 
@@ -133,6 +139,53 @@ export default function CardManager() {
     setOpenings((prev) => ({ ...prev, [card.id]: opening }))
     setBalanceEditId(null)
     showToast('Balance updated.', 'success')
+  }
+
+  const startDriftReconciliation = (card: CardRow) => {
+    const current = owedToday(card.id)
+    setDriftTarget(card)
+    setDriftActualAmount(current === undefined ? '' : String(current))
+    setDriftNotes('')
+  }
+
+  const handleRecordCardDrift = async () => {
+    if (!driftTarget) return
+    const actual = Number(driftActualAmount)
+    if (!driftActualAmount.trim() || !Number.isFinite(actual) || actual < 0) {
+      showToast('Please enter your actual card balance.', 'error')
+      return
+    }
+
+    const current = owedToday(driftTarget.id) ?? 0
+    const diff = actual - current
+    if (diff === 0) {
+      showToast('Actual balance matches computed balance. No adjustment needed.', 'info')
+      setDriftTarget(null)
+      return
+    }
+
+    setSavingDrift(true)
+    const { error } = await recordDriftReconciliation({
+      target: 'card',
+      cardId: driftTarget.id,
+      diff,
+      notes: driftNotes.trim() || undefined,
+    })
+    setSavingDrift(false)
+
+    if (error) {
+      showToast(error.message, 'error')
+      return
+    }
+
+    setDriftTarget(null)
+    showToast(
+      diff > 0
+        ? `Card reconciliation recorded: +${formatCurrency(diff)} adjustment.`
+        : `Card reconciliation recorded: ${formatCurrency(Math.abs(diff))} adjustment.`,
+      'success'
+    )
+    void load()
   }
 
   const handleArchive = async (card: CardRow) => {
@@ -285,14 +338,27 @@ export default function CardManager() {
                   </p>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => startBalanceEdit(card)}
-                className="shrink-0 shadow-xs"
-              >
-                {owed === undefined ? 'Set balance' : 'Update'}
-              </Button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {owed !== undefined && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => startDriftReconciliation(card)}
+                    className="gap-1 shadow-xs text-xs"
+                    title={`Reconcile drift for ${card.name}`}
+                  >
+                    <Scale className="h-3.5 w-3.5" /> Reconcile Drift
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => startBalanceEdit(card)}
+                  className="shrink-0 shadow-xs"
+                >
+                  {owed === undefined ? 'Set balance' : 'Update'}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -359,6 +425,107 @@ export default function CardManager() {
           onClose={() => setFormTarget(null)}
           onSaved={handleSaved}
         />
+      )}
+
+      {driftTarget && (
+        <Modal
+          isOpen={!!driftTarget}
+          onClose={() => setDriftTarget(null)}
+          title={`Reconcile ${driftTarget.name} Drift`}
+          footer={
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setDriftTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRecordCardDrift}
+                loading={savingDrift}
+                disabled={
+                  !driftActualAmount.trim() ||
+                  Number(driftActualAmount) === (owedToday(driftTarget.id) ?? 0)
+                }
+                className="gap-1.5 shadow-xs"
+              >
+                <Check className="h-3.5 w-3.5" /> Confirm Reconciliation
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-sb-ink-secondary leading-relaxed">
+              If your banking app or statement shows a different balance for this card, Intrack will record a 1-tap adjustment transaction on this card to bring them in sync.
+            </p>
+
+            <div className="rounded-xl border border-sb-hairline bg-surface-2/50 p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-sb-ink-muted">Card:</span>
+                <span className="font-semibold text-sb-ink">
+                  {[driftTarget.name, driftTarget.last4 && `(•••• ${driftTarget.last4})`].filter(Boolean).join(' ')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-sb-ink-muted">Intrack's Computed Outstanding:</span>
+                <span className="font-bold text-sb-ink tnum">
+                  {formatCurrency(owedToday(driftTarget.id) ?? 0)}
+                </span>
+              </div>
+            </div>
+
+            <Input
+              label="Actual Card Outstanding Today"
+              id="drift-card-actual-input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={driftActualAmount}
+              onChange={(e) => setDriftActualAmount(e.target.value)}
+              className="tnum"
+              autoFocus
+            />
+
+            {driftActualAmount.trim() !== '' && (() => {
+              const currentOwed = owedToday(driftTarget.id) ?? 0
+              const actualNum = Number(driftActualAmount)
+              const cardDiff = Number.isFinite(actualNum) ? actualNum - currentOwed : 0
+              return (
+                <div
+                  className={`rounded-xl border p-3 text-xs space-y-1 ${
+                    cardDiff === 0
+                      ? 'border-sb-hairline bg-surface-2/50 text-sb-ink-muted'
+                      : cardDiff > 0
+                      ? 'border-amber-200/80 bg-surface-2 text-sb-ink'
+                      : 'border-emerald-200/80 bg-[var(--status-positive-subtle)] text-[var(--status-positive-text)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-semibold">
+                    <span>Discrepancy (Drift):</span>
+                    <span className="tnum font-bold">
+                      {cardDiff > 0 ? `+${formatCurrency(cardDiff)}` : formatCurrency(cardDiff)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] opacity-90">
+                    {cardDiff === 0
+                      ? 'Balances are already in sync.'
+                      : cardDiff > 0
+                      ? 'Card has higher debt than tracked. A Debit (Adjustment / Fee) will be logged.'
+                      : 'Card has lower debt than tracked. A Credit (Waiver / Cashback) will be logged.'}
+                  </p>
+                </div>
+              )
+            })()}
+
+            <Input
+              label="Adjustment Notes (optional)"
+              id="drift-card-notes-input"
+              type="text"
+              placeholder="e.g. Annual fee / cashback waiver"
+              value={driftNotes}
+              onChange={(e) => setDriftNotes(e.target.value)}
+            />
+          </div>
+        </Modal>
       )}
 
       <ConfirmDialog

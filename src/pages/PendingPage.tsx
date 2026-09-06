@@ -54,8 +54,10 @@ import {
   CheckCircle2,
   CopyCheck,
   Mail,
+  FileSpreadsheet,
   X,
 } from 'lucide-react'
+import StatementImportModal from '@/components/importer/StatementImportModal'
 
 /**
  * How a confidence score is shown: an icon, a word and a colour.
@@ -245,6 +247,7 @@ export default function PendingPage() {
 
   // Premium gate state
   const [isPremiumRequired, setIsPremiumRequired] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   // Scan dashboard state
   const [lastScanLog, setLastScanLog] = useState<any>(null)
@@ -1124,6 +1127,14 @@ export default function PendingPage() {
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                className="shrink-0 gap-1.5 justify-center"
+                aria-label="Import Bank Statement CSV"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-brand-600" /> Import Statement
+              </Button>
+              <Button
                 onClick={() => handleScan()}
                 loading={scanning}
                 disabled={scanning || !!scanCooldownMessage}
@@ -1938,6 +1949,14 @@ export default function PendingPage() {
           </div>
         </div>
       </Modal>
+
+      <StatementImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          fetchPendingData()
+        }}
+      />
 
     </AppLayout>
   )

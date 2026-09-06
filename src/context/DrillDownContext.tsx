@@ -8,6 +8,8 @@ export interface DrillDownFilter {
   categories?: string[]
   /** Match on merchant instead of/in addition to category — e.g. Merchant Leaderboard drills by merchant. Compared against `resolveTransactionIdentity(t).title`, NOT the raw `merchant` column, because that is how every producer of this filter groups its rows. */
   merchant?: string
+  /** Match on a specific tag (e.g. for event and trip rollups) */
+  tag?: string
   /** Rows in any of these categories are dropped. Used by the date-only drill-downs, whose numbers were built from a pool that already excluded credit-card bill payments. */
   excludeCategories?: string[]
   type?: 'debit' | 'credit'
@@ -30,6 +32,10 @@ export function filterTransactionsForDrillDown<T extends { category: string; dat
       if (!filter.categories.includes(t.category)) return false
     } else if (filter.category && t.category !== filter.category) {
       return false
+    }
+    if (filter.tag) {
+      const rowTags = (t as { tags?: string[] | null }).tags
+      if (!rowTags || !rowTags.includes(filter.tag)) return false
     }
     // Resolved identity, not the raw column. The Merchant Leaderboard groups by
     // `resolveTransactionIdentity(t).title` — which reads the merchant column,

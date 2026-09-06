@@ -101,6 +101,10 @@ export interface Database {
           return_status: 'pending' | 'received' | null
           settled_by_transaction_id: string | null
           category_confirmed_at: string | null
+          card_id: string | null
+          settles_card_id: string | null
+          loan_source: 'credit_card' | 'bank' | 'family_friend' | 'other' | null
+          loan_source_note: string | null
           created_at: string
           updated_at: string
         }
@@ -136,6 +140,10 @@ export interface Database {
           return_status?: 'pending' | 'received' | null
           settled_by_transaction_id?: string | null
           category_confirmed_at?: string | null
+          card_id?: string | null
+          settles_card_id?: string | null
+          loan_source?: 'credit_card' | 'bank' | 'family_friend' | 'other' | null
+          loan_source_note?: string | null
         }
         Update: {
           amount?: number
@@ -164,6 +172,10 @@ export interface Database {
           return_status?: 'pending' | 'received' | null
           settled_by_transaction_id?: string | null
           category_confirmed_at?: string | null
+          card_id?: string | null
+          settles_card_id?: string | null
+          loan_source?: 'credit_card' | 'bank' | 'family_friend' | 'other' | null
+          loan_source_note?: string | null
         }
       }
       budgets: {

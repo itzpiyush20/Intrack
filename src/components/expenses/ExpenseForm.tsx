@@ -16,11 +16,15 @@
 // that shows both options at once is honest about that.
 // ============================================
 
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, type FormEvent } from 'react'
 import { Button, Input, Select } from '@/components/ui'
 import { useCategories } from '@/context/CategoriesContext'
 import { useAuth } from '@/context/AuthContext'
 import { createTransaction, updateTransaction } from '@/services'
+import { getCards } from '@/services/cards'
+import TagPicker from '@/components/tags/TagPicker'
+import type { Card, LoanSource } from '@/types'
+import { creditCardBillCategoryNames, makeIsCreditCardBill } from '@/utils/creditCardBill'
 import type { Database } from '@/types/database'
 import { KNOWN_MERCHANTS } from '@/services/merchantNormalizer'
 import { toISODateLocal } from '@/utils/dateFilter'
@@ -59,8 +63,8 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
   const [category, setCategory] = useState(editingTransaction?.category || defaultCategory)
   const [description, setDescription] = useState(editingTransaction?.description || '')
   const [merchant, setMerchant] = useState(editingTransaction?.merchant || '')
-  const [tagsInput, setTagsInput] = useState(
-    editingTransaction?.tags?.join(', ') || ''
+  const [tags, setTags] = useState<string[]>(
+    editingTransaction?.tags?.filter(Boolean) || []
   )
   const [date, setDate] = useState(
     editingTransaction?.date || toISODateLocal(new Date())
@@ -74,6 +78,27 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
   const [notes, setNotes] = useState(editingTransaction?.notes || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [userCards, setUserCards] = useState<Card[]>([])
+  const [cardId, setCardId] = useState(editingTransaction?.card_id || '')
+  const [settlesCardId, setSettlesCardId] = useState(editingTransaction?.settles_card_id || '')
+  const [loanSource, setLoanSource] = useState<LoanSource | ''>(
+    (editingTransaction?.loan_source as LoanSource) || ''
+  )
+  const [loanSourceNote, setLoanSourceNote] = useState(editingTransaction?.loan_source_note || '')
+
+  useEffect(() => {
+    getCards().then(({ data }) => {
+      if (data) setUserCards(data.filter((c) => !c.is_archived))
+    })
+  }, [])
+
+  const isCreditCardBill = useMemo(
+    () => makeIsCreditCardBill(creditCardBillCategoryNames(categories)),
+    [categories]
+  )
+  const isCardBill = isCreditCardBill(category)
+  const isLoan = category.toLowerCase() === 'loan'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -91,12 +116,27 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
       return
     }
 
+    if (isLoan && !loanSource) {
+      setError('Select the source of this loan.')
+      return
+    }
+
+    if (isLoan && loanSource === 'credit_card' && userCards.length > 0 && !cardId) {
+      setError('Select which credit card provided this advance.')
+      return
+    }
+
+    if (isLoan && loanSource === 'other' && !loanSourceNote.trim()) {
+      setError('Specify who provided the loan.')
+      return
+    }
+
     setLoading(true)
 
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0)
+    const effectiveCardId = isCardBill ? null : (cardId || null)
+    const effectiveSettlesCardId = isCardBill ? (settlesCardId || null) : null
+    const effectiveLoanSource = isLoan ? (loanSource as LoanSource) : null
+    const effectiveLoanSourceNote = isLoan && loanSource === 'other' ? loanSourceNote.trim() : null
 
     if (isEditing && editingTransaction) {
       const { error } = await updateTransaction(editingTransaction.id, {
@@ -112,6 +152,10 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
         expected_return_date: type === 'debit' && isReturnable ? expectedReturnDate : null,
         return_status: type === 'debit' && isReturnable ? (editingTransaction.return_status || 'pending') : null,
         notes: notes || null,
+        card_id: effectiveCardId,
+        settles_card_id: effectiveSettlesCardId,
+        loan_source: effectiveLoanSource,
+        loan_source_note: effectiveLoanSourceNote,
         // A manual edit is an explicit human confirmation — mark it so this transaction
         // stops resurfacing in the Auto-Categorization Review modal on Pending.
         category_confirmed_at: new Date().toISOString(),
@@ -139,6 +183,10 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
         expected_return_date: type === 'debit' && isReturnable ? expectedReturnDate : null,
         return_status: type === 'debit' && isReturnable ? 'pending' : null,
         notes: notes || null,
+        card_id: effectiveCardId,
+        settles_card_id: effectiveSettlesCardId,
+        loan_source: effectiveLoanSource,
+        loan_source_note: effectiveLoanSourceNote,
       })
 
       if (error) {
@@ -153,23 +201,22 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
       setAmount('')
       setDescription('')
       setMerchant('')
-      setTagsInput('')
+      setTags([])
       setCategory(defaultCategory)
       setDate(toISODateLocal(new Date()))
       setIsReturnable(false)
       setCounterparty('')
       setExpectedReturnDate(toISODateLocal(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)))
       setNotes('')
+      setCardId('')
+      setSettlesCardId('')
+      setLoanSource('')
+      setLoanSourceNote('')
     }
 
     setLoading(false)
     onSaved()
   }
-
-  const parsedTags = tagsInput
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0)
 
   return (
     <>
@@ -293,37 +340,102 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
               required
             />
           </div>
+
+          {/* Card & Loan Routing */}
+          {userCards.length > 0 && !isCardBill && !isLoan && (
+            <Select
+              label="Account / Card"
+              id="txn-card"
+              options={[
+                { value: '', label: 'Cash in hand & Bank balance' },
+                ...userCards.map((c) => ({
+                  value: c.id,
+                  label: `Credit Card — ${c.name} (•••• ${c.last4})`,
+                })),
+              ]}
+              value={cardId}
+              onChange={(e) => setCardId(e.target.value)}
+            />
+          )}
+
+          {isCardBill && userCards.length > 0 && (
+            <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-3.5 space-y-1.5">
+              <Select
+                label="Card settled by this payment"
+                id="txn-settles-card"
+                options={[
+                  { value: '', label: 'Select card being settled' },
+                  ...userCards.map((c) => ({
+                    value: c.id,
+                    label: `${c.name} (•••• ${c.last4})`,
+                  })),
+                ]}
+                value={settlesCardId}
+                onChange={(e) => setSettlesCardId(e.target.value)}
+              />
+              <p className="text-xs text-sb-ink-muted">
+                Paying this bill reduces what you owe on this card and is excluded from duplicate expenses.
+              </p>
+            </div>
+          )}
+
+          {isLoan && (
+            <div className="rounded-xl border border-sb-hairline bg-surface-2/40 p-3.5 space-y-3">
+              <Select
+                label="Source of loan"
+                id="txn-loan-source"
+                options={[
+                  { value: '', label: 'Select loan source' },
+                  { value: 'bank', label: 'Bank (personal loan, overdraft)' },
+                  { value: 'credit_card', label: 'Credit card (cash advance / wallet transfer)' },
+                  { value: 'family_friend', label: 'Family or friend' },
+                  { value: 'other', label: 'Other source' },
+                ]}
+                value={loanSource}
+                onChange={(e) => setLoanSource(e.target.value as LoanSource)}
+                required
+              />
+
+              {loanSource === 'credit_card' && userCards.length > 0 && (
+                <Select
+                  label="Which credit card"
+                  id="txn-loan-card"
+                  options={[
+                    { value: '', label: 'Select card used for advance' },
+                    ...userCards.map((c) => ({
+                      value: c.id,
+                      label: `${c.name} (•••• ${c.last4})`,
+                    })),
+                  ]}
+                  value={cardId}
+                  onChange={(e) => setCardId(e.target.value)}
+                  required
+                />
+              )}
+
+              {loanSource === 'other' && (
+                <Input
+                  label="Lender details"
+                  id="txn-loan-note"
+                  placeholder="Who lent this money?"
+                  value={loanSourceNote}
+                  onChange={(e) => setLoanSourceNote(e.target.value)}
+                  required
+                />
+              )}
+            </div>
+          )}
         </fieldset>
 
         {/* Optional detail, below a rule so it reads as optional. */}
         <fieldset className="space-y-4 border-t border-border-subtle pt-5">
           <legend className="sr-only">Optional detail</legend>
 
-          <div className="space-y-2">
-            <Input
-              label="Tags"
-              id="txn-tags"
-              placeholder="e.g. food, vacation, work"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-            />
-            {parsedTags.length > 0 ? (
-              <ul className="flex flex-wrap gap-1.5">
-                {parsedTags.map((t, idx) => (
-                  <li
-                    key={idx}
-                    className="inline-flex items-center rounded-lg border border-brand-500/25 bg-brand-500/10 px-2 py-0.5 text-xs font-semibold text-brand-700"
-                  >
-                    #{t}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-sb-ink-muted">
-                Separate with commas. Tags let you group spending across categories.
-              </p>
-            )}
-          </div>
+          <TagPicker
+            tags={tags}
+            onChange={setTags}
+            id="txn-tags"
+          />
 
           {type === 'debit' && (
             <div className="rounded-xl border border-sb-hairline bg-surface-2/40 p-3.5">

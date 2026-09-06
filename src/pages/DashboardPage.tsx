@@ -28,6 +28,7 @@ import {
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
 import QuickAddWidget from '@/components/dashboard/QuickAddWidget'
 import ReceivablesCard from '@/components/dashboard/ReceivablesCard'
+import BalancesWidget from '@/components/dashboard/BalancesWidget'
 import {
   AlertTriangle,
   RefreshCw,
@@ -167,6 +168,7 @@ function Notice({ tone, icon: Icon, title, children, actions, onDismiss, dismiss
  * times, and each copy had to be edited by hand when a widget was added.
  */
 const WIDGET_OPTIONS = [
+  { key: 'balances', icon: Shield, label: 'Balances & net liquid position', hint: 'Available money, card debts and net liquid wealth' },
   { key: 'stats', icon: Wallet, label: 'Income, expenses and savings', hint: 'The three period totals at the top' },
   { key: 'insights', icon: Sparkles, label: 'Insights finding', hint: 'Your biggest spending change, if there is one' },
   { key: 'ccbills', icon: CreditCard, label: 'Credit card bills paid', hint: 'Bill payments in the selected period' },
@@ -287,7 +289,7 @@ export default function DashboardPage() {
   // Widget customization states
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [widgets, setWidgets] = useState<Record<string, boolean>>(() => {
-    const defaults = { stats: true, breakdown: true, recent: true, subscriptions: true, insights: true, ccbills: true }
+    const defaults = { balances: true, stats: true, breakdown: true, recent: true, subscriptions: true, insights: true, ccbills: true }
     const saved = localStorage.getItem('intrack_dashboard_widgets')
     if (saved) {
       try {
@@ -1001,6 +1003,13 @@ export default function DashboardPage() {
               </ul>
             </Card>
           </motion.div>
+        )}
+
+        {/* ── Balances & Net Liquid Command Center ───────────────────── */}
+        {widgets.balances && (
+          <motion.section variants={staggerChild(reduce)} aria-label="Liquid balances and card debts">
+            <BalancesWidget />
+          </motion.section>
         )}
 
         {/* ── The numbers ─────────────────────────────────────────────

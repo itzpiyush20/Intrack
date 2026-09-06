@@ -470,3 +470,157 @@ export async function settleReceivable(transactionId: string) {
   return { data: creditTxn as TransactionRow, error: null }
 }
 
+/** Fetch distinct tags used across the user's transactions */
+export async function getDistinctTags(): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('tags')
+    .eq('user_id', user.id)
+    .not('tags', 'is', null)
+
+  if (error || !data) return []
+
+  const tagSet = new Set<string>()
+  for (const row of data) {
+    if (Array.isArray(row.tags)) {
+      for (const t of row.tags) {
+        const trimmed = (t || '').trim()
+        if (trimmed) tagSet.add(trimmed)
+      }
+    }
+  }
+
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b))
+}
+
+export interface FriendShare {
+  counterparty: string
+  amount: number
+  expected_return_date?: string
+  notes?: string
+}
+
+/**
+ * Split an existing transaction among the user and one or more friends.
+ * Each friend's share is automatically created as an approved returnable debit,
+ * and the original transaction's amount is adjusted to the user's personal share.
+ */
+export async function splitTransaction(
+  originalTxnId: string,
+  userAmount: number,
+  friendShares: FriendShare[]
+): Promise<{ success: boolean; error: any }> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: new Error('User not authenticated') }
+
+  const { data: original, error: fetchError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', originalTxnId)
+    .single()
+
+  if (fetchError || !original) {
+    return { success: false, error: fetchError || new Error('Original transaction not found') }
+  }
+
+  const originalRow = original as TransactionRow
+
+  // If user amount is 0, the first friend takes over the original transaction
+  if (userAmount <= 0 && friendShares.length > 0) {
+    const firstFriend = friendShares[0]
+    const { error: updateOrigError } = await supabase
+      .from('transactions')
+      .update({
+        amount: firstFriend.amount,
+        is_returnable: true,
+        counterparty: firstFriend.counterparty.trim(),
+        expected_return_date: firstFriend.expected_return_date || null,
+        return_status: 'pending',
+        notes: firstFriend.notes || `Fronted entire bill (split from ${originalRow.amount})`,
+      })
+      .eq('id', originalTxnId)
+
+    if (updateOrigError) {
+      return { success: false, error: updateOrigError }
+    }
+
+    // Insert the remaining friends' shares if any
+    const remainingShares = friendShares.slice(1)
+    if (remainingShares.length > 0) {
+      const inserts = remainingShares.map((share) => ({
+        user_id: user.id,
+        type: 'debit' as const,
+        amount: share.amount,
+        category: originalRow.category,
+        description: `${originalRow.description || originalRow.merchant || 'Expense'} (${share.counterparty}'s share)`,
+        merchant: originalRow.merchant,
+        date: originalRow.date,
+        card_id: originalRow.card_id,
+        tags: originalRow.tags,
+        is_returnable: true,
+        counterparty: share.counterparty.trim(),
+        expected_return_date: share.expected_return_date || null,
+        return_status: 'pending' as const,
+        notes: share.notes || `Split from original ${originalRow.amount} spend`,
+        source: 'manual' as const,
+        approval_status: 'approved' as const,
+      }))
+
+      const { error: insertError } = await supabase.from('transactions').insert(inserts)
+      if (insertError) return { success: false, error: insertError }
+    }
+
+    return { success: true, error: null }
+  }
+
+  // Update original transaction amount to user's share
+  const origNotes = originalRow.notes
+    ? `${originalRow.notes} (Your share of split bill)`
+    : `Your share of original ${originalRow.amount} spend`
+
+  const { error: updateError } = await supabase
+    .from('transactions')
+    .update({
+      amount: userAmount,
+      notes: origNotes,
+    })
+    .eq('id', originalTxnId)
+
+  if (updateError) {
+    return { success: false, error: updateError }
+  }
+
+  // Insert friend shares
+  if (friendShares.length > 0) {
+    const inserts = friendShares.map((share) => ({
+      user_id: user.id,
+      type: 'debit' as const,
+      amount: share.amount,
+      category: originalRow.category,
+      description: `${originalRow.description || originalRow.merchant || 'Expense'} (${share.counterparty}'s share)`,
+      merchant: originalRow.merchant,
+      date: originalRow.date,
+      card_id: originalRow.card_id,
+      tags: originalRow.tags,
+      is_returnable: true,
+      counterparty: share.counterparty.trim(),
+      expected_return_date: share.expected_return_date || null,
+      return_status: 'pending' as const,
+      notes: share.notes || `Split from original ${originalRow.amount} spend`,
+      source: 'manual' as const,
+      approval_status: 'approved' as const,
+    }))
+
+    const { error: insertError } = await supabase.from('transactions').insert(inserts)
+    if (insertError) {
+      return { success: false, error: insertError }
+    }
+  }
+
+  return { success: true, error: null }
+}
+
+

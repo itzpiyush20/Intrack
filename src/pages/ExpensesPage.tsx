@@ -26,13 +26,15 @@ import {
 import { motion, useReducedMotion } from 'framer-motion'
 import ExpenseForm from '@/components/expenses/ExpenseForm'
 import ExpenseList from '@/components/expenses/ExpenseList'
+import SplitBillModal from '@/components/expenses/SplitBillModal'
 import { fetchAllTransactions } from '@/services/transactions'
 import { cn, formatCurrency, getCurrentMonth, withTimeout, resolveDateFilter, creditCardBillCategoryNames, makeIsCreditCardBill, type DateFilter } from '@/utils'
 import type { Database } from '@/types/database'
 import { useToast } from '@/context'
 import { useLocation } from 'react-router-dom'
 import { useCategories } from '@/context/CategoriesContext'
-import { Search, Plus, X, AlertTriangle, ArrowDown, ArrowUp, Scale } from 'lucide-react'
+import { Search, Plus, X, AlertTriangle, ArrowDown, ArrowUp, Scale, FileSpreadsheet } from 'lucide-react'
+import StatementImportModal from '@/components/importer/StatementImportModal'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 
@@ -50,6 +52,8 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(() => !!(location.state as any)?.openForm)
   const [editingTransaction, setEditingTransaction] = useState<TransactionRow | null>(null)
+  const [splittingTransaction, setSplittingTransaction] = useState<TransactionRow | null>(null)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>({ mode: 'month', month: getCurrentMonth() })
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +62,9 @@ export default function ExpensesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'credit' | 'debit'>('all')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [filterTag, setFilterTag] = useState<string>(
+    () => (location.state as any)?.tag || 'all'
+  )
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -87,6 +94,9 @@ export default function ExpensesPage() {
   }, [fetchTransactions])
 
   useEffect(() => {
+    if ((location.state as any)?.tag) {
+      setFilterTag((location.state as any).tag)
+    }
     if ((location.state as any)?.openForm) {
       setShowForm(true)
       // Clear navigation state
@@ -136,14 +146,26 @@ export default function ExpensesPage() {
       (t.tags && t.tags.some((tag) => tag.toLowerCase().includes(q)))
     const matchType = filterType === 'all' || t.type === filterType
     const matchCat = filterCategory === 'all' || t.category === filterCategory
-    return matchSearch && matchType && matchCat
+    const matchTag = filterTag === 'all' || (t.tags && t.tags.includes(filterTag))
+    return matchSearch && matchType && matchCat && matchTag
   })
 
   const uniqueCategories = [...new Set(transactions.map((t) => t.category).filter(Boolean))]
 
+  const uniqueTags = useMemo(() => {
+    const set = new Set<string>()
+    transactions.forEach((t) => {
+      t.tags?.forEach((tag) => {
+        const trimmed = (tag || '').trim()
+        if (trimmed) set.add(trimmed)
+      })
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [transactions])
+
   const net = totalIncome - totalExpenses
   const inSurplus = net >= 0
-  const isFiltered = !!searchQuery || filterType !== 'all' || filterCategory !== 'all'
+  const isFiltered = !!searchQuery || filterType !== 'all' || filterCategory !== 'all' || filterTag !== 'all'
 
   // The three figures that describe the fetched range. Kept as data so the
   // markup below is one loop rather than three near-identical cards that drift
@@ -212,6 +234,13 @@ export default function ExpensesPage() {
 
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center md:shrink-0">
             <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+            <Button
+              variant="secondary"
+              onClick={() => setIsImportModalOpen(true)}
+              className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" /> Import Statement
+            </Button>
             <Button
               onClick={() => setShowForm(true)}
               className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
@@ -318,10 +347,31 @@ export default function ExpensesPage() {
                 </Select>
               </div>
 
+              <div className="min-w-0 sm:w-48">
+                <label htmlFor="txn-tag" className="sr-only">Filter by tag / event</label>
+                <Select
+                  id="txn-tag"
+                  value={filterTag}
+                  onChange={(e) => setFilterTag(e.target.value)}
+                >
+                  <option value="all">All tags / events</option>
+                  {uniqueTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      #{tag}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
               {isFiltered && (
                 <button
                   type="button"
-                  onClick={() => { setSearchQuery(''); setFilterType('all'); setFilterCategory('all') }}
+                  onClick={() => {
+                    setSearchQuery('')
+                    setFilterType('all')
+                    setFilterCategory('all')
+                    setFilterTag('all')
+                  }}
                   className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-sb-hairline bg-surface-1 px-3 text-sm font-semibold text-sb-ink-muted transition-colors hover:border-brand-500/30 hover:text-sb-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                 >
                   <X className="h-4 w-4 shrink-0" aria-hidden="true" /> Clear
@@ -345,6 +395,25 @@ export default function ExpensesPage() {
           />
         </Modal>
 
+        {/* Import Statement Modal */}
+        <StatementImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onSuccess={() => {
+            fetchTransactions()
+          }}
+        />
+
+        {/* Split Bill Modal */}
+        <SplitBillModal
+          isOpen={splittingTransaction !== null}
+          onClose={() => setSplittingTransaction(null)}
+          transaction={splittingTransaction}
+          onSplitComplete={() => {
+            fetchTransactions()
+          }}
+        />
+
         {/* The list */}
         <section className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -364,6 +433,7 @@ export default function ExpensesPage() {
             transactions={filteredTransactions}
             loading={loading}
             onEdit={handleEdit}
+            onSplit={(txn) => setSplittingTransaction(txn)}
             onRefresh={fetchTransactions}
             isFiltered={isFiltered}
             emptyAction={

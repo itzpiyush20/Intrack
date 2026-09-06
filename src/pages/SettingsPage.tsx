@@ -5,6 +5,7 @@
 
 import { APP_CONFIG } from '@/constants'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Card, Button, Input, Select, Modal, EmptyState, ACTION_BUTTON_DANGER } from '@/components/ui'
@@ -24,7 +25,9 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
 import CategoryManager from '@/components/settings/CategoryManager'
+import BalanceManager from '@/components/settings/BalanceManager'
 import CardManager from '@/components/settings/CardManager'
+import { DebtsManager } from '@/components/debts'
 import {
   Brain,
   Trash2,
@@ -43,6 +46,7 @@ import {
   CreditCard,
   Layers,
   Database,
+  HandCoins,
 } from 'lucide-react'
 
 /**
@@ -55,10 +59,11 @@ import {
  * backup, export and password are all "my data and my account".
  */
 const SETTINGS_TABS = [
-  { id: 'general',   label: 'Categories', icon: Layers },
-  { id: 'cards',     label: 'Cards',      icon: CreditCard },
-  { id: 'scanning',  label: 'Scanning',   icon: Mail },
-  { id: 'data',      label: 'Data',       icon: Database },
+  { id: 'general',   label: 'Categories',        icon: Layers },
+  { id: 'cards',     label: 'Cards & Balances',  icon: CreditCard },
+  { id: 'debts',     label: 'Loans & Debts',     icon: HandCoins },
+  { id: 'scanning',  label: 'Scanning',          icon: Mail },
+  { id: 'data',      label: 'Data',              icon: Database },
 ] as const
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
@@ -542,7 +547,20 @@ export default function SettingsPage() {
     }
   }
 
-  const [tab, setTab] = useState<SettingsTab>('general')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab') as SettingsTab | null
+  const [tab, setTab] = useState<SettingsTab>(() => {
+    if (tabParam && SETTINGS_TABS.some((t) => t.id === tabParam)) {
+      return tabParam
+    }
+    return 'general'
+  })
+
+  useEffect(() => {
+    if (tabParam && SETTINGS_TABS.some((t) => t.id === tabParam) && tabParam !== tab) {
+      setTab(tabParam)
+    }
+  }, [tabParam, tab])
 
   // Motion here is state-carrying only — an indicator that follows the active
   // tab, and one panel handing over to the next. Both collapse to nothing when
@@ -592,7 +610,10 @@ export default function SettingsPage() {
                   id={`settings-tab-${t.id}`}
                   aria-selected={isActive}
                   aria-controls={`settings-panel-${t.id}`}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => {
+                    setTab(t.id)
+                    setSearchParams({ tab: t.id })
+                  }}
                   className={cn(
                     'relative flex items-center gap-2.5 rounded-xl px-3.5 h-11 text-sm font-semibold',
                     'whitespace-nowrap cursor-pointer transition-colors md:w-full',
@@ -636,7 +657,14 @@ export default function SettingsPage() {
             </>
           )}
 
-          {tab === 'cards' && <CardManager />}
+          {tab === 'cards' && (
+            <div className="space-y-6">
+              <BalanceManager />
+              <CardManager />
+            </div>
+          )}
+
+          {tab === 'debts' && <DebtsManager />}
 
           {tab === 'scanning' && (
             <>

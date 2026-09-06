@@ -39,7 +39,7 @@
 //    needs no migration — see the report.)
 
 import { supabase } from './supabase'
-import { getCurrentMonth } from '@/utils'
+import { getCurrentMonth, toISODateLocal } from '@/utils'
 import type { Database } from '@/types/database'
 
 type BudgetRow = Database['public']['Tables']['budgets']['Row']
@@ -284,3 +284,91 @@ export async function deleteBudget(id: string, budget?: { month: string }) {
 
   return { error }
 }
+
+/**
+ * Calculates the previous calendar month in 'YYYY-MM' format.
+ */
+export function getPreviousMonth(month: string): string {
+  const [year, mon] = month.split('-').map(Number)
+  const d = new Date(year, mon - 2, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Calculates rollover surplus for a single category: unspent budget from previous month.
+ * Any negative amount (overspend) returns 0 — rollover surplus does not penalize next month.
+ */
+export function calculateCategoryRollover(budgetAmount: number, spentAmount: number): number {
+  const surplus = Number(budgetAmount) - Number(spentAmount)
+  return surplus > 0 ? surplus : 0
+}
+
+/**
+ * Computes rollover surplus for each category from previous month's budgets and spend.
+ */
+export function calculateRollovers(
+  budgets: Array<{ category: string; amount: number; deleted_at?: string | null }>,
+  spentMap: Record<string, number>
+): Record<string, number> {
+  const rollovers: Record<string, number> = {}
+  const active = visibleBudgets(budgets)
+  for (const b of active) {
+    const spent = spentMap[b.category] || 0
+    const surplus = calculateCategoryRollover(b.amount, spent)
+    if (surplus > 0) {
+      rollovers[b.category] = surplus
+    }
+  }
+  return rollovers
+}
+
+/**
+ * Fetches the previous month's budgets and spending to calculate the unspent
+ * budget (rollover surplus) for each category.
+ */
+export async function getPreviousMonthRollovers(
+  currentMonth: string
+): Promise<{ data: Record<string, number> | null; error: unknown }> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null, error: new Error('User not authenticated') }
+
+  const prevMonth = getPreviousMonth(currentMonth)
+
+  // 1. Read previous month budgets
+  const { data: prevBudgets, error: budgetErr } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('month', prevMonth)
+
+  if (budgetErr) return { data: null, error: budgetErr }
+  if (!prevBudgets || prevBudgets.length === 0) return { data: {}, error: null }
+
+  const activeBudgets = visibleBudgets(prevBudgets as BudgetRow[])
+  if (activeBudgets.length === 0) return { data: {}, error: null }
+
+  // 2. Read approved debit transactions for previous month
+  const [year, mon] = prevMonth.split('-').map(Number)
+  const startDate = `${prevMonth}-01`
+  const endDate = toISODateLocal(new Date(year, mon, 0))
+
+  const { data: txns, error: txnErr } = await supabase
+    .from('transactions')
+    .select('category, amount, type')
+    .eq('user_id', user.id)
+    .eq('approval_status', 'approved')
+    .eq('type', 'debit')
+    .gte('date', startDate)
+    .lte('date', endDate)
+
+  if (txnErr) return { data: null, error: txnErr }
+
+  const spentMap: Record<string, number> = {}
+  for (const t of txns || []) {
+    spentMap[t.category] = (spentMap[t.category] || 0) + Number(t.amount)
+  }
+
+  const rollovers = calculateRollovers(activeBudgets, spentMap)
+  return { data: rollovers, error: null }
+}
+
