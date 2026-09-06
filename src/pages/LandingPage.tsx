@@ -79,7 +79,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Intrack | Autonomous Finance & Expense Intelligence',
+      title: 'Intrack | Effortless Expense Intelligence',
       description: "Intrack securely transforms your bank's transaction alert emails into real-time expenses, budgets, and subscriptions — waiting for your one-tap approval.",
       canonicalPath: '/',
     })
@@ -226,7 +226,7 @@ export default function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
                   </span>
-                  Autonomous Wealth &amp; Expense Intelligence
+                  Effortless Expense Intelligence
                 </motion.div>
 
                 {/* Main Headline */}
@@ -236,8 +236,8 @@ export default function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="text-4xl sm:text-5xl lg:text-[58px] font-extrabold tracking-tight text-sb-ink leading-[1.12] mt-6"
                 >
-                  Your finances on autopilot.{' '}
-                  <span className="text-brand-500 block sm:inline">Zero manual entry.</span>
+                  Effortless expense tracking.{' '}
+                  <span className="text-brand-500 block sm:inline">For mindful spenders.</span>
                 </motion.h1>
 
                 {/* Subtitle */}
@@ -451,7 +451,7 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 mb-5">
                     <Zap className="w-5 h-5" />
                   </div>
-                  <h3 className="text-xl font-bold text-sb-ink mb-2">Autonomous Alert Recognition</h3>
+                  <h3 className="text-xl font-bold text-sb-ink mb-2">Intelligent Alert Recognition</h3>
                   <p className="text-sm text-sb-ink-secondary max-w-xl leading-relaxed">
                     Connect Gmail once and trigger a scan whenever you please. Every coffee swipe, UPI QR transfer, and utility bill arrives with merchant name, exact amount, and category already classified.
                   </p>

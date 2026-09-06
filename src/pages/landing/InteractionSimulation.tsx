@@ -100,7 +100,7 @@ export function InteractionSimulation() {
               className="space-y-3"
             >
               <div className="flex items-center justify-between text-xs text-sb-ink-muted font-medium">
-                <span>Stage 2 · Autonomous Entity Extraction</span>
+                <span>Stage 2 · Smart Entity Extraction</span>
                 <span className="text-[11px] text-brand-600 font-semibold flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> 99.4% Confidence
                 </span>

@@ -465,7 +465,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
                 <span className="text-[10px] font-semibold text-sb-ink-muted tracking-wider uppercase mt-1 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                  Autonomous Finance
+                  Expense Intelligence
                 </span>
               </div>
             </Link>
@@ -675,20 +675,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       </div>
                       <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden sm:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                        Autonomous Finance
+                        Expense Intelligence
                       </span>
                     </div>
                   </Link>
                 </div>
 
-                {/* Desktop Header: Page Title + Autonomous Live Telemetry */}
+                {/* Desktop Header: Page Title + Live Telemetry */}
                 <div className="hidden lg:flex items-center gap-3.5 min-w-0">
                   <h1 className="text-base font-bold text-sb-ink tracking-tight flex items-center gap-2 m-0">
                     {getCurrentPageTitle(location.pathname)}
                   </h1>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
                     <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                    Autonomous Live
+                    Live Ledger
                   </span>
                 </div>
               </>
@@ -703,7 +703,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </div>
                   <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
                     <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                    Autonomous Finance
+                    Expense Intelligence
                   </span>
                 </div>
               </Link>

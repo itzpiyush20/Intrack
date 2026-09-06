@@ -29,7 +29,7 @@ export default function AboutPage() {
         <div className="flex justify-center mb-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-            Autonomous Financial Intelligence
+            Effortless Expense Intelligence
           </span>
         </div>
         <motion.div

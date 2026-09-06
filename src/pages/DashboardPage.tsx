@@ -771,7 +771,7 @@ export default function DashboardPage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
                 </span>
-                <span>Autonomous Ledger</span>
+                <span>Live Ledger</span>
               </div>
               {streakInfo.streak > 1 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-800 shadow-xs">
