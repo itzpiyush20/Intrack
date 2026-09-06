@@ -64,6 +64,7 @@ function getCurrentPageTitle(pathname: string): string {
   if (pathname === ROUTES.SUBSCRIPTIONS) return 'Subscriptions'
   if (pathname === ROUTES.SETTINGS) return 'Settings'
   if (pathname === ROUTES.PROFILE) return 'Profile'
+  if (pathname === ROUTES.PRICING || pathname === '/pricing') return 'Subscription & Billing'
   if (pathname === '/admin' || pathname.startsWith('/admin')) return 'Admin Console'
   if (pathname === '/payment-success') return 'Payment Successful'
   return 'Command Center'
@@ -131,7 +132,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     '/subscriptions',
     '/payment-success',
     '/admin'
-  ].includes(location.pathname)
+  ].includes(location.pathname) || (Boolean(user) && location.pathname === '/pricing')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Motion reports state: the mobile menu opening, the install banner
@@ -590,10 +591,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <Link
                     to={ROUTES.PRICING}
                     onClick={() => setSidebarUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer"
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight transition-colors cursor-pointer",
+                      location.pathname === ROUTES.PRICING
+                        ? "bg-brand-50 text-brand-700 font-bold"
+                        : "text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2"
+                    )}
                   >
                     <Crown className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Pricing & Plans</span>
+                    <span>Subscription & Billing</span>
                   </Link>
 
                   <button
@@ -911,9 +917,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <Link
                           to="/pricing"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors", "text-sb-ink hover:bg-sb-canvas-soft")}
+                          className={cn(
+                            "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+                            location.pathname === '/pricing'
+                              ? "bg-brand-50 text-brand-700 font-bold"
+                              : "text-sb-ink hover:bg-sb-canvas-soft"
+                          )}
                         >
-                          <Crown className="h-3.5 w-3.5 text-sb-ink-muted shrink-0" /> Pricing & Plans
+                          <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Subscription & Billing
                         </Link>
                         <button
                           onClick={() => {
@@ -1029,11 +1040,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   className={cn(
                     'flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     location.pathname === '/pricing'
-                      ? 'font-bold'
-                      : ''
+                      ? 'bg-brand-50 text-brand-700 font-bold'
+                      : 'text-sb-ink hover:bg-sb-canvas-soft'
                   )}
                 >
-                  <Crown className="h-4 w-4 mr-2 text-sb-ink-muted shrink-0" /> Pricing & Plans
+                  <Crown className="h-4 w-4 mr-2 text-amber-500 shrink-0" /> Subscription & Billing
                 </Link>
 
                 <button

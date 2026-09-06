@@ -6,7 +6,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
-import { AuthProvider, ToastProvider, CategoriesProvider } from '@/context'
+import { AuthProvider, ToastProvider, CategoriesProvider, useAuth } from '@/context'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import AdminRoute from '@/components/auth/AdminRoute'
 import AutoUpdateChecker from '@/components/AutoUpdateChecker'
@@ -50,7 +50,8 @@ function CanonicalUrl() {
 
 function MarketingScrollProgress() {
   const { pathname } = useLocation()
-  if (!MARKETING_ROUTES.has(pathname)) return null
+  const { user } = useAuth()
+  if (!MARKETING_ROUTES.has(pathname) || (pathname === '/pricing' && !!user)) return null
   return <ScrollProgressBar />
 }
 

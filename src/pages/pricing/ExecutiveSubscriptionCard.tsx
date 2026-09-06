@@ -22,6 +22,7 @@ import {
 
 interface ExecutiveSubscriptionCardProps {
   profile: any
+  email?: string
   daysLeft: number
   hasQueuedPlan: boolean
   onSelectPlan: (plan: 'monthly' | 'annual') => void
@@ -32,6 +33,7 @@ interface ExecutiveSubscriptionCardProps {
 
 export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps> = ({
   profile,
+  email,
   daysLeft,
   hasQueuedPlan,
   onSelectPlan,
@@ -77,10 +79,17 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
       <div className="relative z-10 space-y-6">
         {/* ── Top Header Row ─────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-sb-hairline">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-2 border border-sb-hairline text-sb-ink-secondary text-xs font-semibold">
-              <span className="h-2 w-2 rounded-full bg-brand-500" />
-              <span>Subscription &amp; Billing Center</span>
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-2 border border-sb-hairline text-sb-ink-secondary text-xs font-semibold">
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
+                <span>Subscription &amp; Billing Center</span>
+              </div>
+              {email && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2/80 border border-sb-hairline text-sb-ink-muted text-xs font-medium font-mono">
+                  <span>{email}</span>
+                </div>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-sb-ink flex items-center gap-2.5">
               <span>{planTitle}</span>
@@ -179,6 +188,39 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
             <p className="text-[11px] text-sb-ink-secondary">4-hour interval cooldown</p>
           </div>
         </div>
+
+        {/* ── Active Plan Entitlements & Protections ─────────── */}
+        {(isActive || isTrial || (isCancelled && daysLeft > 0)) && (
+          <div className="rounded-2xl bg-surface-2/40 border border-sb-hairline p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sb-ink-muted">
+                Active Plan Entitlements &amp; Protections
+              </span>
+              <span className="text-[11px] font-semibold text-brand-700 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-brand-600" />
+                100% Unlocked
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+              {[
+                { title: '2 Automated Daily Scans', desc: '4-hour safety cooldown between runs' },
+                { title: 'Gemini AI Categorization', desc: 'Real-time merchant & category parsing' },
+                { title: 'Subscription Radar', desc: 'Renewal calendar & price bump alerts' },
+                { title: 'Zero Mandates Guarantee', desc: 'Card never auto-charged or stored' },
+                { title: 'Encrypted Exports', desc: 'Full CSV & JSON financial backup' },
+                { title: 'Read-Only Security', desc: 'Zero banking credentials or PINs stored' },
+              ].map((ent) => (
+                <div key={ent.title} className="flex items-start gap-2 p-2 rounded-xl bg-surface-1/70 border border-sb-hairline/60">
+                  <Check className="w-3.5 h-3.5 text-brand-600 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-sb-ink leading-tight">{ent.title}</p>
+                    <p className="text-[10px] text-sb-ink-secondary leading-tight mt-0.5">{ent.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Queued Plan Notice (if present) ────────────────── */}
         {hasQueuedPlan && (
@@ -320,13 +362,15 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
 
           {/* Self-serve Cancel Subscription button (only visible if active or trial) */}
           {(isActive || isTrial) && (
-            <button
-              type="button"
-              onClick={onOpenCancelModal}
-              className="text-xs font-medium text-sb-ink-muted hover:text-rose-600 bg-transparent border-0 cursor-pointer transition-colors px-2 py-1.5 rounded-lg hover:bg-rose-500/10 ml-auto sm:ml-0"
-            >
-              Cancel subscription
-            </button>
+            <div className="flex items-center gap-2 ml-auto sm:ml-0 pt-2 sm:pt-0">
+              <button
+                type="button"
+                onClick={onOpenCancelModal}
+                className="text-xs font-semibold text-rose-600/80 hover:text-rose-700 bg-transparent border-0 cursor-pointer transition-colors px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10"
+              >
+                Cancel subscription
+              </button>
+            </div>
           )}
         </div>
       </div>
