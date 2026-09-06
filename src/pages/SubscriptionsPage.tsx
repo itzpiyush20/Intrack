@@ -1,7 +1,7 @@
 // ============================================
 // SubscriptionsPage — Planned Payments Command Center
-// Tracks recurring commitments (Rent, Utilities, EMIs, Subscriptions)
-// based on user-designated categories. Zero algorithmic guessing.
+// Tracks specific recurring commitments (Netflix, House Rent, Utilities, EMIs)
+// based on user-designated categories and items. Zero algorithmic guessing.
 // ============================================
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
@@ -25,13 +25,9 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
   CreditCard,
   Building2,
   Zap,
-  Sparkles,
-  ArrowRight,
-  SlidersHorizontal,
 } from 'lucide-react'
 import { APP_CONFIG } from '@/constants'
 import { formatCurrency, formatDate, cn } from '@/utils'
@@ -39,25 +35,24 @@ import { toISODateLocal } from '@/utils/dateFilter'
 import { fetchAllTransactions } from '@/services/transactions'
 import {
   evaluateMonthlyPlannedPayments,
+  getUserPlannedPayments,
   isPlannedCategory,
-  savePlannedCategorySchedule,
+  type UserPlannedPayment,
   type EvaluatedPlannedPayment,
 } from '@/services/plannedPayments'
 import { useAuth } from '@/context/AuthContext'
 import { useCategories } from '@/context/CategoriesContext'
 import RecordPlannedPaymentModal from '@/components/subscriptions/RecordPlannedPaymentModal'
-import EditPlannedScheduleModal from '@/components/subscriptions/EditPlannedScheduleModal'
-import CategoryFormModal from '@/components/settings/CategoryFormModal'
+import PlannedPaymentFormModal from '@/components/subscriptions/PlannedPaymentFormModal'
 import type { Database } from '@/types/database'
-import type { Category } from '@/types'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 
 type HorizonFilter = 'all' | '7_days' | '15_days' | 'cleared'
 
 export default function SubscriptionsPage() {
-  const { user, currencySymbol } = useAuth()
-  const { categories, getStyle, refresh: refreshCategories } = useCategories()
+  const { user } = useAuth()
+  const { categories, refresh: refreshCategories } = useCategories()
   const reduce = useReducedMotion()
 
   // Selected Month State (defaults to current month)
@@ -68,16 +63,26 @@ export default function SubscriptionsPage() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
 
+  // User planned payment items
+  const [userPlannedPayments, setUserPlannedPayments] = useState<UserPlannedPayment[]>([])
+
+  const reloadPlans = useCallback(() => {
+    setUserPlannedPayments(getUserPlannedPayments(user?.id))
+  }, [user?.id])
+
+  useEffect(() => {
+    reloadPlans()
+  }, [reloadPlans])
+
   // Filter states
   const [horizon, setHorizon] = useState<HorizonFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Modals state
   const [recordingItem, setRecordingItem] = useState<EvaluatedPlannedPayment | null>(null)
-  const [editingScheduleItem, setEditingScheduleItem] = useState<EvaluatedPlannedPayment | null>(null)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-  const [initialPlannedPaymentForModal, setInitialPlannedPaymentForModal] = useState(true)
+  const [formModalItem, setFormModalItem] = useState<UserPlannedPayment | null>(null)
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false)
+  const [prefilledCategory, setPrefilledCategory] = useState<string | undefined>()
 
   // Fetch transactions for the current month
   const fetchMonthData = useCallback(async () => {
@@ -133,11 +138,6 @@ export default function SubscriptionsPage() {
     )
   }, [year, monthIndex])
 
-  // Filter planned categories
-  const plannedCategories = useMemo(() => {
-    return categories.filter(isPlannedCategory)
-  }, [categories])
-
   // Evaluate planned payments for this month
   const evaluation = useMemo(() => {
     return evaluateMonthlyPlannedPayments({
@@ -146,8 +146,9 @@ export default function SubscriptionsPage() {
       year,
       monthIndex,
       userId: user?.id,
+      userPlannedPayments,
     })
-  }, [categories, transactions, year, monthIndex, user?.id])
+  }, [categories, transactions, year, monthIndex, user?.id, userPlannedPayments])
 
   // Horizon & search filtered items
   const filteredItems = useMemo(() => {
@@ -155,9 +156,10 @@ export default function SubscriptionsPage() {
       // Search query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim()
-        const matchesName = item.categoryName.toLowerCase().includes(q)
+        const matchesName = item.name.toLowerCase().includes(q)
+        const matchesCat = item.categoryName.toLowerCase().includes(q)
         const matchesMerchant = (item.lastChargedMerchant || '').toLowerCase().includes(q)
-        if (!matchesName && !matchesMerchant) return false
+        if (!matchesName && !matchesCat && !matchesMerchant) return false
       }
 
       // Horizon filter
@@ -201,14 +203,33 @@ export default function SubscriptionsPage() {
     return <CreditCard className="h-3.5 w-3.5 text-brand-500" />
   }
 
-  // Quick 1-click onboard helper for existing default categories
-  const handleQuickMarkCategory = async (cat: Category) => {
-    if (user?.id) {
-      savePlannedCategorySchedule(cat.name, { dueDay: 1 }, user.id)
+  const handleEditItem = (item: EvaluatedPlannedPayment) => {
+    const existing = userPlannedPayments.find((p) => p.id === item.id)
+    if (existing) {
+      setFormModalItem(existing)
+    } else {
+      setFormModalItem({
+        id: item.id,
+        name: item.name,
+        category: item.categoryName,
+        dueDay: item.dueDay,
+        expectedAmount: item.expectedAmount,
+      })
     }
-    setEditingCategory(cat)
-    setInitialPlannedPaymentForModal(true)
-    setIsCategoryModalOpen(true)
+    setPrefilledCategory(item.categoryName)
+    setIsFormModalOpen(true)
+  }
+
+  const handleQuickAdd = (presetName: string, categoryName: string, defaultDay = 5, defaultAmount = 500) => {
+    setFormModalItem({
+      id: '',
+      name: presetName,
+      category: categoryName,
+      dueDay: defaultDay,
+      expectedAmount: defaultAmount,
+    })
+    setPrefilledCategory(categoryName)
+    setIsFormModalOpen(true)
   }
 
   return (
@@ -237,7 +258,7 @@ export default function SubscriptionsPage() {
             </p>
           </div>
 
-          {/* Month Navigation and New Category Button */}
+          {/* Month Navigation and New Payment Button */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center rounded-xl bg-surface-1 border border-sb-hairline p-1 shadow-xs">
               <button
@@ -274,19 +295,19 @@ export default function SubscriptionsPage() {
 
             <Button
               onClick={() => {
-                setEditingCategory(null)
-                setInitialPlannedPaymentForModal(true)
-                setIsCategoryModalOpen(true)
+                setFormModalItem(null)
+                setPrefilledCategory(undefined)
+                setIsFormModalOpen(true)
               }}
               className="!h-9 text-xs shadow-xs"
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Planned Category
+              Add Planned Payment
             </Button>
           </div>
         </div>
 
-        {loading && plannedCategories.length === 0 ? (
+        {loading && evaluation.totalCount === 0 ? (
           <div className="mt-6 flex flex-col gap-6">
             <div className="grid gap-4 sm:grid-cols-3">
               {[0, 1, 2].map((i) => (
@@ -306,57 +327,79 @@ export default function SubscriptionsPage() {
               </div>
             </Card>
           </div>
-        ) : plannedCategories.length === 0 ? (
+        ) : evaluation.totalCount === 0 ? (
           /* Empty Onboarding State */
           <Card className="mt-6 p-8 border-dashed border-sb-hairline bg-surface-1 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 border border-brand-200/80 text-brand-600 shadow-xs">
               <Calendar className="h-6 w-6" />
             </div>
             <h2 className="mt-4 text-base font-bold text-sb-ink">
-              No planned payments set up yet
+              No planned payments added yet
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-sb-ink-muted leading-relaxed">
-              Mark your recurring categories (such as Rent, Utilities, Subscriptions, EMI, or Insurance)
-              to track due dates and clearance status every month.
+              Add your recurring commitments like Rent, Netflix, Tata Power, or Car Loan EMI.
+              Each has its own due day and expected amount.
             </p>
 
-            {/* Quick 1-tap suggestions from user's existing expense categories */}
-            {categories.filter((c) => c.type === 'expense').length > 0 && (
-              <div className="mt-6 mx-auto max-w-lg">
-                <p className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-3">
-                  Quick add from your existing categories:
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {categories
-                    .filter((c) => c.type === 'expense')
-                    .slice(0, 6)
-                    .map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => handleQuickMarkCategory(cat)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sb-hairline bg-surface-2 text-xs font-semibold text-sb-ink hover:border-brand-500/40 hover:bg-brand-50 hover:text-brand-700 transition-all cursor-pointer shadow-xs"
-                      >
-                        <span>{cat.emoji}</span>
-                        <span>{cat.name}</span>
-                        <Plus className="h-3 w-3 text-sb-ink-muted" />
-                      </button>
-                    ))}
-                </div>
+            {/* Quick 1-tap presets */}
+            <div className="mt-6 mx-auto max-w-lg">
+              <p className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted mb-3">
+                Quick start with common payments:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd('House Rent', 'Rent', 1, 20000)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sb-hairline bg-surface-2 text-xs font-semibold text-sb-ink hover:border-brand-500/40 hover:bg-brand-50 hover:text-brand-700 transition-all cursor-pointer shadow-xs"
+                >
+                  <span>🏠</span>
+                  <span>House Rent</span>
+                  <Plus className="h-3 w-3 text-sb-ink-muted" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd('Netflix', 'Subscriptions', 5, 649)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sb-hairline bg-surface-2 text-xs font-semibold text-sb-ink hover:border-brand-500/40 hover:bg-brand-50 hover:text-brand-700 transition-all cursor-pointer shadow-xs"
+                >
+                  <span>🔄</span>
+                  <span>Netflix</span>
+                  <Plus className="h-3 w-3 text-sb-ink-muted" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd('Electricity Bill', 'Utilities & Bills', 10, 2500)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sb-hairline bg-surface-2 text-xs font-semibold text-sb-ink hover:border-brand-500/40 hover:bg-brand-50 hover:text-brand-700 transition-all cursor-pointer shadow-xs"
+                >
+                  <span>💡</span>
+                  <span>Electricity Bill</span>
+                  <Plus className="h-3 w-3 text-sb-ink-muted" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd('Broadband / Wi-Fi', 'Utilities & Bills', 15, 999)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sb-hairline bg-surface-2 text-xs font-semibold text-sb-ink hover:border-brand-500/40 hover:bg-brand-50 hover:text-brand-700 transition-all cursor-pointer shadow-xs"
+                >
+                  <span>🌐</span>
+                  <span>Broadband</span>
+                  <Plus className="h-3 w-3 text-sb-ink-muted" />
+                </button>
               </div>
-            )}
+            </div>
 
             <div className="mt-6 flex justify-center">
               <Button
                 onClick={() => {
-                  setEditingCategory(null)
-                  setInitialPlannedPaymentForModal(true)
-                  setIsCategoryModalOpen(true)
+                  setFormModalItem(null)
+                  setPrefilledCategory(undefined)
+                  setIsFormModalOpen(true)
                 }}
                 className="!h-10 text-xs shadow-xs"
               >
                 <Plus className="h-4 w-4 mr-1.5" />
-                Create Planned Category
+                Add Planned Payment
               </Button>
             </div>
           </Card>
@@ -509,7 +552,7 @@ export default function SubscriptionsPage() {
                     id="search-payments"
                     type="search"
                     aria-label="Search planned payments"
-                    placeholder="Search category or merchant..."
+                    placeholder="Search name, category, merchant..."
                     icon={<Search className="h-4 w-4 text-sb-ink-muted" />}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -579,7 +622,7 @@ export default function SubscriptionsPage() {
                               : 'border-sb-hairline bg-surface-1 hover:border-brand-500/30'
                           )}
                         >
-                          {/* Left: Category info & details */}
+                          {/* Left: Item name, category badge & details */}
                           <div className="flex min-w-0 items-start sm:items-center gap-3">
                             <span
                               aria-hidden="true"
@@ -590,6 +633,9 @@ export default function SubscriptionsPage() {
                             <div className="flex min-w-0 flex-col">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-bold text-sb-ink truncate">
+                                  {item.name}
+                                </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-2 border border-sb-hairline text-[11px] font-medium text-sb-ink-muted">
                                   {item.categoryName}
                                 </span>
                                 <Badge variant={badgeVariant}>{statusText}</Badge>
@@ -652,9 +698,9 @@ export default function SubscriptionsPage() {
 
                               <button
                                 type="button"
-                                onClick={() => setEditingScheduleItem(item)}
-                                title="Edit schedule or expected amount"
-                                aria-label={`Edit schedule for ${item.categoryName}`}
+                                onClick={() => handleEditItem(item)}
+                                title="Edit plan details or amount"
+                                aria-label={`Edit ${item.name}`}
                                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-sb-hairline bg-surface-1 text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -678,45 +724,35 @@ export default function SubscriptionsPage() {
             onClose={() => setRecordingItem(null)}
             onSuccess={() => {
               fetchMonthData()
+              reloadPlans()
               refreshCategories()
             }}
             categoryName={recordingItem.categoryName}
+            paymentName={recordingItem.name}
             categoryEmoji={recordingItem.categoryEmoji}
             expectedAmount={recordingItem.expectedAmount}
             monthTransactions={transactions}
           />
         )}
 
-        {/* Modal 2: Edit Plan Schedule */}
-        {editingScheduleItem && (
-          <EditPlannedScheduleModal
-            isOpen={!!editingScheduleItem}
-            onClose={() => setEditingScheduleItem(null)}
-            onSaved={() => {
-              fetchMonthData()
-            }}
-            categoryName={editingScheduleItem.categoryName}
-            categoryEmoji={editingScheduleItem.categoryEmoji}
-            initialDueDay={editingScheduleItem.dueDay}
-            initialExpectedAmount={editingScheduleItem.expectedAmount}
-          />
-        )}
-
-        {/* Modal 3: Category Form Modal (create / edit category) */}
-        {isCategoryModalOpen && (
-          <CategoryFormModal
-            editing={editingCategory}
+        {/* Modal 2: Add / Edit Planned Payment Item */}
+        {isFormModalOpen && (
+          <PlannedPaymentFormModal
+            isOpen={isFormModalOpen}
+            editingItem={formModalItem}
             onClose={() => {
-              setIsCategoryModalOpen(false)
-              setEditingCategory(null)
+              setIsFormModalOpen(false)
+              setFormModalItem(null)
             }}
             onSaved={() => {
-              setIsCategoryModalOpen(false)
-              setEditingCategory(null)
-              refreshCategories()
+              setIsFormModalOpen(false)
+              setFormModalItem(null)
+              reloadPlans()
               fetchMonthData()
+              refreshCategories()
             }}
-            initialPlannedPayment={initialPlannedPaymentForModal}
+            categories={categories}
+            initialCategory={prefilledCategory}
           />
         )}
       </div>

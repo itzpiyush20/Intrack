@@ -5,13 +5,9 @@
 import { useState, type FormEvent } from 'react'
 import { Modal, Button, Input } from '@/components/ui'
 import { CATEGORY_EMOJI_CHOICES, CATEGORY_COLOR_CHOICES, ANALYTICS_TAG_CHOICES } from '@/constants'
-import { useCategories, useAuth } from '@/context'
+import { useCategories } from '@/context'
 import { createCategory, renameCategory, updateCategoryStyle } from '@/services/categories'
-import {
-  getPlannedCategorySchedule,
-  savePlannedCategorySchedule,
-  isPlannedCategory,
-} from '@/services/plannedPayments'
+import { isPlannedCategory } from '@/services/plannedPayments'
 import { cn } from '@/utils'
 import type { AnalyticsTag, Category, CategoryType } from '@/types'
 
@@ -29,12 +25,7 @@ export default function CategoryFormModal({
   initialPlannedPayment = false,
 }: CategoryFormModalProps) {
   const { categories } = useCategories()
-  const { user } = useAuth()
   const isEditing = !!editing
-
-  const initialSchedule = editing
-    ? getPlannedCategorySchedule(editing.name, user?.id)
-    : { categoryName: '', dueDay: 1, expectedAmount: undefined }
 
   const [name, setName] = useState(editing?.name || '')
   const [emoji, setEmoji] = useState(editing?.emoji || CATEGORY_EMOJI_CHOICES[0])
@@ -43,10 +34,6 @@ export default function CategoryFormModal({
   const [budgetEligible, setBudgetEligible] = useState(editing?.budget_eligible ?? true)
   const [isPlannedPayment, setIsPlannedPayment] = useState<boolean>(
     editing ? isPlannedCategory(editing) : initialPlannedPayment
-  )
-  const [dueDay, setDueDay] = useState<number>(initialSchedule.dueDay || 1)
-  const [expectedAmount, setExpectedAmount] = useState<string>(
-    initialSchedule.expectedAmount ? String(initialSchedule.expectedAmount) : ''
   )
   const [analyticsTags, setAnalyticsTags] = useState<AnalyticsTag[]>(() => {
     const existing = editing?.analytics_tags ?? []
@@ -147,18 +134,6 @@ export default function CategoryFormModal({
         setLoading(false)
         return
       }
-    }
-
-    if (user?.id && type === 'expense' && isPlannedPayment) {
-      savePlannedCategorySchedule(
-        trimmedName,
-        {
-          categoryName: trimmedName,
-          dueDay: Number(dueDay) || 1,
-          expectedAmount: expectedAmount ? Number(expectedAmount) : undefined,
-        },
-        user.id
-      )
     }
 
     setLoading(false)
@@ -305,49 +280,12 @@ export default function CategoryFormModal({
                   className="mt-0.5 rounded border-sb-hairline bg-surface-1 text-brand-600 focus:ring-brand-500/25 h-4 w-4 cursor-pointer"
                 />
                 <div>
-                  <span className="font-semibold text-sb-ink">Mark as Planned Payment</span>
+                  <span className="font-semibold text-sb-ink">Mark as Planned Payment Category</span>
                   <p className="text-xs text-sb-ink-muted mt-0.5 leading-relaxed">
-                    Track this recurring commitment (e.g., Rent, Electricity, Netflix, SIP, or EMIs) in your Planned Payments command center with due dates and monthly clearance.
+                    Recurring commitments under this category (e.g. Subscriptions, Rent, Utilities, EMIs) can be scheduled and tracked in your Planned Payments command center.
                   </p>
                 </div>
               </label>
-
-              {isPlannedPayment && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-sb-hairline">
-                  <div>
-                    <label htmlFor="cat-due-day" className="block text-xs font-semibold text-sb-ink mb-1">
-                      Due day of month
-                    </label>
-                    <select
-                      id="cat-due-day"
-                      value={dueDay}
-                      onChange={(e) => setDueDay(Number(e.target.value))}
-                      className="w-full h-10 px-3 rounded-lg border border-sb-hairline bg-surface-1 text-sm text-sb-ink font-medium focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500 transition-all cursor-pointer"
-                    >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                        <option key={d} value={d}>
-                          Day {d} of the month
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="cat-expected-amount" className="block text-xs font-semibold text-sb-ink mb-1">
-                      Typical / Expected amount (₹)
-                    </label>
-                    <Input
-                      id="cat-expected-amount"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="e.g. 15000"
-                      value={expectedAmount}
-                      onChange={(e) => setExpectedAmount(e.target.value)}
-                      className="tnum"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </>
         )}

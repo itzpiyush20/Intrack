@@ -310,5 +310,70 @@ describe('category-based planned payments evaluation', () => {
     expect(elecItem).toBeDefined()
     expect(elecItem?.status).toBe('due')
   })
+
+  it('supports multiple planned payments under the same category with distinct due dates and amounts', async () => {
+    const { evaluateMonthlyPlannedPayments } = await import('./plannedPayments')
+
+    const categories = [
+      { id: 'c1', name: 'Subscriptions', emoji: '🔄', analytics_tags: ['subscription'] },
+    ]
+
+    const userPlannedPayments = [
+      {
+        id: 'p1',
+        name: 'Netflix',
+        category: 'Subscriptions',
+        dueDay: 5,
+        expectedAmount: 649,
+      },
+      {
+        id: 'p2',
+        name: 'Spotify',
+        category: 'Subscriptions',
+        dueDay: 12,
+        expectedAmount: 119,
+      },
+    ]
+
+    const monthTransactions = [
+      {
+        id: 't_netflix',
+        date: '2026-09-05',
+        amount: 649,
+        type: 'debit',
+        category: 'Subscriptions',
+        merchant: 'Netflix',
+        description: 'Netflix Monthly Plan',
+        approval_status: 'approved',
+      },
+    ]
+
+    const result = evaluateMonthlyPlannedPayments({
+      categories,
+      monthTransactions,
+      year: 2026,
+      monthIndex: 8, // September 2026
+      referenceDate: new Date('2026-09-06T12:00:00Z'),
+      userPlannedPayments,
+    })
+
+    expect(result.totalCount).toBe(2)
+    expect(result.clearedCount).toBe(1)
+    expect(result.clearedAmount).toBe(649)
+    expect(result.dueCount).toBe(1)
+    expect(result.remainingDueAmount).toBe(119)
+
+    const netflix = result.items.find((i) => i.name === 'Netflix')
+    expect(netflix?.status).toBe('paid')
+    expect(netflix?.amountPaid).toBe(649)
+    expect(netflix?.categoryName).toBe('Subscriptions')
+
+    const spotify = result.items.find((i) => i.name === 'Spotify')
+    expect(spotify?.status).toBe('due')
+    expect(spotify?.expectedAmount).toBe(119)
+    expect(spotify?.dueDay).toBe(12)
+    expect(spotify?.categoryName).toBe('Subscriptions')
+  })
 })
+
 

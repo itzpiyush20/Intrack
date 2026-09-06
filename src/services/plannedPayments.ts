@@ -505,9 +505,82 @@ export function calculateUpcomingBillsForNext30Days(
 // ============================================
 // Category-Based Planned Payments
 // Only categories explicitly marked by the user in Settings
+// and specific planned payment items defined by the user
 // appear in the Planned Payments Command Center.
 // Zero algorithmic guessing or auto-tagging.
 // ============================================
+
+export interface UserPlannedPayment {
+  id: string
+  name: string // e.g. "Netflix", "Spotify", "Tata Power", "House Rent", "HDFC Car Loan"
+  category: string // Category name, e.g. "Subscriptions", "Utilities & Bills", "Rent"
+  dueDay: number // 1..31 (e.g. 5 for 5th of each month)
+  expectedAmount: number // e.g. 649, 25000
+  notes?: string
+  createdAt?: string
+}
+
+export function plannedPaymentsStorageKey(userId?: string): string {
+  return `intrack_user_planned_payments_${userId || 'default'}`
+}
+
+export function getUserPlannedPayments(userId?: string): UserPlannedPayment[] {
+  if (typeof window === 'undefined' || !window.localStorage) return []
+  try {
+    const raw = localStorage.getItem(plannedPaymentsStorageKey(userId))
+    return raw ? JSON.parse(raw) : []
+  } catch (e) {
+    console.warn('Failed to load user planned payments:', e)
+    return []
+  }
+}
+
+export function saveUserPlannedPayment(
+  payment: Omit<UserPlannedPayment, 'id'> & { id?: string },
+  userId?: string
+): UserPlannedPayment {
+  const current = getUserPlannedPayments(userId)
+  const id = payment.id || `plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+  const now = new Date().toISOString()
+
+  const existingIndex = current.findIndex((p) => p.id === id)
+  let updated: UserPlannedPayment
+
+  if (existingIndex >= 0) {
+    updated = {
+      ...current[existingIndex],
+      ...payment,
+      id,
+    }
+    current[existingIndex] = updated
+  } else {
+    updated = {
+      ...payment,
+      id,
+      createdAt: payment.createdAt || now,
+    }
+    current.push(updated)
+  }
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(plannedPaymentsStorageKey(userId), JSON.stringify(current))
+    } catch (e) {
+      console.warn('Failed to save planned payment to localStorage:', e)
+    }
+  }
+  return updated
+}
+
+export function deleteUserPlannedPayment(id: string, userId?: string): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  const current = getUserPlannedPayments(userId).filter((p) => p.id !== id)
+  try {
+    localStorage.setItem(plannedPaymentsStorageKey(userId), JSON.stringify(current))
+  } catch (e) {
+    console.warn('Failed to delete planned payment from localStorage:', e)
+  }
+}
 
 export interface PlannedCategorySchedule {
   categoryName: string
@@ -581,6 +654,8 @@ export function isPlannedCategory(category: { analytics_tags?: string[] | null }
 
 export interface EvaluatedPlannedPayment {
   id: string
+  itemId?: string
+  name: string // e.g. "Netflix", "Spotify", "House Rent"
   categoryId?: string
   categoryName: string
   categoryEmoji?: string
@@ -631,12 +706,67 @@ export function evaluateMonthlyPlannedPayments(options: {
   monthIndex: number // 0-11
   referenceDate?: Date // defaults to new Date()
   userId?: string
+  userPlannedPayments?: UserPlannedPayment[]
 }): MonthlyPlannedPaymentsEvaluation {
-  const { categories, monthTransactions, year, monthIndex, referenceDate = new Date(), userId } = options
+  const {
+    categories,
+    monthTransactions,
+    year,
+    monthIndex,
+    referenceDate = new Date(),
+    userId,
+    userPlannedPayments,
+  } = options
+
   const plannedCats = categories.filter(isPlannedCategory)
+  const categoryMap = Object.fromEntries(categories.map((c) => [c.name.trim().toLowerCase(), c]))
 
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
   const todayDateOnly = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate())
+
+  // Specific items defined by the user
+  const definedItems: UserPlannedPayment[] = userPlannedPayments ?? getUserPlannedPayments(userId)
+
+  // If user has specific items defined, use those.
+  // If not, fall back to any categories marked with isPlannedCategory
+  let paymentDefinitions: Array<{
+    id: string
+    itemId?: string
+    name: string
+    categoryName: string
+    dueDay: number
+    expectedAmount: number
+  }> = []
+
+  if (definedItems.length > 0) {
+    paymentDefinitions = definedItems.map((item) => ({
+      id: item.id,
+      itemId: item.id,
+      name: item.name,
+      categoryName: item.category,
+      dueDay: item.dueDay,
+      expectedAmount: item.expectedAmount,
+    }))
+  } else {
+    // Fallback: evaluate planned categories if no specific items are defined yet
+    paymentDefinitions = plannedCats.map((cat) => {
+      const schedule = getPlannedCategorySchedule(cat.name, userId)
+      return {
+        id: cat.id || cat.name,
+        name: cat.name,
+        categoryName: cat.name,
+        dueDay: schedule.dueDay || 1,
+        expectedAmount: schedule.expectedAmount ?? 0,
+      }
+    })
+  }
+
+  // Count items per category to determine matching precision
+  const countPerCategory: Record<string, number> = {}
+  paymentDefinitions.forEach((p) => {
+    const key = p.categoryName.trim().toLowerCase()
+    countPerCategory[key] = (countPerCategory[key] || 0) + 1
+  })
 
   let totalCommitment = 0
   let clearedAmount = 0
@@ -644,26 +774,40 @@ export function evaluateMonthlyPlannedPayments(options: {
   let clearedCount = 0
   let dueCount = 0
 
-  const items: EvaluatedPlannedPayment[] = plannedCats.map((cat) => {
-    const schedule = getPlannedCategorySchedule(cat.name, userId)
-    const validDueDay = Math.min(Math.max(schedule.dueDay || 1, 1), daysInMonth)
+  const items: EvaluatedPlannedPayment[] = paymentDefinitions.map((itemDef) => {
+    const catMeta = categoryMap[itemDef.categoryName.trim().toLowerCase()]
+    const validDueDay = Math.min(Math.max(itemDef.dueDay || 1, 1), daysInMonth)
     const dueDateObj = new Date(year, monthIndex, validDueDay)
     const dueDateStr = toISODateLocal(dueDateObj)
 
-    // Calculate days until due (difference in calendar days)
+    // Calculate days until due (calendar day diff)
     const diffTime = dueDateObj.getTime() - todayDateOnly.getTime()
     const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24))
 
-    // Check approved debits for this category in this month
+    const isOnlyItemInCategory = (countPerCategory[itemDef.categoryName.trim().toLowerCase()] || 0) <= 1
+    const itemNameLower = itemDef.name.trim().toLowerCase()
+
+    // Match transactions for this item
     const matchingTxns = monthTransactions.filter((t) => {
       if (t.type !== 'debit') return false
       if (t.approval_status && t.approval_status !== 'approved') return false
-      return t.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+
+      const matchesCat = t.category.trim().toLowerCase() === itemDef.categoryName.trim().toLowerCase()
+      if (!matchesCat) return false
+
+      if (isOnlyItemInCategory) {
+        return true
+      }
+
+      // If multiple items exist in the same category (e.g. Netflix & Spotify under Subscriptions):
+      const descLower = (t.description || '').toLowerCase()
+      const merchLower = (t.merchant || '').toLowerCase()
+      return descLower.includes(itemNameLower) || merchLower.includes(itemNameLower)
     })
 
     const isPaid = matchingTxns.length > 0
     const amountPaid = matchingTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-    const expectedAmount = schedule.expectedAmount ?? 0
+    const expectedAmount = itemDef.expectedAmount || 0
 
     if (isPaid) {
       clearedCount++
@@ -675,16 +819,17 @@ export function evaluateMonthlyPlannedPayments(options: {
       totalCommitment += expectedAmount
     }
 
-    // Sort matching txns by date desc
     const sortedTxns = [...matchingTxns].sort((a, b) => b.date.localeCompare(a.date))
     const latestTxn = sortedTxns[0]
 
     return {
-      id: cat.id || cat.name,
-      categoryId: cat.id,
-      categoryName: cat.name,
-      categoryEmoji: cat.emoji,
-      categoryColor: cat.color,
+      id: itemDef.id,
+      itemId: itemDef.itemId,
+      name: itemDef.name,
+      categoryId: catMeta?.id,
+      categoryName: itemDef.categoryName,
+      categoryEmoji: catMeta?.emoji,
+      categoryColor: catMeta?.color,
       status: isPaid ? 'paid' : 'due',
       dueDay: validDueDay,
       dueDate: dueDateStr,

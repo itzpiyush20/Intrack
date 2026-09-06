@@ -29,6 +29,7 @@ interface RecordPlannedPaymentModalProps {
   onClose: () => void
   onSuccess: () => void
   categoryName: string
+  paymentName?: string
   categoryEmoji?: string
   expectedAmount?: number
   monthTransactions: CandidateTransaction[]
@@ -39,18 +40,20 @@ export default function RecordPlannedPaymentModal({
   onClose,
   onSuccess,
   categoryName,
+  paymentName,
   categoryEmoji = '📅',
   expectedAmount,
   monthTransactions,
 }: RecordPlannedPaymentModalProps) {
+  const displayName = paymentName || categoryName
   const { user, currencySymbol } = useAuth()
   const [activeTab, setActiveTab] = useState<'log_new' | 'match_existing'>('log_new')
 
   // Log New Form State
   const [amount, setAmount] = useState<string>(expectedAmount ? String(expectedAmount) : '')
   const [date, setDate] = useState<string>(toISODateLocal(new Date()))
-  const [description, setDescription] = useState<string>(`${categoryName} Payment`)
-  const [merchant, setMerchant] = useState<string>('')
+  const [description, setDescription] = useState<string>(`${displayName} Payment`)
+  const [merchant, setMerchant] = useState<string>(displayName)
   const [paymentMode, setPaymentMode] = useState<string>('upi')
 
   // Match Existing Form State
@@ -148,6 +151,7 @@ export default function RecordPlannedPaymentModal({
       const { error: updateError } = await updateTransaction(selectedTxn.id, {
         category: categoryName,
         amount: numAmount,
+        merchant: paymentName || selectedTxn.merchant || categoryName,
       })
 
       if (updateError) {
@@ -169,7 +173,7 @@ export default function RecordPlannedPaymentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Record Payment · ${categoryEmoji} ${categoryName}`}
+      title={`Record Payment · ${categoryEmoji} ${displayName}`}
       className="max-w-lg"
     >
       <div className="flex flex-col gap-4">
