@@ -465,7 +465,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
                 <span className="text-[10px] font-semibold text-sb-ink-muted tracking-wider uppercase mt-1 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                  Expense Intelligence
+                  Alerts In · Clarity Out
                 </span>
               </div>
             </Link>
@@ -675,7 +675,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       </div>
                       <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden sm:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                        Expense Intelligence
+                        Alerts In · Clarity Out
                       </span>
                     </div>
                   </Link>
@@ -703,7 +703,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </div>
                   <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
                     <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                    Expense Intelligence
+                    Alerts In · Clarity Out
                   </span>
                 </div>
               </Link>

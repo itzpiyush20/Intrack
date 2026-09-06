@@ -35,7 +35,7 @@ export default function MarketingHeader() {
           </span>
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-            Expense Intelligence
+            Alerts In · Clarity Out
           </span>
         </Link>
 

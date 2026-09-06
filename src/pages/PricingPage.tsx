@@ -406,7 +406,7 @@ export default function PricingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
                   </span>
-                  Effortless Expense Intelligence
+                  Alerts In · Clarity Out
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-sb-ink leading-tight">
