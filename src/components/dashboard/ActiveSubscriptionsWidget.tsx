@@ -94,16 +94,16 @@ export default function ActiveSubscriptionsWidget({ isVisible }: ActiveSubscript
               <RefreshCw className="h-4.5 w-4.5" />
             </span>
             <h2 className="text-base font-bold text-sb-ink">
-              Recurring payments
+              Planned payments
               <span className="ml-2 align-middle text-xs font-semibold text-sb-ink-muted">
-                found in your history
+                recurring commitments
               </span>
             </h2>
           </div>
           <p className="mt-2 text-sm text-sb-ink-secondary">
             About <span className="font-bold tnum text-sb-ink">{formatCurrency(monthlyBurn)}</span>{' '}
             leaves your accounts every month across{' '}
-            <span className="tnum font-semibold text-sb-ink">{subs.length}</span> service{subs.length === 1 ? '' : 's'}.
+            <span className="tnum font-semibold text-sb-ink">{subs.length}</span> recurring payment{subs.length === 1 ? '' : 's'}.
           </p>
         </div>
         <Link

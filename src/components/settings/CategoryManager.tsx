@@ -101,6 +101,9 @@ export default function CategoryManager() {
         <span className="text-base shrink-0">{category.emoji}</span>
         <span className="text-sm font-semibold text-sb-ink truncate">{category.name}</span>
         {category.budget_eligible && <Badge variant="info">Budget</Badge>}
+        {(category.analytics_tags?.includes('subscription') || category.analytics_tags?.includes('planned_payment')) && (
+          <Badge variant="success">Planned</Badge>
+        )}
         {category.is_default && <Badge variant="default">Default</Badge>}
       </div>
       <div className="flex items-center gap-0.5 shrink-0">

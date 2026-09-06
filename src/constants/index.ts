@@ -27,7 +27,7 @@ export const ANALYTICS_TAG_CHOICES: { value: import('@/types').AnalyticsTag; lab
   { value: 'wants', label: 'Wants' },
   { value: 'savings', label: 'Savings' },
   { value: 'income', label: 'Primary income' },
-  { value: 'subscription', label: 'Subscription' },
+  { value: 'subscription', label: 'Planned Payment' },
   { value: 'credit_card_bill', label: 'Credit card bill' },
 ]
 

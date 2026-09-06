@@ -52,7 +52,7 @@ const navItems = [
   { label: 'Budgets', path: ROUTES.BUDGETS, icon: Wallet },
   { label: 'Pending Alerts', path: ROUTES.PENDING, icon: Clock },
   { label: 'Insights', path: ROUTES.INSIGHTS, icon: Sparkles },
-  { label: 'Subscriptions', path: ROUTES.SUBSCRIPTIONS, icon: Calendar },
+  { label: 'Planned Payments', path: ROUTES.SUBSCRIPTIONS, icon: Calendar },
 ]
 
 function getCurrentPageTitle(pathname: string): string {
@@ -61,7 +61,7 @@ function getCurrentPageTitle(pathname: string): string {
   if (pathname === ROUTES.BUDGETS) return 'Budgets'
   if (pathname === ROUTES.PENDING) return 'Pending Alerts'
   if (pathname === ROUTES.INSIGHTS) return 'Financial Insights'
-  if (pathname === ROUTES.SUBSCRIPTIONS) return 'Subscriptions'
+  if (pathname === ROUTES.SUBSCRIPTIONS) return 'Planned Payments'
   if (pathname === ROUTES.SETTINGS) return 'Settings'
   if (pathname === ROUTES.PROFILE) return 'Profile'
   if (pathname === ROUTES.PRICING || pathname === '/pricing') return 'Subscription & Billing'

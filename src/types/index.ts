@@ -38,7 +38,7 @@ export type CategoryType = 'income' | 'expense'
  * calc, and subscription-burn/credit-card-bill tracking on the Insights
  * page, without hardcoding display names there.
  */
-export type AnalyticsTag = 'needs' | 'wants' | 'savings' | 'income' | 'subscription' | 'credit_card_bill' | 'loan'
+export type AnalyticsTag = 'needs' | 'wants' | 'savings' | 'income' | 'subscription' | 'credit_card_bill' | 'loan' | 'planned_payment'
 
 /** A user-defined category row */
 export interface Category {

@@ -501,3 +501,229 @@ export function calculateUpcomingBillsForNext30Days(
     timeline,
   }
 }
+
+// ============================================
+// Category-Based Planned Payments
+// Only categories explicitly marked by the user in Settings
+// appear in the Planned Payments Command Center.
+// Zero algorithmic guessing or auto-tagging.
+// ============================================
+
+export interface PlannedCategorySchedule {
+  categoryName: string
+  dueDay: number // 1..31
+  expectedAmount?: number
+  notes?: string
+}
+
+export function plannedCategoryStorageKey(userId?: string): string {
+  return `intrack_planned_schedules_${userId || 'default'}`
+}
+
+export function getAllPlannedCategorySchedules(userId?: string): Record<string, PlannedCategorySchedule> {
+  if (typeof window === 'undefined' || !window.localStorage) return {}
+  try {
+    const raw = localStorage.getItem(plannedCategoryStorageKey(userId))
+    return raw ? JSON.parse(raw) : {}
+  } catch (e) {
+    console.warn('Failed to load planned category schedules:', e)
+    return {}
+  }
+}
+
+export function getPlannedCategorySchedule(categoryName: string, userId?: string): PlannedCategorySchedule {
+  const all = getAllPlannedCategorySchedules(userId)
+  const normalized = categoryName.trim().toLowerCase()
+  const found = Object.entries(all).find(([k]) => k.trim().toLowerCase() === normalized)
+  if (found) return found[1]
+  return {
+    categoryName,
+    dueDay: 1,
+    expectedAmount: undefined,
+  }
+}
+
+export function savePlannedCategorySchedule(
+  categoryName: string,
+  schedule: Partial<PlannedCategorySchedule>,
+  userId?: string
+): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    const all = getAllPlannedCategorySchedules(userId)
+    const existing = getPlannedCategorySchedule(categoryName, userId)
+    all[categoryName] = {
+      ...existing,
+      ...schedule,
+      categoryName,
+    }
+    localStorage.setItem(plannedCategoryStorageKey(userId), JSON.stringify(all))
+  } catch (e) {
+    console.warn('Failed to save planned category schedule:', e)
+  }
+}
+
+export function removePlannedCategorySchedule(categoryName: string, userId?: string): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    const all = getAllPlannedCategorySchedules(userId)
+    delete all[categoryName]
+    localStorage.setItem(plannedCategoryStorageKey(userId), JSON.stringify(all))
+  } catch (e) {
+    console.warn('Failed to remove planned category schedule:', e)
+  }
+}
+
+export function isPlannedCategory(category: { analytics_tags?: string[] | null }): boolean {
+  const tags = category.analytics_tags || []
+  return tags.includes('subscription') || tags.includes('planned_payment')
+}
+
+export interface EvaluatedPlannedPayment {
+  id: string
+  categoryId?: string
+  categoryName: string
+  categoryEmoji?: string
+  categoryColor?: string
+  status: 'paid' | 'due'
+  dueDay: number
+  dueDate: string // YYYY-MM-DD
+  daysUntilDue: number // < 0 overdue, 0 today, > 0 future
+  amount: number // actual paid if paid, expected if due
+  expectedAmount: number
+  amountPaid: number
+  paidDate?: string
+  lastChargedMerchant?: string
+  matchedTxns: {
+    id: string
+    date: string
+    amount: number
+    description: string
+    merchant?: string | null
+    payment_mode?: string | null
+  }[]
+}
+
+export interface MonthlyPlannedPaymentsEvaluation {
+  totalCommitment: number
+  clearedAmount: number
+  remainingDueAmount: number
+  clearedCount: number
+  dueCount: number
+  totalCount: number
+  items: EvaluatedPlannedPayment[]
+}
+
+export function evaluateMonthlyPlannedPayments(options: {
+  categories: Array<{ id?: string; name: string; emoji?: string; color?: string; analytics_tags?: string[] | null }>
+  monthTransactions: Array<{
+    id: string
+    date: string
+    amount: number
+    type: string
+    category: string
+    description?: string | null
+    merchant?: string | null
+    payment_mode?: string | null
+    approval_status?: string | null
+  }>
+  year: number
+  monthIndex: number // 0-11
+  referenceDate?: Date // defaults to new Date()
+  userId?: string
+}): MonthlyPlannedPaymentsEvaluation {
+  const { categories, monthTransactions, year, monthIndex, referenceDate = new Date(), userId } = options
+  const plannedCats = categories.filter(isPlannedCategory)
+
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+  const todayDateOnly = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate())
+
+  let totalCommitment = 0
+  let clearedAmount = 0
+  let remainingDueAmount = 0
+  let clearedCount = 0
+  let dueCount = 0
+
+  const items: EvaluatedPlannedPayment[] = plannedCats.map((cat) => {
+    const schedule = getPlannedCategorySchedule(cat.name, userId)
+    const validDueDay = Math.min(Math.max(schedule.dueDay || 1, 1), daysInMonth)
+    const dueDateObj = new Date(year, monthIndex, validDueDay)
+    const dueDateStr = toISODateLocal(dueDateObj)
+
+    // Calculate days until due (difference in calendar days)
+    const diffTime = dueDateObj.getTime() - todayDateOnly.getTime()
+    const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24))
+
+    // Check approved debits for this category in this month
+    const matchingTxns = monthTransactions.filter((t) => {
+      if (t.type !== 'debit') return false
+      if (t.approval_status && t.approval_status !== 'approved') return false
+      return t.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+    })
+
+    const isPaid = matchingTxns.length > 0
+    const amountPaid = matchingTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+    const expectedAmount = schedule.expectedAmount ?? 0
+
+    if (isPaid) {
+      clearedCount++
+      clearedAmount += amountPaid
+      totalCommitment += amountPaid
+    } else {
+      dueCount++
+      remainingDueAmount += expectedAmount
+      totalCommitment += expectedAmount
+    }
+
+    // Sort matching txns by date desc
+    const sortedTxns = [...matchingTxns].sort((a, b) => b.date.localeCompare(a.date))
+    const latestTxn = sortedTxns[0]
+
+    return {
+      id: cat.id || cat.name,
+      categoryId: cat.id,
+      categoryName: cat.name,
+      categoryEmoji: cat.emoji,
+      categoryColor: cat.color,
+      status: isPaid ? 'paid' : 'due',
+      dueDay: validDueDay,
+      dueDate: dueDateStr,
+      daysUntilDue,
+      amount: isPaid ? amountPaid : expectedAmount,
+      expectedAmount,
+      amountPaid,
+      paidDate: latestTxn?.date,
+      lastChargedMerchant: latestTxn?.merchant || latestTxn?.description || undefined,
+      matchedTxns: sortedTxns.map((t) => ({
+        id: t.id,
+        date: t.date,
+        amount: Number(t.amount) || 0,
+        description: t.description || '',
+        merchant: t.merchant,
+        payment_mode: t.payment_mode,
+      })),
+    }
+  })
+
+  // Sort items: due items first (sorted by due date ascending), then paid items (sorted by paid date descending)
+  items.sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === 'due' ? -1 : 1
+    }
+    if (a.status === 'due') {
+      return a.daysUntilDue - b.daysUntilDue
+    }
+    return (b.paidDate || '').localeCompare(a.paidDate || '')
+  })
+
+  return {
+    totalCommitment,
+    clearedAmount,
+    remainingDueAmount,
+    clearedCount,
+    dueCount,
+    totalCount: items.length,
+    items,
+  }
+}
+

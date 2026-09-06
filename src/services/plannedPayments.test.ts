@@ -253,3 +253,62 @@ describe('tab partition helpers', () => {
     expect(isBillRentOrEmiTabItem(emi)).toBe(true)
   })
 })
+
+describe('category-based planned payments evaluation', () => {
+  it('correctly identifies planned categories from analytics tags', async () => {
+    const { isPlannedCategory } = await import('./plannedPayments')
+
+    expect(isPlannedCategory({ analytics_tags: ['needs', 'subscription'] })).toBe(true)
+    expect(isPlannedCategory({ analytics_tags: ['wants', 'planned_payment'] })).toBe(true)
+    expect(isPlannedCategory({ analytics_tags: ['needs', 'groceries'] })).toBe(false)
+    expect(isPlannedCategory({ analytics_tags: null })).toBe(false)
+    expect(isPlannedCategory({})).toBe(false)
+  })
+
+  it('evaluates paid vs due categories for a specific month', async () => {
+    const { evaluateMonthlyPlannedPayments } = await import('./plannedPayments')
+
+    const categories = [
+      { id: 'c1', name: 'Rent', emoji: '🏠', analytics_tags: ['subscription'] },
+      { id: 'c2', name: 'Electricity', emoji: '💡', analytics_tags: ['subscription'] },
+      { id: 'c3', name: 'Groceries', emoji: '🛒', analytics_tags: ['needs'] },
+    ]
+
+    const monthTransactions = [
+      {
+        id: 't1',
+        date: '2026-09-02',
+        amount: 25000,
+        type: 'debit',
+        category: 'Rent',
+        description: 'Rent for Sep',
+        approval_status: 'approved',
+      },
+    ]
+
+    const result = evaluateMonthlyPlannedPayments({
+      categories,
+      monthTransactions,
+      year: 2026,
+      monthIndex: 8, // September 2026
+      referenceDate: new Date('2026-09-06T12:00:00Z'),
+    })
+
+    expect(result.totalCount).toBe(2) // Rent and Electricity
+    expect(result.clearedCount).toBe(1) // Rent is cleared
+    expect(result.clearedAmount).toBe(25000)
+    expect(result.dueCount).toBe(1) // Electricity is due
+
+    const rentItem = result.items.find((i) => i.categoryName === 'Rent')
+    expect(rentItem).toBeDefined()
+    expect(rentItem?.status).toBe('paid')
+    expect(rentItem?.amountPaid).toBe(25000)
+    expect(rentItem?.paidDate).toBe('2026-09-02')
+    expect(rentItem?.matchedTxns.length).toBe(1)
+
+    const elecItem = result.items.find((i) => i.categoryName === 'Electricity')
+    expect(elecItem).toBeDefined()
+    expect(elecItem?.status).toBe('due')
+  })
+})
+
