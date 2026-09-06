@@ -70,7 +70,7 @@ export default function SiteFooter({
           )}
           {/* One tagline, everywhere. */}
           <p className={cn('text-xs', muted)}>
-            © {year} Intrack · Built with privacy by design.
+            © {year} Intrack · Your financial life, beautifully organized.
           </p>
         </div>
 
