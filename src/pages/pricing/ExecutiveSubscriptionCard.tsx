@@ -51,9 +51,9 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
 
   // Human-readable plan title
   const planTitle = isOnYearly
-    ? 'Yearly Sovereign Plan 👑'
+    ? 'Yearly Plan'
     : isOnMonthly
-    ? 'Monthly Flexible Plan'
+    ? 'Monthly Plan'
     : isTrial
     ? '7-Day Free Trial'
     : isCancelled
