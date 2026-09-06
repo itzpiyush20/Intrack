@@ -289,14 +289,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const safeCreatedAtTime = isNaN(createdAtTime) ? Date.now() : createdAtTime
         
         // Prioritize database subscription status as the single source of truth
-        const isSubscribed = data.subscription_status === 'active'
+        const isSubscribed = data.subscription_status === 'active' || data.subscription_status === 'cancelled'
         let subStatus = data.subscription_status || 'trial'
         const subExpires = data.subscription_expires_at || new Date(safeCreatedAtTime + 7 * 24 * 60 * 60 * 1000).toISOString()
         const subPlan = data.subscription_plan_type || (isSubscribed ? 'monthly' : 'trial')
 
         // Check if expired
         const expiresTime = new Date(subExpires).getTime()
-        if ((subStatus === 'active' || subStatus === 'trial') && expiresTime <= Date.now()) {
+        if ((subStatus === 'active' || subStatus === 'trial' || subStatus === 'cancelled') && expiresTime <= Date.now()) {
           subStatus = 'expired'
           // Write back to Supabase asynchronously
           supabase
@@ -352,7 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             subPlan = diffDays > 35 ? 'annual' : 'monthly'
           }
         }
-        if (localExpires && (subStatus === 'active' || subStatus === 'trial')) {
+        if (localExpires && (subStatus === 'active' || subStatus === 'trial' || subStatus === 'cancelled')) {
           const expiresTime = new Date(localExpires).getTime()
           if (expiresTime <= Date.now()) {
             subStatus = 'expired'
@@ -378,7 +378,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const localPlan = localStorage.getItem(`intrack_sub_plan_${state.user.id}`)
       let subStatus = localStatus || 'trial'
       let subPlan = 'trial'
-      if (localStatus === 'active') {
+      if (localStatus === 'active' || localStatus === 'cancelled') {
         subPlan = localPlan || ''
         if (!subPlan && localExpires) {
           const expiresTime = new Date(localExpires).getTime()
@@ -386,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           subPlan = diffDays > 35 ? 'annual' : 'monthly'
         }
       }
-      if (localExpires && (subStatus === 'active' || subStatus === 'trial')) {
+      if (localExpires && (subStatus === 'active' || subStatus === 'trial' || subStatus === 'cancelled')) {
         const expiresTime = new Date(localExpires).getTime()
         if (expiresTime <= Date.now()) {
           subStatus = 'expired'
@@ -927,8 +927,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!expiresAt) return true
       return new Date(expiresAt).getTime() > Date.now()
     }
-    if (subscriptionStatus === 'trial') {
-      // A trial without an end date is malformed data, not an unlimited trial.
+    if (subscriptionStatus === 'trial' || subscriptionStatus === 'cancelled') {
+      // A trial or cancelled subscription must carry an unexpired end date.
       if (!expiresAt) return false
       return new Date(expiresAt).getTime() > Date.now()
     }

@@ -29,6 +29,7 @@ import {
   Clock,
   MessageSquare,
   ChevronDown,
+  ChevronsUpDown,
   CheckCircle2,
   Home,
   CreditCard,
@@ -49,7 +50,7 @@ const navItems = [
   { label: 'Home', path: ROUTES.DASHBOARD, icon: Home },
   { label: 'Transactions', path: ROUTES.EXPENSES, icon: CreditCard },
   { label: 'Budgets', path: ROUTES.BUDGETS, icon: Wallet },
-  { label: 'Pending', path: ROUTES.PENDING, icon: Clock },
+  { label: 'Pending Alerts', path: ROUTES.PENDING, icon: Clock },
   { label: 'Insights', path: ROUTES.INSIGHTS, icon: Sparkles },
   { label: 'Subscriptions', path: ROUTES.SUBSCRIPTIONS, icon: Calendar },
 ]
@@ -58,7 +59,7 @@ function getCurrentPageTitle(pathname: string): string {
   if (pathname === ROUTES.DASHBOARD) return 'Home'
   if (pathname === ROUTES.EXPENSES) return 'Transactions'
   if (pathname === ROUTES.BUDGETS) return 'Budgets'
-  if (pathname === ROUTES.PENDING) return 'Pending Approvals'
+  if (pathname === ROUTES.PENDING) return 'Pending Alerts'
   if (pathname === ROUTES.INSIGHTS) return 'Financial Insights'
   if (pathname === ROUTES.SUBSCRIPTIONS) return 'Subscriptions'
   if (pathname === ROUTES.SETTINGS) return 'Settings'
@@ -296,19 +297,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [sidebarUserDropdownOpen, setSidebarUserDropdownOpen] = useState(false)
 
   // Escape closes whichever header dropdown/menu is open
   useEffect(() => {
-    if (!notificationDropdownOpen && !profileDropdownOpen && !mobileMenuOpen) return
+    if (!notificationDropdownOpen && !profileDropdownOpen && !mobileMenuOpen && !sidebarUserDropdownOpen) return
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       setNotificationDropdownOpen(false)
       setProfileDropdownOpen(false)
       setMobileMenuOpen(false)
+      setSidebarUserDropdownOpen(false)
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [notificationDropdownOpen, profileDropdownOpen, mobileMenuOpen])
+  }, [notificationDropdownOpen, profileDropdownOpen, mobileMenuOpen, sidebarUserDropdownOpen])
 
   // Feedback Modal States
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -529,131 +532,124 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 })}
               </nav>
             </div>
-
-            {/* Secondary Management Rail */}
-            <div>
-              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-sb-ink-muted select-none">
-                Preferences & Tools
-              </div>
-              <nav className="space-y-1" aria-label="Secondary sidebar navigation">
-                <Link
-                  to={ROUTES.SETTINGS}
-                  className={cn(
-                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
-                    location.pathname === ROUTES.SETTINGS
-                      ? "text-brand-700 font-bold"
-                      : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
-                  )}
-                >
-                  {location.pathname === ROUTES.SETTINGS && (
-                    <motion.span
-                      layoutId="desktop-sidebar-active"
-                      aria-hidden="true"
-                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
-                    />
-                  )}
-                  <Settings className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname === ROUTES.SETTINGS ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
-                  <span className="relative flex-1 truncate">Settings</span>
-                </Link>
-
-                <Link
-                  to={ROUTES.PROFILE}
-                  className={cn(
-                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
-                    location.pathname === ROUTES.PROFILE
-                      ? "text-brand-700 font-bold"
-                      : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
-                  )}
-                >
-                  {location.pathname === ROUTES.PROFILE && (
-                    <motion.span
-                      layoutId="desktop-sidebar-active"
-                      aria-hidden="true"
-                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
-                    />
-                  )}
-                  <User className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname === ROUTES.PROFILE ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
-                  <span className="relative flex-1 truncate">Profile</span>
-                </Link>
-
-                {canAccessAdmin(profile) && (
-                  <Link
-                    to="/admin"
-                    className={cn(
-                      "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
-                      location.pathname.startsWith('/admin')
-                        ? "text-brand-700 font-bold"
-                        : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
-                    )}
-                  >
-                    {location.pathname.startsWith('/admin') && (
-                      <motion.span
-                        layoutId="desktop-sidebar-active"
-                        aria-hidden="true"
-                        className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
-                        transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
-                      />
-                    )}
-                    <ShieldCheck className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname.startsWith('/admin') ? "text-brand-600" : "text-emerald-600")} />
-                    <span className="relative flex-1 truncate">Admin</span>
-                  </Link>
-                )}
-
-                <Link
-                  to={ROUTES.PRICING}
-                  className={cn(
-                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80 transition-colors group cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                  )}
-                >
-                  <Crown className="h-4 w-4 shrink-0 relative text-amber-500 transition-transform duration-150 group-hover:scale-105" />
-                  <span className="relative flex-1 truncate">Pricing & Plans</span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => setFeedbackOpen(true)}
-                  className="w-full relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80 transition-colors cursor-pointer text-left"
-                >
-                  <MessageSquare className="h-4 w-4 shrink-0 relative text-sb-ink-muted" />
-                  <span className="relative flex-1 truncate">Send Feedback</span>
-                </button>
-              </nav>
-            </div>
           </div>
 
-          {/* Bottom User Profile Widget */}
-          <div className="border-t border-sb-hairline p-3 shrink-0 bg-surface-1">
-            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-2/80 transition-colors group">
-              <Link to={ROUTES.PROFILE} className="flex items-center gap-2.5 min-w-0 flex-1 group/u cursor-pointer">
-                <div className="h-9 w-9 rounded-full bg-brand-500/10 flex items-center justify-center text-xs font-bold text-brand-600 overflow-hidden border border-brand-500/25 shrink-0">
-                  {user?.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
-                  ) : (
-                    user?.user_metadata?.full_name?.substring(0, 1).toUpperCase() || 'U'
+          {/* Bottom User Profile Widget with Popover (Option C) */}
+          <div className="border-t border-sb-hairline p-3 shrink-0 bg-surface-1 relative">
+            {sidebarUserDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setSidebarUserDropdownOpen(false)}
+                />
+                <div className="absolute bottom-full left-3 right-3 mb-2 rounded-2xl border border-sb-hairline bg-surface-1 p-1.5 shadow-card-lg z-50 animate-scale-up backdrop-blur-xl">
+                  <Link
+                    to={ROUTES.PROFILE}
+                    onClick={() => setSidebarUserDropdownOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight transition-colors cursor-pointer",
+                      location.pathname === ROUTES.PROFILE
+                        ? "bg-brand-50 text-brand-700 font-bold"
+                        : "text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2"
+                    )}
+                  >
+                    <User className="h-4 w-4 text-sb-ink-muted shrink-0" />
+                    <span>Profile</span>
+                  </Link>
+
+                  <Link
+                    to={ROUTES.SETTINGS}
+                    onClick={() => setSidebarUserDropdownOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight transition-colors cursor-pointer",
+                      location.pathname === ROUTES.SETTINGS
+                        ? "bg-brand-50 text-brand-700 font-bold"
+                        : "text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2"
+                    )}
+                  >
+                    <Settings className="h-4 w-4 text-sb-ink-muted shrink-0" />
+                    <span>Settings</span>
+                  </Link>
+
+                  {canAccessAdmin(profile) && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setSidebarUserDropdownOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight transition-colors cursor-pointer",
+                        location.pathname.startsWith('/admin')
+                          ? "bg-brand-50 text-brand-700 font-bold"
+                          : "text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2"
+                      )}
+                    >
+                      <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>Admin Console</span>
+                    </Link>
                   )}
+
+                  <Link
+                    to={ROUTES.PRICING}
+                    onClick={() => setSidebarUserDropdownOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer"
+                  >
+                    <Crown className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Pricing & Plans</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSidebarUserDropdownOpen(false)
+                      setFeedbackOpen(true)
+                    }}
+                    className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer text-left"
+                  >
+                    <MessageSquare className="h-4 w-4 text-sb-ink-muted shrink-0" />
+                    <span>Send Feedback</span>
+                  </button>
+
+                  <div className="my-1 border-t border-sb-hairline" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSidebarUserDropdownOpen(false)
+                      signOut()
+                    }}
+                    className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-tight text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] transition-colors cursor-pointer text-left"
+                  >
+                    <LogOut className="h-4 w-4 text-[var(--status-danger-text)] shrink-0" />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-xs font-semibold text-sb-ink truncate group-hover/u:text-brand-600 transition-colors">{getFirstName()}</p>
-                  <p className="text-[11px] text-sb-ink-muted truncate">
-                    {activePlan === 'yearly' ? 'Yearly Plan 👑' : activePlan === 'monthly' ? 'Monthly Plan' : 'Active Account'}
-                  </p>
-                </div>
-              </Link>
-              <button
-                onClick={() => signOut()}
-                title="Sign Out"
-                aria-label="Sign Out"
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-sb-ink-muted hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] transition-colors cursor-pointer shrink-0"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSidebarUserDropdownOpen(!sidebarUserDropdownOpen)}
+              aria-expanded={sidebarUserDropdownOpen}
+              aria-label="User account and settings menu"
+              className={cn(
+                "flex items-center gap-2.5 w-full p-2 rounded-xl text-left transition-colors cursor-pointer",
+                sidebarUserDropdownOpen ? "bg-surface-2 ring-1 ring-sb-hairline" : "hover:bg-surface-2/80"
+              )}
+            >
+              <div className="h-9 w-9 rounded-full bg-brand-500/10 flex items-center justify-center text-xs font-bold text-brand-600 overflow-hidden border border-brand-500/25 shrink-0">
+                {user?.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  user?.user_metadata?.full_name?.substring(0, 1).toUpperCase() || 'U'
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-sb-ink truncate">{getFirstName()}</p>
+                <p className="text-[11px] text-sb-ink-muted truncate">
+                  {activePlan === 'yearly' ? 'Yearly Plan 👑' : activePlan === 'monthly' ? 'Monthly Plan' : 'Active Account'}
+                </p>
+              </div>
+              <ChevronsUpDown className="h-4 w-4 text-sb-ink-muted shrink-0" />
+            </button>
           </div>
         </aside>
       )}
@@ -862,9 +858,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 )}
               </div>
 
-              {/* Profile Dropdown */}
+              {/* Profile Dropdown — On desktop app routes, Settings & Profile live in the bottom-left command rail; on mobile (<lg) and public routes, this header dropdown provides access */}
               {user ? (
-                <div className="relative shrink-0">
+                <div className={cn("relative shrink-0", isAppRoute ? "flex lg:hidden" : "flex")}>
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className={cn(
@@ -1419,8 +1415,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               to={ROUTES.PENDING}
               aria-label={
                 notifications.length > 0
-                  ? `Pending — ${notifications.length} notification${notifications.length === 1 ? '' : 's'}`
-                  : 'Pending'
+                  ? `Pending Alerts — ${notifications.length} notification${notifications.length === 1 ? '' : 's'}`
+                  : 'Pending Alerts'
               }
               aria-current={location.pathname === ROUTES.PENDING ? 'page' : undefined}
               className={cn(
@@ -1440,7 +1436,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </span>
                 )}
               </span>
-              <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">Pending</span>
+              <span className="text-[10px] sm:text-xs font-medium tracking-tight truncate max-w-full">Pending Alerts</span>
             </Link>
 
             {/* Insights */}

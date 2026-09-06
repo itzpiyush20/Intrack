@@ -27,11 +27,14 @@ import {
   Ticket,
   EyeOff
 } from 'lucide-react'
+import { cancelSubscription, resumeSubscription } from '@/services'
 import {
   PricingAmbientBackground,
   CostToValueVisual,
   TrustTelemetryRibbon,
-  PricingFaqAccordion
+  PricingFaqAccordion,
+  ExecutiveSubscriptionCard,
+  CancelSubscriptionModal
 } from './pricing'
 
 interface RazorpayInstance {
@@ -77,6 +80,9 @@ export default function PricingPage() {
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'promo'>('razorpay')
   const [promoCode, setPromoCode] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [reactivating, setReactivating] = useState(false)
 
   useScrollReveal()
 
@@ -94,13 +100,53 @@ export default function PricingPage() {
   const isActive = isActiveActive
   const isTrial = isTrialActive
 
-  const isOnYearly = isActive && profile?.subscription_plan_type !== 'monthly'
-  const isOnMonthly = isActive && profile?.subscription_plan_type === 'monthly'
+  const isOnYearly = (isActive || (isCancelled && daysLeft > 0)) && profile?.subscription_plan_type !== 'monthly' && profile?.subscription_plan_type !== 'trial'
+  const isOnMonthly = (isActive || (isCancelled && daysLeft > 0)) && profile?.subscription_plan_type === 'monthly'
   const canBuy = !hasQueuedPlan
 
   const planName = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
   const planPrice = selectedPlan === 'annual' ? '365' : '31'
   const planSub = selectedPlan === 'annual' ? 'One payment · 365 days of full access' : 'One payment · 30 days of full access'
+
+  const activePlanName = isOnYearly
+    ? 'Yearly Plan'
+    : isOnMonthly
+    ? 'Monthly Plan'
+    : isTrial
+    ? 'Trial Access'
+    : 'Subscription'
+
+  const handleConfirmCancel = async (reason: string, feedback: string) => {
+    setCancelling(true)
+    try {
+      const { error } = await cancelSubscription(reason, feedback)
+      if (error) throw error
+      await refreshProfile()
+      setCancelModalOpen(false)
+      const expiryStr = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'the end of your prepaid period'
+      showToast(`Subscription cancelled. You retain full access until ${expiryStr}.`, 'info')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast(`Failed to cancel subscription: ${message}`, 'error')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const handleReactivate = async () => {
+    setReactivating(true)
+    try {
+      const { error } = await resumeSubscription()
+      if (error) throw error
+      await refreshProfile()
+      showToast('Subscription resumed! Full automated tracking remains active.', 'success')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast(`Failed to resume subscription: ${message}`, 'error')
+    } finally {
+      setReactivating(false)
+    }
+  }
 
   useEffect(() => {
     setPageMeta({
@@ -320,110 +366,111 @@ export default function PricingPage() {
     <AppLayout>
       <div className="space-y-8 animate-fade-in text-sb-ink max-w-6xl mx-auto overflow-x-hidden">
 
-        {/* ── LUXURY HEADER CARD ──────────────────────────────── */}
-        <motion.div
-          className="relative rounded-3xl overflow-hidden border border-sb-hairline bg-surface-1 p-6 sm:p-10 md:p-14 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {/* Ambient Lighting Orbs */}
-          <PricingAmbientBackground />
+        {/* ── TOP SECTION: EXECUTIVE COMMAND CENTER (FOR AUTHENTICATED USERS) OR MARKETING HERO (FOR VISITORS) ── */}
+        {user ? (
+          <div className="space-y-6">
+            <ExecutiveSubscriptionCard
+              profile={profile}
+              daysLeft={daysLeft}
+              hasQueuedPlan={hasQueuedPlan}
+              onSelectPlan={handleSelectPlan}
+              onOpenCancelModal={() => setCancelModalOpen(true)}
+              onReactivate={handleReactivate}
+              isReactivating={reactivating}
+            />
 
-          <div className="relative z-10 flex flex-col items-center max-w-2xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 text-xs font-semibold tracking-wide shadow-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
-              </span>
-              Autonomous Finance · Sovereign Pricing
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-sb-ink leading-tight">
-              Invest in peace of mind.{' '}
-              <span className="text-brand-500 block sm:inline">Zero manual entry.</span>
-            </h1>
-
-            <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-xl">
-              One-time payments with no recurring debit mandates, no auto-renewal surprises, and no stored card details. Every plan starts with a full 7-day trial.
-            </p>
-
-            {/* Interactive Billing Toggle Pill */}
-            <div className="pt-2">
-              <div className="inline-flex items-center p-1.5 rounded-2xl bg-surface-2 border border-sb-hairline shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlan('annual')}
-                  className={cn(
-                    'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
-                    selectedPlan === 'annual'
-                      ? 'text-brand-700 font-bold'
-                      : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
-                  )}
-                >
-                  {selectedPlan === 'annual' && (
-                    <motion.div
-                      layoutId="billing-pill"
-                      className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
-                      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    <span>Yearly (₹1 / day)</span>
-                    <span className="text-[10px] uppercase font-mono font-bold bg-brand-500/15 text-brand-700 px-2 py-0.5 rounded-md border border-brand-500/30">
-                      Save 17%
-                    </span>
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlan('monthly')}
-                  className={cn(
-                    'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
-                    selectedPlan === 'monthly'
-                      ? 'text-brand-700 font-bold'
-                      : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
-                  )}
-                >
-                  {selectedPlan === 'monthly' && (
-                    <motion.div
-                      layoutId="billing-pill"
-                      className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
-                      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                    />
-                  )}
-                  <span className="relative z-10">Monthly (₹31 / mo)</span>
-                </button>
-              </div>
+            <div className="text-center max-w-xl mx-auto pt-4 pb-1 space-y-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-sb-ink tracking-tight">
+                Switch Plans or Extend Coverage
+              </h2>
+              <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
+                Choose a plan below to switch billing cadence or queue additional time onto your existing period without losing days.
+              </p>
             </div>
           </div>
-        </motion.div>
+        ) : (
+          /* ── PUBLIC VISITOR: LUXURY MARKETING HEADER CARD & TRIAL BANNER ── */
+          <>
+            <motion.div
+              className="relative rounded-3xl overflow-hidden border border-sb-hairline bg-surface-1 p-6 sm:p-10 md:p-14 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Ambient Lighting Orbs */}
+              <PricingAmbientBackground />
 
-        {/* ── STATUS BANNERS ──────────────────────────────────── */}
-        <div className="space-y-3">
-          {isTrial && daysLeft > 0 && (
-            <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-brand-500/30 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
-                  <Clock className="w-5 h-5" />
+              <div className="relative z-10 flex flex-col items-center max-w-2xl mx-auto space-y-4">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 text-xs font-semibold tracking-wide shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
+                  </span>
+                  Autonomous Finance · Sovereign Pricing
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-sb-ink">
-                    Trial Active — <span className="font-mono text-amber-600">{daysLeft} day{daysLeft !== 1 ? 's' : ''}</span> remaining
-                  </p>
-                  <p className="text-xs text-sb-ink-secondary mt-0.5">
-                    Full access to automated tracking is currently active. Pick a plan below to keep uninterrupted access.
-                  </p>
+
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-sb-ink leading-tight">
+                  Invest in peace of mind.{' '}
+                  <span className="text-brand-500 block sm:inline">Zero manual entry.</span>
+                </h1>
+
+                <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-xl">
+                  One-time payments with no recurring debit mandates, no auto-renewal surprises, and no stored card details. Every plan starts with a full 7-day trial.
+                </p>
+
+                {/* Interactive Billing Toggle Pill */}
+                <div className="pt-2">
+                  <div className="inline-flex items-center p-1.5 rounded-2xl bg-surface-2 border border-sb-hairline shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan('annual')}
+                      className={cn(
+                        'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
+                        selectedPlan === 'annual'
+                          ? 'text-brand-700 font-bold'
+                          : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
+                      )}
+                    >
+                      {selectedPlan === 'annual' && (
+                        <motion.div
+                          layoutId="billing-pill"
+                          className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
+                          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-2">
+                        <span>Yearly (₹1 / day)</span>
+                        <span className="text-[10px] uppercase font-mono font-bold bg-brand-500/15 text-brand-700 px-2 py-0.5 rounded-md border border-brand-500/30">
+                          Save 17%
+                        </span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan('monthly')}
+                      className={cn(
+                        'relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border-0',
+                        selectedPlan === 'monthly'
+                          ? 'text-brand-700 font-bold'
+                          : 'text-sb-ink-muted hover:text-sb-ink bg-transparent'
+                      )}
+                    >
+                      {selectedPlan === 'monthly' && (
+                        <motion.div
+                          layoutId="billing-pill"
+                          className="absolute inset-0 bg-surface-1 rounded-xl shadow-sm border border-brand-500/30"
+                          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                        />
+                      )}
+                      <span className="relative z-10">Monthly (₹31 / mo)</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-700 border border-amber-500/25 font-bold uppercase tracking-wider">
-                Trial Access
-              </span>
-            </div>
-          )}
+            </motion.div>
 
-          {neverSubscribed && (
+            {/* Trial Banner for visitors */}
             <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-1 border border-brand-500/30 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
@@ -436,79 +483,15 @@ export default function PricingPage() {
                   </p>
                 </div>
               </div>
-              {!user ? (
-                <button
-                  onClick={() => openAuthModal('/pricing', 'signup')}
-                  className="sb-btn-primary w-full sm:w-auto justify-center border-0 cursor-pointer shrink-0 py-2.5 px-4 text-xs font-bold"
-                >
-                  Start free trial <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </button>
-              ) : (
-                <span className="text-xs px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 bg-brand-500/10 text-brand-700 border border-brand-500/20 font-bold uppercase tracking-wider">
-                  No card required
-                </span>
-              )}
+              <button
+                onClick={() => openAuthModal('/pricing', 'signup')}
+                className="sb-btn-primary w-full sm:w-auto justify-center border-0 cursor-pointer shrink-0 py-2.5 px-4 text-xs font-bold"
+              >
+                Start free trial <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </button>
             </div>
-          )}
-
-          {(isExpired || isCancelled) && (
-            <div className="rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-1 border border-amber-500/30 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
-                  <PauseCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-sb-ink">
-                    {isTrialExpired
-                      ? 'Your free trial has ended'
-                      : isSubExpired
-                      ? 'Your subscription period has ended'
-                      : 'Your plan is currently inactive'}
-                  </p>
-                  <p className="text-xs text-sb-ink-secondary mt-0.5">
-                    Renew anytime to instantly restore on-demand inbox scans, dynamic budgets, and recurring tracking.
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-700 border border-amber-500/20 font-bold uppercase tracking-wider">
-                Paused
-              </span>
-            </div>
-          )}
-
-          {isActive && (
-            <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-3 bg-surface-1 border border-brand-500/30 shadow-sm">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <p className="text-sm font-bold text-sb-ink">
-                You are on the <span className="text-brand-600">{profile?.subscription_plan_type === 'monthly' ? 'Monthly' : 'Yearly'} Plan</span> — all on-demand scans, AI parsing, and ledger insights are fully active.
-              </p>
-            </div>
-          )}
-
-          {profile?.pending_plan_type && (
-            <div role="status" className="rounded-2xl border border-brand-500/30 bg-surface-1 p-4 sm:p-5 flex items-center gap-3 shadow-sm">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-sb-ink">
-                  {profile.pending_plan_type === 'annual' ? 'Annual' : 'Monthly'} Plan Queued
-                </p>
-                <p className="text-xs text-sb-ink-secondary mt-0.5">
-                  Already paid for. It starts automatically on{' '}
-                  <span className="font-semibold text-brand-600">
-                    {profile.pending_activates_at
-                      ? formatDate(profile.pending_activates_at)
-                      : "your current plan's expiry date"}
-                  </span>
-                  . Zero overlap, zero lost days.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+          </>
+        )}
 
         {/* ── SYMMETRICAL LUXURY PRICING CARDS ────────────────── */}
         <div className="grid md:grid-cols-2 gap-6 items-stretch max-w-5xl mx-auto pt-2">
@@ -524,8 +507,13 @@ export default function PricingPage() {
             )}
           >
             {/* Top Tag */}
-            <div className="absolute top-0 right-0 bg-brand-500 text-white text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-bl-2xl rounded-tr-2xl shadow-sm">
-              Recommended · Save 17%
+            <div
+              className={cn(
+                'absolute top-0 right-0 text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-bl-2xl rounded-tr-2xl shadow-sm',
+                isOnYearly ? 'bg-brand-600 text-white' : 'bg-brand-500 text-white'
+              )}
+            >
+              {isOnYearly ? '✓ Current Plan' : 'Recommended · Save 17%'}
             </div>
 
             <div>
@@ -584,7 +572,7 @@ export default function PricingPage() {
                 {!canBuy
                   ? 'A plan is already queued'
                   : isOnYearly
-                  ? 'Renew for another year'
+                  ? 'Extend for another year (₹365)'
                   : isActive && profile?.subscription_plan_type === 'monthly'
                   ? 'Upgrade to Yearly (₹365)'
                   : 'Get Yearly · ₹365'}
@@ -607,6 +595,13 @@ export default function PricingPage() {
                 : 'border-sb-hairline hover:border-brand-500/40 shadow-sm'
             )}
           >
+            {/* Top Tag for active monthly */}
+            {isOnMonthly && (
+              <div className="absolute top-0 right-0 bg-brand-600 text-white text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-bl-2xl rounded-tr-2xl shadow-sm">
+                ✓ Current Plan
+              </div>
+            )}
+
             <div>
               <div className="flex items-center gap-2.5 mb-2 mt-1">
                 <h2 className="text-2xl font-bold text-sb-ink">Monthly Plan</h2>
@@ -668,7 +663,7 @@ export default function PricingPage() {
                 {!canBuy
                   ? 'A plan is already queued'
                   : isOnMonthly
-                  ? 'Renew for another month'
+                  ? 'Renew for another month (₹31)'
                   : 'Choose Monthly · ₹31'}
               </button>
             </div>
@@ -932,6 +927,17 @@ export default function PricingPage() {
         <PricingFaqAccordion />
 
       </div>
+
+      {/* ── Cancel Subscription Modal ── */}
+      <CancelSubscriptionModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        isProcessing={cancelling}
+        expiresAt={profile?.subscription_expires_at || null}
+        daysLeft={daysLeft}
+        planName={activePlanName}
+      />
     </AppLayout>
   )
 }

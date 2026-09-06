@@ -40,6 +40,8 @@ export {
   updateProfile,
   resetAccountData,
   deleteAccount,
+  cancelSubscription,
+  resumeSubscription,
 } from './profiles'
 export {
   submitFeedback,

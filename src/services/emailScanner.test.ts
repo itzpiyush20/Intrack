@@ -1082,6 +1082,15 @@ describe('isPremiumProfile', () => {
     expect(isPremiumProfile({ subscription_status: 'trial', subscription_expires_at: null })).toBe(false)
   })
 
+  it('treats an unexpired cancelled subscription as premium until expiry', async () => {
+    const { isPremiumProfile } = await import('./emailScanner')
+    const future = new Date(Date.now() + 86400000).toISOString()
+    const past = new Date(Date.now() - 86400000).toISOString()
+    expect(isPremiumProfile({ subscription_status: 'cancelled', subscription_expires_at: future })).toBe(true)
+    expect(isPremiumProfile({ subscription_status: 'cancelled', subscription_expires_at: past })).toBe(false)
+    expect(isPremiumProfile({ subscription_status: 'cancelled', subscription_expires_at: null })).toBe(false)
+  })
+
   it('treats missing, free and expired profiles as not premium', async () => {
     const { isPremiumProfile } = await import('./emailScanner')
     expect(isPremiumProfile(null)).toBe(false)

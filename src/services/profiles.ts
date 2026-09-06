@@ -204,3 +204,57 @@ export async function deleteAccount(): Promise<{ error: Error | null; success: b
   return { error: null, success: true, method: 'purge' }
 }
 
+/**
+ * Cancel an active or trial subscription.
+ * Note: Intrack uses one-time payments without recurring auto-debit mandates.
+ * Cancelling sets subscription_status to 'cancelled', stops renewal notifications,
+ * while preserving full access until the prepaid subscription_expires_at date.
+ */
+export async function cancelSubscription(reason?: string, feedback?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: new Error('User not authenticated') }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      subscription_status: 'cancelled',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) return { error }
+
+  // Update local storage cache for instant UI response
+  localStorage.setItem(`intrack_sub_status_${user.id}`, 'cancelled')
+  if (reason) {
+    try {
+      localStorage.setItem(`intrack_cancel_reason_${user.id}`, JSON.stringify({ reason, feedback, timestamp: Date.now() }))
+    } catch {
+      // ignore
+    }
+  }
+
+  return { error: null, success: true }
+}
+
+/**
+ * Resume or restore an active subscription that was previously marked as cancelled.
+ */
+export async function resumeSubscription() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: new Error('User not authenticated') }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      subscription_status: 'active',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) return { error }
+
+  localStorage.setItem(`intrack_sub_status_${user.id}`, 'active')
+  return { error: null, success: true }
+}
+

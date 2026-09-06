@@ -30,8 +30,8 @@ export function isPremiumProfile(
     // An active subscription with no end date is open-ended.
     return !expiresAt || new Date(expiresAt).getTime() > now
   }
-  if (profile.subscription_status === 'trial') {
-    // A trial, unlike an active subscription, must carry an unexpired end date.
+  if (profile.subscription_status === 'trial' || profile.subscription_status === 'cancelled') {
+    // A trial or cancelled subscription retains access until its unexpired end date.
     return !!expiresAt && new Date(expiresAt).getTime() > now
   }
   return false
