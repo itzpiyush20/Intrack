@@ -226,7 +226,7 @@ export default function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
                   </span>
-                  Alerts In · Clarity Out
+                  Effortless Expense Intelligence
                 </motion.div>
 
                 {/* Main Headline */}
