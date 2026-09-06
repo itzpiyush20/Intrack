@@ -37,22 +37,36 @@ import {
   Wallet,
   HandCoins,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react'
 import { canAccessAdmin } from '@/services/adminAccess'
-import ScrollHint from '@/components/ui/ScrollHint'
 
 interface AppLayoutProps {
   children: ReactNode
 }
 
 const navItems = [
-  { label: 'Home', path: ROUTES.DASHBOARD },
-  { label: 'Transactions', path: ROUTES.EXPENSES },
-  { label: 'Budgets', path: ROUTES.BUDGETS },
-  { label: 'Pending', path: ROUTES.PENDING },
-  { label: 'Insights', path: ROUTES.INSIGHTS },
-  { label: 'Subscriptions', path: ROUTES.SUBSCRIPTIONS },
+  { label: 'Home', path: ROUTES.DASHBOARD, icon: Home },
+  { label: 'Transactions', path: ROUTES.EXPENSES, icon: CreditCard },
+  { label: 'Budgets', path: ROUTES.BUDGETS, icon: Wallet },
+  { label: 'Pending', path: ROUTES.PENDING, icon: Clock },
+  { label: 'Insights', path: ROUTES.INSIGHTS, icon: Sparkles },
+  { label: 'Subscriptions', path: ROUTES.SUBSCRIPTIONS, icon: Calendar },
 ]
+
+function getCurrentPageTitle(pathname: string): string {
+  if (pathname === ROUTES.DASHBOARD) return 'Home'
+  if (pathname === ROUTES.EXPENSES) return 'Transactions'
+  if (pathname === ROUTES.BUDGETS) return 'Budgets'
+  if (pathname === ROUTES.PENDING) return 'Pending Approvals'
+  if (pathname === ROUTES.INSIGHTS) return 'Financial Insights'
+  if (pathname === ROUTES.SUBSCRIPTIONS) return 'Subscriptions'
+  if (pathname === ROUTES.SETTINGS) return 'Settings'
+  if (pathname === ROUTES.PROFILE) return 'Profile'
+  if (pathname === '/admin' || pathname.startsWith('/admin')) return 'Admin Console'
+  if (pathname === '/payment-success') return 'Payment Successful'
+  return 'Command Center'
+}
 // Pricing is deliberately NOT here. It is a marketing page, not a daily tool:
 // the six entries above are the app. Anyone who actually wants to change plans
 // is going to billing, so Pricing lives in the profile/user menu instead
@@ -431,57 +445,276 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <a href="#main-content" className="skip-to-content">
         Skip to main content
       </a>
-      <header className={cn(
-        "sticky top-0 z-50 w-full border-b select-none transition-all duration-300",
-        "border-sb-hairline bg-sb-canvas text-sb-ink backdrop-blur-xl"
-      )}>
-        <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-6">
-          <Link to="/" className="flex items-center gap-3 shrink-0 group">
-            <BrandMark size={32} className="text-brand-500 shrink-0" />
-            <div className="flex items-center gap-2.5">
-              <div className="text-base tracking-tight leading-none">
-                <span className={cn(
-                  "font-extrabold transition-colors duration-300",
-                  "text-sb-primary"
-                )}>In</span><span className={cn("text-sb-ink")}>track</span>
+      {/* Desktop Persistent Luxury Left Sidebar Navigation (App routes only) */}
+      {user && isAppRoute && (
+        <aside
+          className="hidden lg:flex fixed inset-y-0 left-0 w-60 xl:w-64 flex-col z-40 bg-surface-1 border-r border-sb-hairline shadow-xs select-none"
+          aria-label="Application sidebar navigation"
+        >
+          {/* Brand Header */}
+          <div className="h-[64px] flex items-center justify-between px-5 border-b border-sb-hairline shrink-0">
+            <Link to={ROUTES.DASHBOARD} className="flex items-center gap-3 group">
+              <BrandMark size={30} className="text-brand-500 shrink-0 transition-transform duration-200 group-hover:scale-105" />
+              <div className="flex flex-col">
+                <div className="text-base tracking-tight leading-none">
+                  <span className="font-extrabold text-sb-primary">In</span>
+                  <span className="text-sb-ink">track</span>
+                </div>
+                <span className="text-[10px] font-semibold text-sb-ink-muted tracking-wider uppercase mt-1 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                  Autonomous Finance
+                </span>
               </div>
-              <span className={cn(
-                "text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5",
-                "bg-brand-50 border-brand-200/60 text-brand-700"
-              )}>
-                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", "bg-brand-600")} />
-                Autonomous Finance
-              </span>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
-          {/* Desktop Navigation Links */}
-          {user && isAppRoute ? (
-            <ScrollHint
-              wrapperClassName="hidden lg:block"
-              className="flex items-center gap-3 text-xs font-semibold"
-              ariaLabel="Desktop navigation"
+          {/* Quick Action: New Transaction Button */}
+          <div className="px-3.5 pt-4 pb-2 shrink-0">
+            <Link
+              to={ROUTES.EXPENSES}
+              state={{ openForm: true }}
+              className={cn(
+                "flex items-center justify-center gap-2 w-full rounded-xl py-2.5 px-3 text-xs font-semibold tracking-wide transition-all shadow-xs active:scale-98 cursor-pointer",
+                "bg-brand-600 hover:bg-brand-700 text-white select-none",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              )}
             >
-                {navItems
-                  .map((item) => {
-                    const isActive = location.pathname === item.path
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "relative py-1.5 px-2.5 rounded-lg text-xs font-semibold shrink-0 transition-all duration-200 whitespace-nowrap",
-                          isActive
-                            ? "bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shadow-sm"
-                            : "text-sb-ink-muted hover:text-sb-ink hover:bg-sb-canvas-soft"
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-              </ScrollHint>
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              <span>New Transaction</span>
+            </Link>
+          </div>
+
+          {/* Nav Rail Content */}
+          <div className="flex-1 overflow-y-auto px-3.5 py-2 space-y-6 scrollbar-thin">
+            {/* Primary Platform Rail */}
+            <div>
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-sb-ink-muted select-none">
+                Platform
+              </div>
+              <nav className="space-y-1" aria-label="Main sidebar navigation">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.path
+                  const badgeCount = item.path === ROUTES.PENDING ? notifications.length : 0
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                        isActive
+                          ? "text-brand-700 font-bold"
+                          : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="desktop-sidebar-active"
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
+                          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                        />
+                      )}
+                      <Icon className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", isActive ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
+                      <span className="relative flex-1 truncate">{item.label}</span>
+                      {badgeCount > 0 && (
+                        <span className="relative ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-1 text-[10px] font-bold text-white">
+                          {badgeCount > 9 ? '9+' : badgeCount}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+
+            {/* Secondary Management Rail */}
+            <div>
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-sb-ink-muted select-none">
+                Preferences & Tools
+              </div>
+              <nav className="space-y-1" aria-label="Secondary sidebar navigation">
+                <Link
+                  to={ROUTES.SETTINGS}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                    location.pathname === ROUTES.SETTINGS
+                      ? "text-brand-700 font-bold"
+                      : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
+                  )}
+                >
+                  {location.pathname === ROUTES.SETTINGS && (
+                    <motion.span
+                      layoutId="desktop-sidebar-active"
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                    />
+                  )}
+                  <Settings className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname === ROUTES.SETTINGS ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
+                  <span className="relative flex-1 truncate">Settings</span>
+                </Link>
+
+                <Link
+                  to={ROUTES.PROFILE}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                    location.pathname === ROUTES.PROFILE
+                      ? "text-brand-700 font-bold"
+                      : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
+                  )}
+                >
+                  {location.pathname === ROUTES.PROFILE && (
+                    <motion.span
+                      layoutId="desktop-sidebar-active"
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                    />
+                  )}
+                  <User className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname === ROUTES.PROFILE ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
+                  <span className="relative flex-1 truncate">Profile</span>
+                </Link>
+
+                {canAccessAdmin(profile) && (
+                  <Link
+                    to="/admin"
+                    className={cn(
+                      "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight transition-colors group cursor-pointer",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+                      location.pathname.startsWith('/admin')
+                        ? "text-brand-700 font-bold"
+                        : "text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80"
+                    )}
+                  >
+                    {location.pathname.startsWith('/admin') && (
+                      <motion.span
+                        layoutId="desktop-sidebar-active"
+                        aria-hidden="true"
+                        className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
+                        transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                      />
+                    )}
+                    <ShieldCheck className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", location.pathname.startsWith('/admin') ? "text-brand-600" : "text-emerald-600")} />
+                    <span className="relative flex-1 truncate">Admin</span>
+                  </Link>
+                )}
+
+                <Link
+                  to={ROUTES.PRICING}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80 transition-colors group cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                  )}
+                >
+                  <Crown className="h-4 w-4 shrink-0 relative text-amber-500 transition-transform duration-150 group-hover:scale-105" />
+                  <span className="relative flex-1 truncate">Pricing & Plans</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen(true)}
+                  className="w-full relative flex items-center gap-2.5 rounded-xl px-3 h-10 text-xs font-semibold tracking-tight text-sb-ink-muted hover:text-sb-ink hover:bg-surface-2/80 transition-colors cursor-pointer text-left"
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0 relative text-sb-ink-muted" />
+                  <span className="relative flex-1 truncate">Send Feedback</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Bottom User Profile Widget */}
+          <div className="border-t border-sb-hairline p-3 shrink-0 bg-surface-1">
+            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-2/80 transition-colors group">
+              <Link to={ROUTES.PROFILE} className="flex items-center gap-2.5 min-w-0 flex-1 group/u cursor-pointer">
+                <div className="h-9 w-9 rounded-full bg-brand-500/10 flex items-center justify-center text-xs font-bold text-brand-600 overflow-hidden border border-brand-500/25 shrink-0">
+                  {user?.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    user?.user_metadata?.full_name?.substring(0, 1).toUpperCase() || 'U'
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-xs font-semibold text-sb-ink truncate group-hover/u:text-brand-600 transition-colors">{getFirstName()}</p>
+                  <p className="text-[11px] text-sb-ink-muted truncate">
+                    {activePlan === 'yearly' ? 'Yearly Plan 👑' : activePlan === 'monthly' ? 'Monthly Plan' : 'Active Account'}
+                  </p>
+                </div>
+              </Link>
+              <button
+                onClick={() => signOut()}
+                title="Sign Out"
+                aria-label="Sign Out"
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-sb-ink-muted hover:text-[var(--status-danger-text)] hover:bg-[var(--status-danger-subtle)] transition-colors cursor-pointer shrink-0"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Main Content & Utility Shell Wrapper (Offsets for desktop sidebar on app routes) */}
+      <div className={cn("flex flex-col flex-1 min-w-0", user && isAppRoute && "lg:pl-60 xl:pl-64")}>
+        <header className={cn(
+          "sticky top-0 z-30 w-full border-b select-none transition-all duration-300",
+          "border-sb-hairline bg-sb-canvas/95 text-sb-ink backdrop-blur-xl"
+        )}>
+          <div className="mx-auto max-w-7xl h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
+            {/* Header Left: Brand on mobile/marketing, Page Title & Live Telemetry on desktop app routes */}
+            {user && isAppRoute ? (
+              <>
+                {/* Mobile/Tablet Header Brand */}
+                <div className="flex lg:hidden items-center gap-3 shrink-0">
+                  <Link to="/" className="flex items-center gap-3 group">
+                    <BrandMark size={32} className="text-brand-500 shrink-0" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="text-base tracking-tight leading-none">
+                        <span className="font-extrabold text-sb-primary">In</span>
+                        <span className="text-sb-ink">track</span>
+                      </div>
+                      <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden sm:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
+                        Autonomous Finance
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Desktop Header: Page Title + Autonomous Live Telemetry */}
+                <div className="hidden lg:flex items-center gap-3.5 min-w-0">
+                  <h1 className="text-base font-bold text-sb-ink tracking-tight flex items-center gap-2 m-0">
+                    {getCurrentPageTitle(location.pathname)}
+                  </h1>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
+                    Autonomous Live
+                  </span>
+                </div>
+              </>
             ) : (
+              /* Public / Marketing Header Brand */
+              <Link to="/" className="flex items-center gap-3 shrink-0 group">
+                <BrandMark size={32} className="text-brand-500 shrink-0" />
+                <div className="flex items-center gap-2.5">
+                  <div className="text-base tracking-tight leading-none">
+                    <span className="font-extrabold text-sb-primary">In</span>
+                    <span className="text-sb-ink">track</span>
+                  </div>
+                  <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1.5 bg-brand-50 border-brand-200/60 text-brand-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
+                    Autonomous Finance
+                  </span>
+                </div>
+              </Link>
+            )}
+
+            {/* Desktop Navigation Links (Public Marketing pages only) */}
+            {!isAppRoute && (
               <nav className="hidden lg:flex items-center gap-8" aria-label="Desktop navigation">
                 {[
                   { label: 'How it works', href: '/#how-it-works' },
@@ -491,10 +724,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   { label: 'FAQ', href: '/#faq' },
                   { label: 'Support', href: '/support' },
                 ].map((item) => (
-                  // All of these route client-side now, hash targets included —
-                  // ScrollToTop in App.tsx scrolls to the section. They used to
-                  // be plain <a> tags, which re-downloaded the whole bundle just
-                  // to jump to an anchor on the landing page.
                   <Link
                     key={item.label}
                     to={item.href}
@@ -747,22 +976,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             {user && isAppRoute ? (
               <>
-                {navItems
-                  .map((item) => {
-                    const isActive = location.pathname === item.path
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path
+                  const Icon = item.icon
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
                       className={cn(
-                        'block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                        'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         isActive
-                          ? ('bg-sb-canvas-soft text-sb-ink font-bold')
-                          : ('text-sb-ink-muted hover:bg-sb-canvas-soft')
+                          ? 'bg-sb-canvas-soft text-brand-700 font-bold'
+                          : 'text-sb-ink-muted hover:bg-sb-canvas-soft hover:text-sb-ink'
                       )}
                     >
-                      {item.label}
+                      <Icon className="h-4 w-4 shrink-0 text-sb-ink-muted" />
+                      <span>{item.label}</span>
                     </Link>
                   )
                 })}
@@ -957,6 +1187,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           developer-facing text printed on /pricing and /support, two pages a
           prospective customer reads before signing up. */}
       <SiteFooter tone="app" />
+    </div>
 
       {/* Feedback Modal — opened from the profile menu / Settings, not a FAB */}
       <Modal
