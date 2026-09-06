@@ -7,6 +7,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { formatDate, cn } from '@/utils'
+import { ANNUAL_SAVING_PCT, PRICING } from '@/constants'
 import {
   Crown,
   Calendar,
@@ -138,7 +139,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
           <div className="p-4 rounded-2xl bg-surface-2/50 border border-sb-hairline space-y-1">
             <p className="text-[11px] font-bold text-sb-ink-muted uppercase tracking-wider">Billing Model</p>
             <p className="text-base sm:text-lg font-extrabold text-sb-ink">
-              {isOnYearly ? '₹365 / year' : isOnMonthly ? '₹31 / month' : isTrial ? 'Free Trial' : '—'}
+              {isOnYearly ? `₹${PRICING.ANNUAL_AMOUNT} / year` : isOnMonthly ? `₹${PRICING.MONTHLY_AMOUNT} / month` : isTrial ? 'Free Trial' : '—'}
             </p>
             <p className="text-[11px] text-sb-ink-secondary flex items-center gap-1">
               <Check className="w-3 h-3 text-brand-600" />
@@ -236,7 +237,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                   style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
                 >
                   <Crown className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Upgrade to Yearly (Save 17%)</span>
+                  <span>Upgrade to Yearly (Save {ANNUAL_SAVING_PCT}%)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
@@ -247,7 +248,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                   className="sb-btn-secondary py-2.5 px-4 text-xs font-semibold cursor-pointer"
                   style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
                 >
-                  Renew Monthly (₹31)
+                  Renew Monthly (₹{PRICING.MONTHLY_AMOUNT})
                 </button>
               </>
             )}
@@ -262,7 +263,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                 style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>Extend for Another Year (₹365)</span>
+                <span>Extend for Another Year (₹{PRICING.ANNUAL_AMOUNT})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -276,7 +277,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                   className="sb-btn-primary py-2.5 px-4 text-xs font-bold cursor-pointer border-0 flex items-center gap-1.5 shadow-sm"
                 >
                   <Crown className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Activate Yearly · ₹365 (Best Value)</span>
+                  <span>Activate Yearly · ₹{PRICING.ANNUAL_AMOUNT} (Best Value)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
@@ -285,7 +286,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                   onClick={() => onSelectPlan('monthly')}
                   className="sb-btn-secondary py-2.5 px-4 text-xs font-semibold cursor-pointer"
                 >
-                  Activate Monthly · ₹31
+                  Activate Monthly · ₹{PRICING.MONTHLY_AMOUNT}
                 </button>
               </>
             )}

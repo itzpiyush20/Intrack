@@ -12,7 +12,7 @@ import { useScrollReveal } from '@/hooks'
 import { supabase } from '@/services/supabase'
 import { formatDate, cn } from '@/utils'
 import { setPageMeta } from '@/utils/seo'
-import { APP_CONFIG } from '@/constants'
+import { ANNUAL_PER_DAY, ANNUAL_SAVING_PCT, APP_CONFIG, PRICING } from '@/constants'
 import {
   Sparkles,
   Clock,
@@ -65,7 +65,7 @@ const MONTHLY_FEATURES = [
 const YEARLY_FEATURES = [
   'Everything in Monthly — full unrestricted suite',
   'Billed once a year instead of every month',
-  'Works out to just ₹1.00 a day (Save 17%)',
+  `Works out to just ₹${ANNUAL_PER_DAY} a day (Save ${ANNUAL_SAVING_PCT}%)`,
   'Nothing to renew or re-authorise for 365 days',
   'Instant plan queueing — stack another year without losing days',
   'Priority support & early access to new banks',
@@ -105,7 +105,7 @@ export default function PricingPage() {
   const canBuy = !hasQueuedPlan
 
   const planName = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
-  const planPrice = selectedPlan === 'annual' ? '365' : '31'
+  const planPrice = selectedPlan === 'annual' ? String(PRICING.ANNUAL_AMOUNT) : String(PRICING.MONTHLY_AMOUNT)
   const planSub = selectedPlan === 'annual' ? 'One payment · 365 days of full access' : 'One payment · 30 days of full access'
 
   const activePlanName = isOnYearly
@@ -151,7 +151,7 @@ export default function PricingPage() {
   useEffect(() => {
     setPageMeta({
       title: `Pricing & Plans | ${APP_CONFIG.APP_NAME}`,
-      description: 'Intrack costs ₹31 for 30 days or ₹365 for a full year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.',
+      description: `Intrack costs ₹${PRICING.MONTHLY_AMOUNT} for 30 days or ₹${PRICING.ANNUAL_AMOUNT} for a full year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.`,
       canonicalPath: '/pricing',
     })
   }, [])
@@ -439,9 +439,9 @@ export default function PricingPage() {
                         />
                       )}
                       <span className="relative z-10 flex items-center gap-2">
-                        <span>Yearly (₹1 / day)</span>
+                        <span>Yearly (₹{ANNUAL_PER_DAY} / day)</span>
                         <span className="text-[10px] uppercase font-mono font-bold bg-brand-500/15 text-brand-700 px-2 py-0.5 rounded-md border border-brand-500/30">
-                          Save 17%
+                          Save {ANNUAL_SAVING_PCT}%
                         </span>
                       </span>
                     </button>
@@ -463,7 +463,7 @@ export default function PricingPage() {
                           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
                         />
                       )}
-                      <span className="relative z-10">Monthly (₹31 / mo)</span>
+                      <span className="relative z-10">Monthly (₹{PRICING.MONTHLY_AMOUNT} / mo)</span>
                     </button>
                   </div>
                 </div>
@@ -513,7 +513,7 @@ export default function PricingPage() {
                 isOnYearly ? 'bg-brand-600 text-white' : 'bg-brand-500 text-white'
               )}
             >
-              {isOnYearly ? '✓ Current Plan' : 'Recommended · Save 17%'}
+              {isOnYearly ? '✓ Current Plan' : `Recommended · Save ${ANNUAL_SAVING_PCT}%`}
             </div>
 
             <div>
@@ -531,7 +531,7 @@ export default function PricingPage() {
               <div className="mb-6 p-4 rounded-2xl bg-surface-2/60 border border-sb-hairline flex items-baseline justify-between">
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹365</span>
+                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹{PRICING.ANNUAL_AMOUNT}</span>
                     <span className="text-xs sm:text-sm text-sb-ink-muted">/ year</span>
                   </div>
                   <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
@@ -539,7 +539,7 @@ export default function PricingPage() {
                   </p>
                 </div>
                 <span className="text-xs px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-700 border border-brand-500/30 font-bold font-mono shrink-0">
-                  ≈ ₹1.00 / day
+                  ≈ ₹{ANNUAL_PER_DAY} / day
                 </span>
               </div>
 
@@ -572,10 +572,10 @@ export default function PricingPage() {
                 {!canBuy
                   ? 'A plan is already queued'
                   : isOnYearly
-                  ? 'Extend for another year (₹365)'
+                  ? `Extend for another year (₹${PRICING.ANNUAL_AMOUNT})`
                   : isActive && profile?.subscription_plan_type === 'monthly'
-                  ? 'Upgrade to Yearly (₹365)'
-                  : 'Get Yearly · ₹365'}
+                  ? `Upgrade to Yearly (₹${PRICING.ANNUAL_AMOUNT})`
+                  : `Get Yearly · ₹${PRICING.ANNUAL_AMOUNT}`}
               </button>
               {isOnYearly && canBuy && (
                 <p className="text-[11px] text-center text-sb-ink-muted">
@@ -617,7 +617,7 @@ export default function PricingPage() {
               <div className="mb-6 p-4 rounded-2xl bg-surface-2/60 border border-sb-hairline flex items-baseline justify-between">
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹31</span>
+                    <span className="font-extrabold text-4xl sm:text-5xl text-sb-ink tracking-tight tnum">₹{PRICING.MONTHLY_AMOUNT}</span>
                     <span className="text-xs sm:text-sm text-sb-ink-muted">/ month</span>
                   </div>
                   <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
@@ -663,8 +663,8 @@ export default function PricingPage() {
                 {!canBuy
                   ? 'A plan is already queued'
                   : isOnMonthly
-                  ? 'Renew for another month (₹31)'
-                  : 'Choose Monthly · ₹31'}
+                  ? `Renew for another month (₹${PRICING.MONTHLY_AMOUNT})`
+                  : `Choose Monthly · ₹${PRICING.MONTHLY_AMOUNT}`}
               </button>
             </div>
           </div>
@@ -789,7 +789,7 @@ export default function PricingPage() {
                               : 'text-sb-ink-secondary border-sb-hairline hover:bg-surface-2'
                           )}
                         >
-                          {plan === 'annual' ? 'Yearly — ₹365 / yr' : 'Monthly — ₹31 / mo'}
+                          {plan === 'annual' ? `Yearly — ₹${PRICING.ANNUAL_AMOUNT} / yr` : `Monthly — ₹${PRICING.MONTHLY_AMOUNT} / mo`}
                         </button>
                       ))}
                     </div>

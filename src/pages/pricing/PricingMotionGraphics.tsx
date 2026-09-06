@@ -11,7 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { cn } from '@/utils'
-import { APP_CONFIG } from '@/constants'
+import { ANNUAL_PER_DAY, APP_CONFIG } from '@/constants'
 
 /**
  * Subtle radiant emerald ambient background glow for the Pricing header.
@@ -55,7 +55,9 @@ export function PricingAmbientBackground() {
 
 /**
  * Interactive Cost-to-Value Comparison Component.
- * Shows how Intrack's ₹1/day compares to everyday discretionary purchases.
+ * Shows how the annual plan's per-day cost compares to everyday
+ * discretionary purchases. The per-day figure is derived from PRICING, so a
+ * price change moves the whole comparison with it.
  */
 export function CostToValueVisual() {
   const [selectedItem, setSelectedItem] = useState<number>(0)
@@ -68,7 +70,7 @@ export function CostToValueVisual() {
   ]
 
   const current = comparisons[selectedItem]
-  const intrackDailyCost = 1
+  const intrackDailyCost = Number(ANNUAL_PER_DAY)
   const ratio = Math.round(current.cost / intrackDailyCost)
   const percentSaved = Math.round(((current.cost - intrackDailyCost) / current.cost) * 100)
 
@@ -81,7 +83,7 @@ export function CostToValueVisual() {
             <Sparkles className="w-3.5 h-3.5 text-brand-500" />
             <span>Perspective &amp; Return On Investment</span>
           </div>
-          <h3 className="text-xl font-bold text-sb-ink">The ₹1 / Day Reality Check</h3>
+          <h3 className="text-xl font-bold text-sb-ink">The ₹{ANNUAL_PER_DAY} / Day Reality Check</h3>
           <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1">
             Compare Intrack's full autonomous finance suite with everyday expenses.
           </p>
@@ -91,7 +93,7 @@ export function CostToValueVisual() {
         <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-3.5 py-1.5 rounded-2xl shrink-0 self-start sm:self-auto">
           <Coffee className="w-4 h-4 text-brand-600" />
           <span className="text-xs font-bold text-brand-700">
-            1 Day = ₹1.00
+            1 Day = ₹{ANNUAL_PER_DAY}
           </span>
         </div>
       </div>
@@ -122,7 +124,7 @@ export function CostToValueVisual() {
       {/* Animated Visual Gauge */}
       <div className="p-5 rounded-2xl bg-surface-2/50 border border-sb-hairline space-y-4">
         <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-sb-ink">{current.label} (₹{current.cost}) vs Intrack (₹1/day)</span>
+          <span className="text-sb-ink">{current.label} (₹{current.cost}) vs Intrack (₹{ANNUAL_PER_DAY}/day)</span>
           <span className="text-brand-600 font-mono">1 Intrack Day = {(100 / ratio).toFixed(1)}% of cost</span>
         </div>
 
@@ -144,12 +146,12 @@ export function CostToValueVisual() {
               <motion.div
                 key={selectedItem}
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.max(4, Math.min(100, (1 / current.cost) * 100))}%` }}
+                animate={{ width: `${Math.max(4, Math.min(100, (intrackDailyCost / current.cost) * 100))}%` }}
                 transition={{ duration: 0.6, ease: 'easeOut' }}
                 className="h-full bg-brand-500 rounded-full"
               />
             </div>
-            <span className="text-xs font-mono font-bold text-brand-600 w-14 text-right">₹1.00</span>
+            <span className="text-xs font-mono font-bold text-brand-600 w-14 text-right">₹{ANNUAL_PER_DAY}</span>
           </div>
         </div>
 

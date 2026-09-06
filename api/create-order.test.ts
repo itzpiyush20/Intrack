@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { PLAN_AMOUNTS_PAISE } from './_lib/pricing.js'
 
 // Define hoisted mocks
 const { mockCreate, mockGetUser, mockMaybeSingle } = vi.hoisted(() => {
@@ -64,7 +65,7 @@ describe('api/create-order', () => {
     // 2. Mock Razorpay order creation success
     mockCreate.mockResolvedValue({
       id: 'order_test_98765',
-      amount: 3100,
+      amount: PLAN_AMOUNTS_PAISE.monthly,
       currency: 'INR'
     })
 
@@ -101,7 +102,7 @@ describe('api/create-order', () => {
     expect(statusVal).toBe(200)
     expect(jsonVal).toEqual({
       id: 'order_test_98765',
-      amount: 3100,
+      amount: PLAN_AMOUNTS_PAISE.monthly,
       currency: 'INR'
     })
 
@@ -109,7 +110,7 @@ describe('api/create-order', () => {
     // that used to ride along here were removed with the tracker.
     expect(mockCreate).toHaveBeenCalledTimes(1)
     const callArgs = mockCreate.mock.calls[0][0]
-    expect(callArgs.amount).toBe(3100)
+    expect(callArgs.amount).toBe(PLAN_AMOUNTS_PAISE.monthly)
     expect(callArgs.currency).toBe('INR')
     expect(callArgs.notes).toEqual({
       userId: 'test-user-id-12345',
@@ -178,7 +179,7 @@ describe('api/create-order', () => {
 
     mockCreate.mockResolvedValue({
       id: 'order_test_98765',
-      amount: 3100,
+      amount: PLAN_AMOUNTS_PAISE.monthly,
       currency: 'INR'
     })
 
@@ -213,7 +214,7 @@ describe('api/create-order', () => {
     expect(mockCreate).toHaveBeenCalledTimes(1)
     expect(jsonVal).toEqual({
       id: 'order_test_98765',
-      amount: 3100,
+      amount: PLAN_AMOUNTS_PAISE.monthly,
       currency: 'INR'
     })
   })

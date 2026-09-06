@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Razorpay from 'razorpay'
 import { createClient } from '@supabase/supabase-js'
 import { isPurchaseBlocked } from './_lib/pendingPlan.js'
+import { PLAN_AMOUNTS_PAISE, isPurchasablePlan } from './_lib/pricing.js'
 
 const razorpayKeyId = [process.env.RAZORPAY_KEY_ID, process.env.VITE_RAZORPAY_KEY_ID]
   .find(k => k && k.startsWith('rzp_')) || process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || ''
@@ -82,14 +83,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'planType is required' })
   }
 
-  let amount = 0
-  if (planType === 'monthly') {
-    amount = 31 * 100
-  } else if (planType === 'annual') {
-    amount = 365 * 100
-  } else {
+  if (!isPurchasablePlan(planType)) {
     return res.status(400).json({ error: 'Invalid planType. Must be monthly or annual.' })
   }
+
+  const amount = PLAN_AMOUNTS_PAISE[planType]
 
   // One pending change at a time. Buying again while a plan is queued would
   // take money for time the customer cannot reach for up to a year, so it is

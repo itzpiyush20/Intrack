@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { PLAN_DURATION_DAYS } from './pricing.js'
 
 /** Verifies an HMAC-SHA256 signature using a timing-safe comparison. */
 export function verifyHmacSignature(payload: string, secret: string, signature: string): boolean {
@@ -14,6 +15,5 @@ export type PlanType = 'monthly' | 'annual'
 
 /** Subscription length in days for each plan type. */
 export function planDurationDays(planType: PlanType): number {
-  if (planType === 'annual') return 365
-  return 30
+  return planType === 'annual' ? PLAN_DURATION_DAYS.annual : PLAN_DURATION_DAYS.monthly
 }

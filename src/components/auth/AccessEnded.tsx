@@ -96,7 +96,7 @@ export default function AccessEnded() {
 
           <div className="flex flex-col gap-3">
             <Link to="/pricing" className="block w-full">
-              <Button block className="!h-11 justify-center">See plans — from ₹31</Button>
+              <Button block className="!h-11 justify-center">See plans — from ₹199</Button>
             </Link>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Link to="/settings" className="block w-full">

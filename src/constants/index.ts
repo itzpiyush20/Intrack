@@ -31,6 +31,8 @@ export const ANALYTICS_TAG_CHOICES: { value: import('@/types').AnalyticsTag; lab
   { value: 'credit_card_bill', label: 'Credit card bill' },
 ]
 
+export { PRICING, ANNUAL_PER_DAY, ANNUAL_SAVING_PCT } from './pricing'
+
 /** Navigation routes */
 export const ROUTES = {
   HOME: '/',

@@ -21,6 +21,7 @@
   },
   "include": [
     "api/**/*.ts",
+    "src/constants/pricing.ts",
     "src/services/emailScanner.ts",
     "src/services/emailBoilerplate.ts",
     "src/services/emailScanGates.ts",
