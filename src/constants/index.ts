@@ -66,7 +66,7 @@ export const FOOTER_NAV_ITEMS = [
 /** App-level config */
 export const APP_CONFIG = {
   APP_NAME: 'Intrack',
-  APP_TAGLINE: 'Effortless Tracking. Smart Saving.',
+  APP_TAGLINE: 'Your financial life, beautifully organized.',
   CURRENCY: 'INR',
   LOCALE: 'en-IN',
   DEFAULT_PAGE_SIZE: 20,

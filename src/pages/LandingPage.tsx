@@ -79,7 +79,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     setPageMeta({
-      title: 'Intrack | Effortless Expense Intelligence',
+      title: 'Intrack | Your Financial Life, Beautifully Organized',
       description: "Intrack securely transforms your bank's transaction alert emails into real-time expenses, budgets, and subscriptions — waiting for your one-tap approval.",
       canonicalPath: '/',
     })
@@ -236,8 +236,8 @@ export default function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="text-4xl sm:text-5xl lg:text-[58px] font-extrabold tracking-tight text-sb-ink leading-[1.12] mt-6"
                 >
-                  Effortless expense tracking.{' '}
-                  <span className="text-brand-500 block sm:inline">For mindful spenders.</span>
+                  Your financial life,{' '}
+                  <span className="text-brand-500 block sm:inline">beautifully organized.</span>
                 </motion.h1>
 
                 {/* Subtitle */}
