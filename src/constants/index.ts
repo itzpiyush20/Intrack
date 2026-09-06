@@ -82,7 +82,7 @@ export const APP_CONFIG = {
   // Previously a support@ address on a vanity domain the site does not run on,
   // with a mailbox that was never live — so the documented route for a DPDPA
   // grievance and for a billing dispute both dead-ended.
-  SUPPORT_EMAIL: 'contact.ansh@gmail.com',
+  SUPPORT_EMAIL: 'support.ansh@gmail.com',
   // TODO(owner): DPDPA 2023 §13 expects a contactable individual, not a team
   // alias. Replace with the responsible person's name before relying on this
   // for a grievance response.

@@ -231,7 +231,7 @@ function AnimatedRoutes() {
             <Route path="/settings"        element={<SettingsPage />} />
             <Route path="/profile"         element={<ProfilePage />} />
             <Route path="/subscriptions"   element={<SubscriptionsPage />} />
-            <Route path="/payment-success" element={<PaymentSuccessPage />} />
+            <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<AdminPage />} />
             </Route>

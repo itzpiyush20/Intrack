@@ -78,7 +78,7 @@ export default function PrivacyPage() {
           { title: "Google OAuth", body: "Sign-in and Gmail access. Privacy policy: policies.google.com/privacy" },
           { title: "Vercel", body: "Web hosting and CDN. Privacy policy: vercel.com/legal/privacy-policy" },
           { title: "Google Gemini", body: "Classifies scanned emails as transactions or not. Email text passes through in real time and is not retained. Privacy policy: policies.google.com/privacy" },
-          { title: "Razorpay", body: "Payment processing. We never see or store your card details. Privacy policy: razorpay.com/privacy" },
+          { title: "Payment Gateway Partners", body: "Payment processing and settlement through licensed payment aggregators. We never see or store your card details." },
         ])}
 
         {section("7. Cookies", `

@@ -135,7 +135,7 @@ export default function AboutPage() {
             'You can export all your data anytime',
             'You can delete your account and all data anytime',
             'Row Level Security on every database table',
-            'Encrypted backup files only you can decrypt',
+            'Password-protected AES-256 encrypted backups only you can decrypt',
           ].map((commitment, i) => (
             <motion.div
               key={commitment}

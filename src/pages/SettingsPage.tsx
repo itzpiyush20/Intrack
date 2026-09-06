@@ -417,7 +417,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.setAttribute('href', url)
-      link.setAttribute('download', `Intrack_Encrypted_Backup_${toISODateLocal(new Date())}.drbak`)
+      link.setAttribute('download', `Intrack_Encrypted_Backup_${toISODateLocal(new Date())}.inbak`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -439,7 +439,7 @@ export default function SettingsPage() {
     const fileInput = document.getElementById('restore-file-input') as HTMLInputElement
     const file = fileInput?.files?.[0]
     if (!file) {
-      setRestoreError('Please select a .drbak backup file.')
+      setRestoreError('Please select a valid backup file (.inbak or .drbak).')
       return
     }
     if (!restorePassword) {
@@ -816,21 +816,21 @@ export default function SettingsPage() {
             <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
               <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
                 <Lock className="h-5 w-5 text-brand-600 shrink-0" />
-                <span>Privacy-First Encrypted Backup</span>
+                <span>Privacy-First Encrypted Backup (.inbak)</span>
               </h2>
               <p className="text-sm text-sb-ink-muted mb-6 leading-relaxed">
-                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. All backups are encrypted client-side using industry-standard <strong className="font-semibold text-sb-ink">AES-256-GCM</strong> before downloading.
+                Securely export or restore your transactions locally. Every transaction is included — approved ones and anything still waiting in Pending. Backups are encrypted client-side using industry-standard <strong className="font-semibold text-sb-ink">AES-256-GCM</strong> before downloading into an encrypted <strong className="font-semibold text-sb-ink">.inbak</strong> file.
               </p>
 
               <div className="space-y-6">
                 {/* Export Block */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider">Download Backup</h3>
+                  <h3 className="text-xs font-bold text-sb-ink-muted uppercase tracking-wider">Download Encrypted Backup</h3>
                   <form onSubmit={handleBackup} className="space-y-3">
                     {backupSuccess && (
                       <div className="rounded-xl bg-[var(--status-positive-subtle)] border border-[var(--status-positive-border)] p-3 text-sm text-[var(--status-positive-text)] leading-relaxed animate-fade-in flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[var(--status-positive-text)]" />
-                        <span>Encrypted backup generated and downloaded successfully.</span>
+                        <span>Encrypted backup generated and downloaded successfully as .inbak.</span>
                       </div>
                     )}
                     <Input
@@ -841,8 +841,8 @@ export default function SettingsPage() {
                       onChange={(e) => setBackupPassword(e.target.value)}
                       required
                     />
-                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5 shadow-xs">
-                      <Download className="h-4 w-4" /> Encrypt & Export Backup
+                    <Button type="submit" block size="sm" loading={backupLoading} disabled={backupLoading} className="gap-1.5 shadow-xs min-h-[44px]">
+                      <Download className="h-4 w-4" /> Encrypt & Export Backup (.inbak)
                     </Button>
                   </form>
                 </div>
@@ -865,13 +865,13 @@ export default function SettingsPage() {
                     )}
                     <div>
                       <label htmlFor="restore-file-input" className="block text-sm font-medium text-sb-ink mb-1.5 cursor-pointer">
-                        Backup file (.drbak)
+                        Backup file (.inbak or legacy .drbak)
                       </label>
                       <input
                         id="restore-file-input"
                         type="file"
-                        accept=".drbak"
-                        className="w-full text-sm text-sb-ink-muted rounded-lg border border-sb-hairline bg-surface-1 p-2
+                        accept=".inbak,.drbak"
+                        className="w-full text-sm text-sb-ink-muted rounded-lg border border-sb-hairline bg-surface-1 p-2 min-h-[44px]
                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-semibold
                           file:bg-surface-2 file:text-sb-ink hover:file:bg-surface-3 file:cursor-pointer cursor-pointer
                           focus-within:ring-2 focus-within:ring-brand-500/30 focus-within:border-brand-500"
@@ -885,7 +885,7 @@ export default function SettingsPage() {
                       onChange={(e) => setRestorePassword(e.target.value)}
                       required
                     />
-                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5 shadow-xs">
+                    <Button variant="secondary" type="submit" block loading={restoreLoading} disabled={restoreLoading} className="gap-1.5 shadow-xs min-h-[44px]">
                       <Upload className="h-4 w-4" /> Decrypt & Merge Backup
                     </Button>
                   </form>
@@ -895,10 +895,10 @@ export default function SettingsPage() {
             <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
               <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
                 <Download className="h-5 w-5 text-brand-600 shrink-0" />
-                <span>Data Portability (Plain Export)</span>
+                <span>Spreadsheet Export (Plain CSV / JSON)</span>
               </h2>
               <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
-                Export your transactions — approved and pending — in standard, human-readable formats for tax filing, spreadsheets, or migrations.
+                Export your transactions — approved and pending — in standard unencrypted formats (CSV and JSON) ready for Microsoft Excel, Google Sheets, or tax filing.
               </p>
 
               <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">

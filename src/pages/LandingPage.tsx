@@ -108,15 +108,15 @@ export default function LandingPage() {
     {
       num: '01',
       title: 'Connect Gmail in 60 Seconds',
-      desc: 'Authorize read-only access with Google OAuth. Intrack exclusively listens for transaction alert notifications — never touching personal correspondence.',
+      desc: 'Authorize read-only access with Google OAuth. Intrack scans strictly for financial transaction alerts on your command — never touching personal correspondence.',
       icon: KeyRound,
       badge: 'Read-Only Security',
       component: <OAuthShieldVisual />,
     },
     {
       num: '02',
-      title: 'Autonomous AI Extraction',
-      desc: 'When an alert arrives, our machine learning engine identifies the merchant, amount, category, and payment method in milliseconds.',
+      title: 'On-Demand AI Extraction',
+      desc: 'Whenever you run a scan, our machine learning engine identifies the merchant, amount, category, and payment method in seconds — zero manual typing and zero background snooping.',
       icon: Sparkles,
       badge: 'Zero Manual Entry',
       component: (
@@ -191,7 +191,7 @@ export default function LandingPage() {
     {
       icon: Database,
       title: 'Full Data Sovereignty',
-      desc: 'Export your complete transaction history to encrypted CSV/JSON anytime. Permanently delete your account and all records in one click.',
+      desc: 'Export your transaction history to instant CSV/JSON spreadsheets or download password-protected AES-256 encrypted backups anytime. Permanently delete your account in one click.',
     },
   ]
 

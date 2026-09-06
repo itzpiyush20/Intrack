@@ -11,6 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { cn } from '@/utils'
+import { APP_CONFIG } from '@/constants'
 
 /**
  * Subtle radiant emerald ambient background glow for the Pricing header.
@@ -172,7 +173,7 @@ export function TrustTelemetryRibbon() {
   const items = [
     { icon: ShieldCheck, title: '100% Read-Only', desc: 'Google-verified OAuth scope' },
     { icon: Lock, title: 'No Bank Credentials', desc: 'Never asks for passwords or PINs' },
-    { icon: CreditCard, title: 'Razorpay Protected', desc: '256-bit encrypted checkout' },
+    { icon: CreditCard, title: 'Secure Payment Gateway', desc: '256-bit encrypted checkout' },
     { icon: RotateCcw, title: '7-Day Refund Policy', desc: 'Full refund, no questions asked' },
   ]
 
@@ -183,14 +184,14 @@ export function TrustTelemetryRibbon() {
         return (
           <div
             key={item.title}
-            className="flex items-start gap-3 p-4 rounded-2xl bg-surface-1 border border-sb-hairline shadow-sm"
+            className="flex items-center gap-3 p-3.5 rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs"
           >
-            <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 shrink-0 mt-0.5">
-              <Icon className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
+              <Icon className="w-4 h-4 text-brand-600" />
             </div>
             <div>
-              <div className="text-xs font-bold text-sb-ink">{item.title}</div>
-              <p className="text-[11px] text-sb-ink-muted mt-0.5 leading-snug">{item.desc}</p>
+              <p className="text-xs font-bold text-sb-ink">{item.title}</p>
+              <p className="text-[11px] text-sb-ink-muted">{item.desc}</p>
             </div>
           </div>
         )
@@ -200,10 +201,10 @@ export function TrustTelemetryRibbon() {
 }
 
 /**
- * Interactive Pricing FAQ Accordion.
+ * Interactive FAQ Accordion tailored for Pricing.
  */
 export function PricingFaqAccordion() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   const faqs = [
     {
@@ -220,11 +221,11 @@ export function PricingFaqAccordion() {
     },
     {
       q: 'How does the 7-day refund guarantee work?',
-      a: 'If you are unsatisfied for any reason within 7 days of your payment, email support@intrack.co.in or contact us via in-app support. We issue a 100% full refund directly through Razorpay, no questions asked.',
+      a: `If you are unsatisfied for any reason within 7 days of your payment, email ${APP_CONFIG.SUPPORT_EMAIL} or contact us via in-app support. We issue a 100% full refund directly to your original payment method, no questions asked.`,
     },
     {
       q: 'Which payment methods do you accept?',
-      a: 'Through Razorpay, we accept all Indian UPI applications (Google Pay, PhonePe, Paytm, CRED, BHIM), RuPay, Visa, Mastercard, and NetBanking across 50+ Indian commercial and public sector banks.',
+      a: 'Through our secure payment gateway partner, we accept all Indian UPI applications (Google Pay, PhonePe, Paytm, CRED, BHIM), RuPay, Visa, Mastercard, and NetBanking across 50+ Indian commercial and public sector banks.',
     },
   ]
 

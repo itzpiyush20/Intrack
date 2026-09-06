@@ -51,11 +51,11 @@ declare global {
 
 // ── Feature lists for different subscription tiers ───────────
 const MONTHLY_FEATURES = [
-  'Two automated inbox scans a day (4h cadence)',
+  'Two on-demand inbox scans a day (4h cooldown)',
   'Everything in the 7-day trial, without time limits',
   'Real-time merchant & category learning engine',
   'Subscription renewal radar & calendar alerts',
-  'Encrypted CSV & JSON full financial ledger exports',
+  'Full CSV & JSON exports + Encrypted offline backup',
   'One-time payment · Zero auto-renew mandates',
 ]
 
@@ -144,7 +144,7 @@ export default function PricingPage() {
     setProcessing(true)
     const scriptLoaded = await loadRazorpayScript()
     if (!scriptLoaded) {
-      showToast('Failed to load Razorpay SDK. Check your internet.', 'error')
+      showToast('Failed to load payment gateway SDK. Check your internet.', 'error')
       setProcessing(false)
       return
     }
@@ -203,13 +203,7 @@ export default function PricingPage() {
             if (verifyData.outcome === 'queued' || verifyData.outcome === 'queue_extended') {
               await refreshProfile()
               showToast('Payment received. Your new plan starts when your current one ends.', 'success')
-              navigate('/payment-success', {
-                state: {
-                  planName,
-                  queued: true,
-                  startsAt: verifyData.pendingActivatesAt,
-                },
-              })
+              navigate('/dashboard')
             } else {
               await updateSubscriptionStatus('active', selectedPlan)
               showToast(
@@ -218,7 +212,7 @@ export default function PricingPage() {
                   : `👑 Payment Successful! ${planName} features unlocked.`,
                 'success'
               )
-              navigate('/payment-success', { state: { planName, expiresAt: verifyData.expiresAt } })
+              navigate('/dashboard')
             }
           } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err)
@@ -231,7 +225,7 @@ export default function PricingPage() {
       }
       const RazorpayCtor = window.Razorpay
       if (!RazorpayCtor) {
-        showToast('Razorpay failed to initialize.', 'error')
+        showToast('Payment gateway failed to initialize.', 'error')
         setProcessing(false)
         return
       }
@@ -472,7 +466,7 @@ export default function PricingPage() {
                       : 'Your plan is currently inactive'}
                   </p>
                   <p className="text-xs text-sb-ink-secondary mt-0.5">
-                    Renew anytime to instantly restore automated inbox scans, dynamic budgets, and recurring tracking.
+                    Renew anytime to instantly restore on-demand inbox scans, dynamic budgets, and recurring tracking.
                   </p>
                 </div>
               </div>
@@ -488,7 +482,7 @@ export default function PricingPage() {
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <p className="text-sm font-bold text-sb-ink">
-                You are on the <span className="text-brand-600">{profile?.subscription_plan_type === 'monthly' ? 'Monthly' : 'Yearly'} Plan</span> — all automation systems, AI parsing, and ledger sync are fully active.
+                You are on the <span className="text-brand-600">{profile?.subscription_plan_type === 'monthly' ? 'Monthly' : 'Yearly'} Plan</span> — all on-demand scans, AI parsing, and ledger insights are fully active.
               </p>
             </div>
           )}
@@ -746,7 +740,7 @@ export default function PricingPage() {
                   )}
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Pay Securely (Razorpay)</span>
+                  <span>Pay Securely Online</span>
                 </button>
 
                 <button
@@ -766,7 +760,7 @@ export default function PricingPage() {
 
               <div className="p-6 sm:p-8 space-y-6">
 
-                {/* ── Razorpay Flow ─────────────────────────────── */}
+                {/* ── Payment Gateway Flow ─────────────────────────────── */}
                 {paymentMethod === 'razorpay' && (
                   <div className="space-y-6">
                     {/* Order Summary Box */}
@@ -794,7 +788,7 @@ export default function PricingPage() {
                           type="button"
                           onClick={() => setSelectedPlan(plan)}
                           className={cn(
-                            'py-3 rounded-xl text-xs font-semibold cursor-pointer transition-all bg-transparent border',
+                            'py-3 rounded-xl text-xs font-semibold cursor-pointer transition-all bg-transparent border min-h-[44px]',
                             selectedPlan === plan
                               ? 'text-brand-700 border-brand-500 bg-brand-500/5 font-bold shadow-sm'
                               : 'text-sb-ink-secondary border-sb-hairline hover:bg-surface-2'
@@ -818,18 +812,18 @@ export default function PricingPage() {
                     <button
                       onClick={handleRazorpayCheckout}
                       disabled={processing || hasQueuedPlan}
-                      className="sb-btn-primary w-full cursor-pointer border-0 py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all"
+                      className="sb-btn-primary w-full cursor-pointer border-0 py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all min-h-[44px]"
                       style={{ opacity: processing || hasQueuedPlan ? 0.6 : 1 }}
                     >
                       {hasQueuedPlan
                         ? 'A plan is already queued'
                         : processing
-                        ? 'Opening secure Razorpay gateway…'
+                        ? 'Opening secure payment gateway…'
                         : `Pay ₹${planPrice} & Activate ${planName}`}
                     </button>
 
                     <p className="text-[11px] text-center text-sb-ink-muted">
-                      🔒 Bank-grade 256-bit encryption · Card details go to Razorpay, never stored on our servers
+                      🔒 Bank-grade 256-bit encryption · Card details are handled directly by the licensed payment gateway, never stored on our servers
                     </p>
                   </div>
                 )}
@@ -843,7 +837,7 @@ export default function PricingPage() {
                         <span>Exclusive Invitation or Promo Coupon</span>
                       </p>
                       <p className="text-xs text-sb-ink-secondary leading-relaxed">
-                        Enter your promotional coupon below to instantly unlock full access to automated tracking and insight tools.
+                        Enter your promotional coupon below to instantly unlock full access to on-demand tracking and insight tools.
                       </p>
                       <p className="text-[11px] text-sb-ink-muted pt-1">
                         * Promotional codes apply to eligible first-time accounts (limit 1 code per account).

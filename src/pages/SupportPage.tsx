@@ -260,11 +260,11 @@ export default function SupportPage() {
                         5. DPDPA 2023 Consent & Grievance Redressal
                       </h3>
                       <p>
-                        In compliance with the Digital Personal Data Protection Act 2023, you can withdraw consent or request complete erasure of your data at any time under Settings. For queries, grievances, or details regarding data processing, contact our designated Grievance & Data Protection Officer:
+                        In compliance with the Digital Personal Data Protection Act 2023, you can withdraw consent or request complete erasure of your data at any time under Profile (Danger Zone). For queries, grievances, or details regarding data processing, contact our designated Grievance & Data Protection Officer:
                       </p>
                       <div className="mt-2 text-xs text-sb-ink-secondary bg-surface-2/60 border border-sb-hairline p-4 rounded-xl space-y-1.5 shadow-xs">
                         <p>• <strong className="text-sb-ink">Officer:</strong> {APP_CONFIG.SUPPORT_NAME}</p>
-                        <p>• <strong className="text-sb-ink">Email:</strong> {APP_CONFIG.SUPPORT_EMAIL}</p>
+                        <p className="break-all">• <strong className="text-sb-ink">Email:</strong> {APP_CONFIG.SUPPORT_EMAIL}</p>
                         <p>• <strong className="text-sb-ink">Designation:</strong> {APP_CONFIG.SUPPORT_DESIGNATION}</p>
                         <p>• <strong className="text-sb-ink">Address:</strong> {APP_CONFIG.SUPPORT_ADDRESS}</p>
                       </div>
@@ -354,7 +354,7 @@ export default function SupportPage() {
                       <p className="text-xs mt-1 text-sb-ink-secondary">
                         Your ticket is logged and we'll reply to {email || 'the email you entered'}, usually within 24–48 hours.
                         If it's urgent, email{' '}
-                        <a href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`} className="text-brand-700 font-semibold underline">
+                        <a href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`} className="text-brand-700 font-semibold underline break-all">
                           {APP_CONFIG.SUPPORT_EMAIL}
                         </a>{' '}
                         directly.
@@ -367,7 +367,7 @@ export default function SupportPage() {
                       <p className="text-xs font-bold text-[var(--status-danger-text)]">Your ticket was not sent</p>
                       <p className="text-xs mt-1 text-sb-ink-secondary">
                         {sendError} Your message is still in the box below — nothing was lost. You can also email{' '}
-                        <a href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`} className="text-brand-700 font-semibold underline">
+                        <a href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`} className="text-brand-700 font-semibold underline break-all">
                           {APP_CONFIG.SUPPORT_EMAIL}
                         </a>{' '}
                         directly.

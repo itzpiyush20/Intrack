@@ -1,5 +1,19 @@
 // ============================================
 // TermsPage — Terms of Service & User Agreement
+//
+// Rewritten for auto-renewing subscriptions (owner decisions, 2026-09-05).
+// Three changes beyond the billing model itself:
+//
+//  * §6 Suspension & Termination is NEW. §5 listed prohibited uses and attached
+//    no consequence, so the Terms banned behaviour they gave no power to act on
+//    — while api/admin.ts ships an endpoint that ends an account's access. The
+//    tooling could do what the contract said would never happen.
+//  * §10 Governing Law is NEW. There was none.
+//  * The Refund Policy no longer has "limited cases" to point at; §4 now states
+//    the single 7-day promise directly.
+//
+// DO NOT PUBLISH until Subscriptions is confirmed live on the account.
+// Jurisdiction set to Jaipur, Rajasthan in §10.
 // ============================================
 
 import { MarketingLayout } from '@/layouts'
@@ -8,7 +22,7 @@ export default function TermsPage() {
   return (
     <MarketingLayout
       title="Terms of Service"
-      description="The terms governing your use of Intrack, covering Gmail scanning, the 7-day trial, one-time subscription payments, and limitations of liability."
+      description="The terms governing your use of Intrack, covering Gmail scanning, the 7-day trial, auto-renewing subscriptions, cancellation, and limitations of liability."
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Terms of Service</h1>
@@ -26,12 +40,12 @@ export default function TermsPage() {
 
         {section("1. The Service", `
           Intrack is a personal financial intelligence platform designed to parse bank transactions, help users monitor expenses, maintain budgets, and receive financial forecasts.
-          
+
           The Service is provided "as is" and "as available". We do not guarantee that the Service will always be uninterrupted, timely, secure, or free from error.
         `)}
 
         {section("2. Account Creation & Verification", `
-          To use the Service, you must create an account using a valid email address or via Google OAuth. 
+          To use the Service, you must create an account using a valid email address or via Google OAuth.
           - You represent that all information provided is accurate and truthful.
           - You are responsible for keeping your account credentials secure.
           - We limit account usage to a maximum of 2 active concurrent browser sessions/devices per user to prevent abuse.
@@ -48,10 +62,13 @@ export default function TermsPage() {
 
         {section("4. Subscriptions, Trials & Billing", `
           Intrack offers subscription plans to access advanced automated tracking features:
-          - 7-Day Free Trial: New users receive 7 days of free trial access starting from registration. During the trial period, the service gives full access, including the Gmail scans you run yourself and manual entries. There is no free tier: when the trial ends, access stops unless you upgrade to a subscription plan. Data you have already entered is retained, not deleted.
-          - Paid Plans: Users can choose the Monthly plan (₹31 for 30 days) or the Yearly plan (₹365 for 365 days) to continue using manual entry and Gmail inbox scanning. Every scan is started by you: Intrack performs no background, scheduled or automatic scanning of any kind.
-          - Billing: All payments are processed securely via Razorpay, a licensed payment gateway. Every plan is a ONE-TIME payment for a fixed period. Nothing renews automatically, no mandate is placed on your card, and you are never charged again without making a new purchase.
-          - Cancellation: Because nothing recurs, there is no cancellation step and no cancellation fee. Access runs to the end of the period you paid for and then stops. Intrack does not offer refunds for unused portions of a period; see the Refund Policy for the limited cases in which a refund is available.
+          - 7-Day Free Trial: New users receive 7 days of free trial access starting from registration. No payment method is required to start it and you are not charged during it. During the trial the service gives full access, including the Gmail scans you run yourself and manual entries. There is no free tier: when the trial ends, access stops unless you subscribe. Data you have already entered is retained, not deleted.
+          - Paid Plans: Choose the Monthly plan or the Yearly plan to continue using manual entry and Gmail inbox scanning. Current prices are shown on the Pricing page. Every scan is started by you: Intrack performs no background, scheduled or automatic scanning of any kind.
+          - Automatic Renewal: Subscriptions RENEW AUTOMATICALLY at the end of each billing period and your payment method is charged again, until you cancel. Before every charge you receive a notification at least 24 hours in advance showing the amount and date, with an option to cancel, and your bank sends its own alert. You are never charged without warning.
+          - Billing: All payments and the recurring mandate are handled securely by our licensed payment gateway partner. We never see or store your card details.
+          - Cancellation: You can cancel at any time from Settings → Plan & Billing, without contacting us and without a fee. Cancelling stops future charges; it does not end the period you have already paid for, which runs to its end date.
+          - Refunds: If you contact us within 7 days of a charge we refund that charge in full, no reason required, on your first payment and on every renewal. A refund cancels your subscription and ends your access. After 7 days we do not offer refunds as a rule. See the Cancellation & Refund Policy for the full statement.
+          - Price Changes: We may change prices. A change never affects a period you have already paid for, and we will tell you before a new price applies to a renewal, so you can cancel first if you prefer.
         `)}
 
         {section("5. Prohibited Uses", `
@@ -61,20 +78,38 @@ export default function TermsPage() {
           - Resell, sublicense or redistribute access to the Service.
         `)}
 
-        {section("6. Limitations of Liability", `
+        {section("6. Suspension & Termination", `
+          We may suspend or terminate an account that breaches these Terms, in particular the Prohibited Uses above, or where we are required to by law.
+
+          - Where it is practical to do so, we will tell you first and give you a chance to put things right. Where the breach is causing active harm — for example an automated request loop degrading the service for others — we may act immediately and tell you afterwards.
+          - If we terminate an account for breach, any remaining paid time is forfeited and is not refunded. If we terminate for any other reason, or discontinue the Service, we will refund the unused portion of your current period.
+          - You may close your account at any time from Profile → Delete Account. Doing so ends your access immediately and erases your data as described in the Privacy Policy; it does not by itself entitle you to a refund outside the 7-day window in section 4.
+        `)}
+
+        {section("7. Limitations of Liability", `
           Intrack is a financial tool, not a financial advisor. All insights, cash flow forecasts, and subscription lists are provided for informational purposes only.
           - We are not liable for any financial decisions, loss of money, or investment decisions you make based on data displayed in the app.
           - Under no circumstances shall Intrack or its creator be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the Service.
         `)}
 
-        {section("7. Data Ownership & Rights", `
-          Your financial data belongs entirely to you. 
+        {section("8. Data Ownership & Rights", `
+          Your financial data belongs entirely to you.
           - You can request a full export of your data (as CSV or JSON) at any time.
           - You can permanently delete your account and all associated transaction records directly from the app interface.
         `)}
 
-        {section("8. Amendments to Terms", `
+        {section("9. Amendments to Terms", `
           We reserve the right to modify these Terms at any time. We will alert you to major updates via an in-app notice. Continued use of the Service after changes constitute acceptance of the updated Terms.
+
+          Where a change affects what you pay or how your subscription renews, we will tell you before it takes effect on a renewal, so that you can cancel first if you prefer.
+        `)}
+
+        {section("10. Governing Law & Jurisdiction", `
+          These Terms are governed by the laws of India.
+
+          Any dispute arising out of or in connection with these Terms is subject to the exclusive jurisdiction of the courts at Jaipur, Rajasthan, India.
+
+          Nothing in these Terms limits any right you have under the Consumer Protection Act, 2019 or other consumer protection law that cannot be waived by agreement.
         `)}
       </div>
     </MarketingLayout>

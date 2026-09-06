@@ -1,5 +1,5 @@
 // ============================================
-// Backup restore — rebuilding a transaction row from a decrypted .drbak file.
+// Backup restore — rebuilding a transaction row from a decrypted .inbak (or legacy .drbak) file.
 //
 // Pure and separate from SettingsPage so it can be tested. The bug this exists
 // to prevent is silent: the restore used to copy eleven fields out of a row
@@ -45,7 +45,7 @@ export function buildDedupKey(t: DedupableTransaction): string {
 }
 
 /**
- * One row as it appears inside a decrypted .drbak file.
+ * One row as it appears inside a decrypted .inbak or .drbak file.
  *
  * Every field is optional and `unknown`, which is the honest type: the file is
  * whatever the user hands us, and may have been written by an older version of

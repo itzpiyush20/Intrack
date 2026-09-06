@@ -113,7 +113,7 @@ export function LiveTransactionTicker() {
     <div className="w-full overflow-hidden select-none py-3 border-y border-sb-hairline bg-surface-1/50 backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-2 px-4 justify-center text-xs font-bold uppercase tracking-wider text-brand-600">
         <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-        Live Automated Stream Simulation
+        Live Transaction Recognition Simulation
       </div>
       <div 
         className="marquee-container overflow-hidden"

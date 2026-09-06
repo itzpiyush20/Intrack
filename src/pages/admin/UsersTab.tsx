@@ -249,7 +249,7 @@ export default function UsersTab() {
       // told plainly — with the order id, or the refund cannot be traced.
       setOpSuccess(
         result.cancelledQueuedPlan
-          ? `Paid access for ${user.email} has ended. A queued ${result.cancelledQueuedPlan} plan was also cancelled — they PAID for it${result.cancelledQueuedOrderId ? ` (order ${result.cancelledQueuedOrderId})` : ''}, so refund it in Razorpay.`
+          ? `Paid access for ${user.email} has ended. A queued ${result.cancelledQueuedPlan} plan was also cancelled — they PAID for it${result.cancelledQueuedOrderId ? ` (order ${result.cancelledQueuedOrderId})` : ''}, so refund it in the payment gateway dashboard.`
           : `Paid access for ${user.email} has ended.`
       )
       setGrantFor(null)
@@ -432,7 +432,7 @@ export default function UsersTab() {
         title={`End access for ${expireTarget?.email}?`}
         message={
           `They lose premium features immediately, and any plan queued to start later is ` +
-          `cancelled too — if they paid for one, you will need to refund it in Razorpay.`
+          `cancelled too — if they paid for one, you will need to refund it in the payment gateway dashboard.`
         }
         confirmLabel="End access"
         danger

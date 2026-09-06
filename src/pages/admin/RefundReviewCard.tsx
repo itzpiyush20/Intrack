@@ -96,7 +96,7 @@ export default function RefundReviewCard() {
         These purchases arrived while a plan was already queued — almost always a double-click
         or gateway lag. The customer was charged and the time was added to their queued plan,
         so nobody lost anything. But your refund policy covers duplicate charges, and the
-        customer has not been told. Refund in Razorpay using the order id, or mark it reviewed
+        customer has not been told. Refund in the payment gateway dashboard using the order id, or mark it reviewed
         if you have decided not to.
       </p>
 
@@ -114,7 +114,7 @@ export default function RefundReviewCard() {
                 ₹{Number(row.amount_inr).toLocaleString('en-IN')} · {row.plan_type} ·{' '}
                 {new Date(row.created_at).toLocaleString('en-IN')}
               </p>
-              {/* Selectable and monospaced: this gets pasted into Razorpay. */}
+              {/* Selectable and monospaced: this gets pasted into payment gateway dashboard. */}
               <p className="mt-0.5 font-mono text-[11px] text-sb-ink-muted select-all break-all">
                 {row.razorpay_order_id ?? 'no order id'}
                 {row.razorpay_payment_id ? ` · ${row.razorpay_payment_id}` : ''}
