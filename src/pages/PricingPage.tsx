@@ -28,6 +28,7 @@ import {
   EyeOff
 } from 'lucide-react'
 import { cancelSubscription, resumeSubscription } from '@/services'
+import { createSubscription } from '@/services/subscriptionBilling'
 import {
   PricingAmbientBackground,
   CostToValueVisual,
@@ -73,7 +74,7 @@ const YEARLY_FEATURES = [
 
 export default function PricingPage() {
   const navigate = useNavigate()
-  const { user, profile, updateSubscriptionStatus, daysLeft, openAuthModal, refreshProfile } = useAuth()
+  const { user, profile, daysLeft, openAuthModal, refreshProfile } = useAuth()
   const { showToast } = useToast()
 
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual')
@@ -201,71 +202,30 @@ export default function PricingPage() {
         setProcessing(false)
         return
       }
-      const response = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          planType: selectedPlan,
-        })
-      })
-      const orderData = await response.json()
-      if (response.status === 409) {
-        showToast(orderData.error || 'You already have a plan queued.', 'warning')
-        setProcessing(false)
-        return
-      }
-      if (!response.ok || orderData.error) throw new Error(orderData.error || 'Could not initiate payment order')
-
       const clientKey = import.meta.env.VITE_RAZORPAY_KEY_ID
       if (!clientKey || !clientKey.startsWith('rzp_')) {
         throw new Error('Payments are not configured on this deployment. Please contact support — you have not been charged.')
       }
 
+      const { id: subscriptionId } = await createSubscription(selectedPlan, session.access_token)
+
       const options = {
         key: clientKey,
-        amount: orderData.amount,
-        currency: orderData.currency,
+        // Razorpay derives the amount and cadence from the plan, so no amount or
+        // currency is passed for a subscription.
+        subscription_id: subscriptionId,
         name: APP_CONFIG.APP_NAME,
-        description: `Upgrade to ${planName} Plan`,
-        order_id: orderData.id,
+        description: `${planName} plan`,
         prefill: { name: profile?.full_name || '', email: user.email || '' },
         theme: { color: '#0e7a5d' },
-        handler: async (paymentResponse: Record<string, unknown>) => {
-          setProcessing(true)
-          try {
-            const { data: { session: verifySession } } = await supabase.auth.getSession()
-            if (!verifySession?.access_token) throw new Error('Your session expired. Please log in again.')
-            const verifyResponse = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${verifySession.access_token}` },
-              body: JSON.stringify({ ...paymentResponse, planType: selectedPlan })
-            })
-            const verifyData = await verifyResponse.json()
-            if (!verifyResponse.ok || verifyData.error) throw new Error(verifyData.error || 'Payment verification failed')
-
-            if (verifyData.outcome === 'queued' || verifyData.outcome === 'queue_extended') {
-              await refreshProfile()
-              showToast('Payment received. Your new plan starts when your current one ends.', 'success')
-              navigate('/dashboard')
-            } else {
-              await updateSubscriptionStatus('active', selectedPlan)
-              showToast(
-                verifyData.outcome === 'already_applied'
-                  ? `Payment already confirmed — your ${planName} plan is active.`
-                  : `👑 Payment Successful! ${planName} features unlocked.`,
-                'success'
-              )
-              navigate('/dashboard')
-            }
-          } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err)
-            showToast(`Verification Failed: ${message}`, 'error')
-          } finally {
-            setProcessing(false)
-          }
+        handler: async () => {
+          // No verify step: the authorisation charge and every renewal arrive
+          // as `subscription.charged` webhooks, which are the only thing that
+          // grants access. A closed browser or a handler that never fires
+          // must never cost the customer their plan.
+          await refreshProfile()
+          showToast(`Payment received. Your ${planName} plan activates in a moment.`, 'success')
+          navigate('/dashboard')
         },
         modal: { ondismiss: () => setProcessing(false) },
       }
