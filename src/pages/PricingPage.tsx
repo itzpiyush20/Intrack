@@ -27,8 +27,8 @@ import {
   Ticket,
   EyeOff
 } from 'lucide-react'
-import { cancelSubscription, resumeSubscription } from '@/services'
-import { createSubscription } from '@/services/subscriptionBilling'
+import { cancelSubscription as cancelLegacySubscription, resumeSubscription } from '@/services'
+import { createSubscription, cancelSubscription as cancelRazorpaySubscription } from '@/services/subscriptionBilling'
 import {
   PricingAmbientBackground,
   CostToValueVisual,
@@ -120,11 +120,25 @@ export default function PricingPage() {
   const handleConfirmCancel = async (reason: string, feedback: string) => {
     setCancelling(true)
     try {
-      const { error } = await cancelSubscription(reason, feedback)
-      if (error) throw error
+      const expiryStr = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'the end of your prepaid period'
+      if (profile?.razorpay_subscription_id) {
+        // Auto-renewing subscription: the mandate lives at Razorpay, so the
+        // local status flag alone does nothing to stop the next charge. This
+        // must reach /api/cancel-subscription to actually cancel it (at cycle
+        // end — access is unaffected today).
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          throw new Error('Your session expired. Please log in again.')
+        }
+        await cancelRazorpaySubscription(session.access_token)
+      } else {
+        // Legacy one-time customer: there is no mandate to cancel, so flipping
+        // the status flag is all there is.
+        const { error } = await cancelLegacySubscription(reason, feedback)
+        if (error) throw error
+      }
       await refreshProfile()
       setCancelModalOpen(false)
-      const expiryStr = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'the end of your prepaid period'
       showToast(`Subscription cancelled. You retain full access until ${expiryStr}.`, 'info')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
