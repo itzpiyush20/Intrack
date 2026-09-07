@@ -516,6 +516,16 @@ export interface UserPlannedPayment {
   category: string // Category name, e.g. "Subscriptions", "Utilities & Bills", "Rent"
   dueDay: number // 1..31 (e.g. 5 for 5th of each month)
   expectedAmount: number // e.g. 649, 25000
+  /** How often this payment recurs: 'monthly' | 'weekly' | 'quarterly' | 'annual' | 'custom'. Defaults to 'monthly'. */
+  cadence?: PaymentCadence
+  /** Only used when cadence === 'custom'. Number of days between payments (2–365). e.g. 8 for every 8 days */
+  customFrequencyDays?: number
+  /** Day of week (0=Sunday, 1=Monday... 6=Saturday) for weekly subscriptions */
+  dueDayOfWeek?: number
+  /** Due month (0..11) for annual/quarterly subscriptions (0 = January) */
+  dueMonth?: number
+  /** Start / anchor date YYYY-MM-DD from which repeating cycles (weekly, custom, etc.) calculate */
+  startDate?: string
   notes?: string
   createdAt?: string
 }
@@ -669,6 +679,11 @@ export interface EvaluatedPlannedPayment {
   amountPaid: number
   paidDate?: string
   lastChargedMerchant?: string
+  cadence?: PaymentCadence
+  customFrequencyDays?: number
+  dueDayOfWeek?: number
+  dueMonth?: number
+  startDate?: string
   matchedTxns: {
     id: string
     date: string
@@ -727,44 +742,10 @@ export function evaluateMonthlyPlannedPayments(options: {
   // Specific items defined by the user
   const definedItems: UserPlannedPayment[] = userPlannedPayments ?? getUserPlannedPayments(userId)
 
-  // If user has specific items defined, use those.
-  // If not, fall back to any categories marked with isPlannedCategory
-  let paymentDefinitions: Array<{
-    id: string
-    itemId?: string
-    name: string
-    categoryName: string
-    dueDay: number
-    expectedAmount: number
-  }> = []
-
-  if (definedItems.length > 0) {
-    paymentDefinitions = definedItems.map((item) => ({
-      id: item.id,
-      itemId: item.id,
-      name: item.name,
-      categoryName: item.category,
-      dueDay: item.dueDay,
-      expectedAmount: item.expectedAmount,
-    }))
-  } else {
-    // Fallback: evaluate planned categories if no specific items are defined yet
-    paymentDefinitions = plannedCats.map((cat) => {
-      const schedule = getPlannedCategorySchedule(cat.name, userId)
-      return {
-        id: cat.id || cat.name,
-        name: cat.name,
-        categoryName: cat.name,
-        dueDay: schedule.dueDay || 1,
-        expectedAmount: schedule.expectedAmount ?? 0,
-      }
-    })
-  }
-
   // Count items per category to determine matching precision
   const countPerCategory: Record<string, number> = {}
-  paymentDefinitions.forEach((p) => {
-    const key = p.categoryName.trim().toLowerCase()
+  definedItems.forEach((p) => {
+    const key = p.category.trim().toLowerCase()
     countPerCategory[key] = (countPerCategory[key] || 0) + 1
   })
 
@@ -774,81 +755,246 @@ export function evaluateMonthlyPlannedPayments(options: {
   let clearedCount = 0
   let dueCount = 0
 
-  const items: EvaluatedPlannedPayment[] = paymentDefinitions.map((itemDef) => {
-    const catMeta = categoryMap[itemDef.categoryName.trim().toLowerCase()]
-    const validDueDay = Math.min(Math.max(itemDef.dueDay || 1, 1), daysInMonth)
-    const dueDateObj = new Date(year, monthIndex, validDueDay)
-    const dueDateStr = toISODateLocal(dueDateObj)
+  const items: EvaluatedPlannedPayment[] = []
 
-    // Calculate days until due (calendar day diff)
-    const diffTime = dueDateObj.getTime() - todayDateOnly.getTime()
-    const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24))
+  if (definedItems.length > 0) {
+    definedItems.forEach((itemDef) => {
+      const cadence: PaymentCadence = itemDef.cadence || 'monthly'
+      const catMeta = categoryMap[itemDef.category.trim().toLowerCase()]
+      const itemNameLower = itemDef.name.trim().toLowerCase()
+      const isOnlyItemInCategory = (countPerCategory[itemDef.category.trim().toLowerCase()] || 0) <= 1
 
-    const isOnlyItemInCategory = (countPerCategory[itemDef.categoryName.trim().toLowerCase()] || 0) <= 1
-    const itemNameLower = itemDef.name.trim().toLowerCase()
+      // Generate occurrences for this item in the requested month
+      const occurrences: Array<{ dueDay: number; dueDate: string; occurrenceId: string }> = []
 
-    // Match transactions for this item
-    const matchingTxns = monthTransactions.filter((t) => {
-      if (t.type !== 'debit') return false
-      if (t.approval_status && t.approval_status !== 'approved') return false
+      if (cadence === 'weekly') {
+        let targetDOW = itemDef.dueDayOfWeek
+        if (targetDOW === undefined) {
+          if (itemDef.startDate) {
+            targetDOW = new Date(itemDef.startDate).getDay()
+          } else {
+            targetDOW = 1 // Monday default
+          }
+        }
 
-      const matchesCat = t.category.trim().toLowerCase() === itemDef.categoryName.trim().toLowerCase()
-      if (!matchesCat) return false
+        for (let day = 1; day <= daysInMonth; day++) {
+          const d = new Date(year, monthIndex, day)
+          if (d.getDay() === targetDOW) {
+            occurrences.push({
+              dueDay: day,
+              dueDate: toISODateLocal(d),
+              occurrenceId: `${itemDef.id}_w${day}`,
+            })
+          }
+        }
+      } else if (cadence === 'custom') {
+        const freq = Math.max(2, itemDef.customFrequencyDays || 8)
+        const anchor = itemDef.startDate ? new Date(itemDef.startDate) : new Date(year, 0, 1)
+        const anchorDateOnly = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate()).getTime()
+        const msPerDay = 24 * 60 * 60 * 1000
 
-      if (isOnlyItemInCategory) {
-        return true
+        const monthStart = new Date(year, monthIndex, 1).getTime()
+        const monthEnd = new Date(year, monthIndex, daysInMonth).getTime()
+
+        // Calculate occurrences landing inside this month
+        const daysDiff = Math.floor((monthStart - anchorDateOnly) / msPerDay)
+        let k = Math.ceil(daysDiff / freq)
+        let occTime = anchorDateOnly + k * freq * msPerDay
+
+        while (occTime <= monthEnd + msPerDay / 2) {
+          if (occTime >= monthStart) {
+            const occDate = new Date(occTime)
+            const day = occDate.getDate()
+            occurrences.push({
+              dueDay: day,
+              dueDate: toISODateLocal(occDate),
+              occurrenceId: `${itemDef.id}_c${day}`,
+            })
+          }
+          k++
+          occTime = anchorDateOnly + k * freq * msPerDay
+        }
+      } else if (cadence === 'quarterly') {
+        const anchorMonth = itemDef.dueMonth ?? 0
+        const diff = ((monthIndex - anchorMonth) % 3 + 3) % 3
+        if (diff === 0) {
+          const validDueDay = Math.min(Math.max(itemDef.dueDay || 1, 1), daysInMonth)
+          const d = new Date(year, monthIndex, validDueDay)
+          occurrences.push({
+            dueDay: validDueDay,
+            dueDate: toISODateLocal(d),
+            occurrenceId: `${itemDef.id}_q`,
+          })
+        }
+      } else if (cadence === 'annual') {
+        const anchorMonth = itemDef.dueMonth ?? 0
+        if (monthIndex === anchorMonth) {
+          const validDueDay = Math.min(Math.max(itemDef.dueDay || 1, 1), daysInMonth)
+          const d = new Date(year, monthIndex, validDueDay)
+          occurrences.push({
+            dueDay: validDueDay,
+            dueDate: toISODateLocal(d),
+            occurrenceId: `${itemDef.id}_a`,
+          })
+        }
+      } else {
+        // Monthly (standard default)
+        const validDueDay = Math.min(Math.max(itemDef.dueDay || 1, 1), daysInMonth)
+        const d = new Date(year, monthIndex, validDueDay)
+        occurrences.push({
+          dueDay: validDueDay,
+          dueDate: toISODateLocal(d),
+          occurrenceId: itemDef.id,
+        })
       }
 
-      // If multiple items exist in the same category (e.g. Netflix & Spotify under Subscriptions):
-      const descLower = (t.description || '').toLowerCase()
-      const merchLower = (t.merchant || '').toLowerCase()
-      return descLower.includes(itemNameLower) || merchLower.includes(itemNameLower)
+      // Evaluate each occurrence
+      occurrences.forEach((occ, idx) => {
+        const dueDateObj = new Date(year, monthIndex, occ.dueDay)
+        const diffTime = dueDateObj.getTime() - todayDateOnly.getTime()
+        const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24))
+
+        const matchingTxns = monthTransactions.filter((t) => {
+          if (t.type !== 'debit') return false
+          if (t.approval_status && t.approval_status !== 'approved') return false
+
+          const matchesCat = t.category.trim().toLowerCase() === itemDef.category.trim().toLowerCase()
+          if (!matchesCat) return false
+
+          if (!isOnlyItemInCategory) {
+            const descLower = (t.description || '').toLowerCase()
+            const merchLower = (t.merchant || '').toLowerCase()
+            if (!descLower.includes(itemNameLower) && !merchLower.includes(itemNameLower)) return false
+          }
+
+          if (occurrences.length > 1) {
+            const txnDate = new Date(t.date)
+            const txnTime = new Date(txnDate.getFullYear(), txnDate.getMonth(), txnDate.getDate()).getTime()
+            const windowDays = cadence === 'weekly' ? 3.5 : (itemDef.customFrequencyDays || 8) / 2
+            const diffDays = Math.abs(txnTime - dueDateObj.getTime()) / (1000 * 60 * 60 * 24)
+            return diffDays <= windowDays
+          }
+
+          return true
+        })
+
+        const isPaid = matchingTxns.length > 0
+        const amountPaid = matchingTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+        const expectedAmount = itemDef.expectedAmount || 0
+
+        if (isPaid) {
+          clearedCount++
+          clearedAmount += amountPaid
+          totalCommitment += amountPaid
+        } else {
+          dueCount++
+          remainingDueAmount += expectedAmount
+          totalCommitment += expectedAmount
+        }
+
+        const sortedTxns = [...matchingTxns].sort((a, b) => b.date.localeCompare(a.date))
+        const latestTxn = sortedTxns[0]
+
+        const displayName = occurrences.length > 1
+          ? `${itemDef.name} (${cadence === 'weekly' ? `Week ${idx + 1}` : `#${idx + 1}`})`
+          : itemDef.name
+
+        items.push({
+          id: occ.occurrenceId,
+          itemId: itemDef.id,
+          name: displayName,
+          categoryId: catMeta?.id,
+          categoryName: itemDef.category,
+          categoryEmoji: catMeta?.emoji,
+          categoryColor: catMeta?.color,
+          status: isPaid ? 'paid' : 'due',
+          dueDay: occ.dueDay,
+          dueDate: occ.dueDate,
+          daysUntilDue,
+          amount: isPaid ? amountPaid : expectedAmount,
+          expectedAmount,
+          amountPaid,
+          paidDate: latestTxn?.date,
+          lastChargedMerchant: latestTxn?.merchant || latestTxn?.description || undefined,
+          cadence,
+          customFrequencyDays: itemDef.customFrequencyDays,
+          dueDayOfWeek: itemDef.dueDayOfWeek,
+          dueMonth: itemDef.dueMonth,
+          startDate: itemDef.startDate,
+          matchedTxns: sortedTxns.map((t) => ({
+            id: t.id,
+            date: t.date,
+            amount: Number(t.amount) || 0,
+            description: t.description || '',
+            merchant: t.merchant,
+            payment_mode: t.payment_mode,
+          })),
+        })
+      })
     })
+  } else {
+    // Fallback: evaluate planned categories if no specific items are defined yet
+    plannedCats.forEach((cat) => {
+      const schedule = getPlannedCategorySchedule(cat.name, userId)
+      const validDueDay = Math.min(Math.max(schedule.dueDay || 1, 1), daysInMonth)
+      const dueDateObj = new Date(year, monthIndex, validDueDay)
+      const dueDateStr = toISODateLocal(dueDateObj)
 
-    const isPaid = matchingTxns.length > 0
-    const amountPaid = matchingTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-    const expectedAmount = itemDef.expectedAmount || 0
+      const diffTime = dueDateObj.getTime() - todayDateOnly.getTime()
+      const daysUntilDue = Math.round(diffTime / (1000 * 60 * 60 * 24))
 
-    if (isPaid) {
-      clearedCount++
-      clearedAmount += amountPaid
-      totalCommitment += amountPaid
-    } else {
-      dueCount++
-      remainingDueAmount += expectedAmount
-      totalCommitment += expectedAmount
-    }
+      const matchingTxns = monthTransactions.filter((t) => {
+        if (t.type !== 'debit') return false
+        if (t.approval_status && t.approval_status !== 'approved') return false
+        return t.category.trim().toLowerCase() === cat.name.trim().toLowerCase()
+      })
 
-    const sortedTxns = [...matchingTxns].sort((a, b) => b.date.localeCompare(a.date))
-    const latestTxn = sortedTxns[0]
+      const isPaid = matchingTxns.length > 0
+      const amountPaid = matchingTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+      const expectedAmount = schedule.expectedAmount ?? 0
 
-    return {
-      id: itemDef.id,
-      itemId: itemDef.itemId,
-      name: itemDef.name,
-      categoryId: catMeta?.id,
-      categoryName: itemDef.categoryName,
-      categoryEmoji: catMeta?.emoji,
-      categoryColor: catMeta?.color,
-      status: isPaid ? 'paid' : 'due',
-      dueDay: validDueDay,
-      dueDate: dueDateStr,
-      daysUntilDue,
-      amount: isPaid ? amountPaid : expectedAmount,
-      expectedAmount,
-      amountPaid,
-      paidDate: latestTxn?.date,
-      lastChargedMerchant: latestTxn?.merchant || latestTxn?.description || undefined,
-      matchedTxns: sortedTxns.map((t) => ({
-        id: t.id,
-        date: t.date,
-        amount: Number(t.amount) || 0,
-        description: t.description || '',
-        merchant: t.merchant,
-        payment_mode: t.payment_mode,
-      })),
-    }
-  })
+      if (isPaid) {
+        clearedCount++
+        clearedAmount += amountPaid
+        totalCommitment += amountPaid
+      } else {
+        dueCount++
+        remainingDueAmount += expectedAmount
+        totalCommitment += expectedAmount
+      }
+
+      const sortedTxns = [...matchingTxns].sort((a, b) => b.date.localeCompare(a.date))
+      const latestTxn = sortedTxns[0]
+
+      items.push({
+        id: cat.id || cat.name,
+        itemId: cat.id || cat.name,
+        name: cat.name,
+        categoryId: cat.id,
+        categoryName: cat.name,
+        categoryEmoji: cat.emoji,
+        categoryColor: cat.color,
+        status: isPaid ? 'paid' : 'due',
+        dueDay: validDueDay,
+        dueDate: dueDateStr,
+        daysUntilDue,
+        amount: isPaid ? amountPaid : expectedAmount,
+        expectedAmount,
+        amountPaid,
+        paidDate: latestTxn?.date,
+        lastChargedMerchant: latestTxn?.merchant || latestTxn?.description || undefined,
+        cadence: 'monthly',
+        matchedTxns: sortedTxns.map((t) => ({
+          id: t.id,
+          date: t.date,
+          amount: Number(t.amount) || 0,
+          description: t.description || '',
+          merchant: t.merchant,
+          payment_mode: t.payment_mode,
+        })),
+      })
+    })
+  }
 
   // Sort items: due items first (sorted by due date ascending), then paid items (sorted by paid date descending)
   items.sort((a, b) => {

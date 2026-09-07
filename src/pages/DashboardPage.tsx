@@ -26,7 +26,6 @@ import {
   staggerParent, staggerChild, rowVariants, transition, SECTION_LABEL, ROW_TILE,
 } from '@/components/ui'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
-import QuickAddWidget from '@/components/dashboard/QuickAddWidget'
 import ReceivablesCard from '@/components/dashboard/ReceivablesCard'
 import BalancesWidget from '@/components/dashboard/BalancesWidget'
 import {
@@ -492,6 +491,16 @@ export default function DashboardPage() {
     setVisitedAnalytics(localStorage.getItem(`intrack_visited_analytics_${user.id}`) === 'true')
   }, [user, refreshStreak])
 
+  // Refresh dashboard and streak when a new transaction is logged from header modal or elsewhere
+  useEffect(() => {
+    const handleTxnAdded = () => {
+      fetchDashboardData(dateFilter, true)
+      refreshStreak()
+    }
+    window.addEventListener('intrack:transaction-added', handleTxnAdded)
+    return () => window.removeEventListener('intrack:transaction-added', handleTxnAdded)
+  }, [dateFilter, fetchDashboardData, refreshStreak])
+
   // Insights teaser fetch — intentionally decoupled from fetchDashboardData
   // (which only pulls 5 recent transactions) since anomaly detection needs a
   // few months of per-category history. Runs independently in the background
@@ -726,13 +735,6 @@ export default function DashboardPage() {
       : 0
 
   const isCurrentMonth = dateFilter.mode === 'month' && dateFilter.month === getCurrentMonth()
-
-  // Most-used categories this month, for Quick-Add's one-tap chips
-  const topCategories = (summary?.category_breakdown || [])
-    .slice()
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4)
-    .map((c) => c.category)
 
   // What the period is called, once, so the greeting, the stat cards and the
   // tiles all name it the same way instead of three variations on "this month".
@@ -1256,24 +1258,9 @@ export default function DashboardPage() {
           </motion.section>
         )}
 
-        {/* ── Act on it ───────────────────────────────────────────────
-            Quick add and anything owed back are the two things a person does
-            on this screen rather than reads. They sit together, below the
-            figures they change. */}
+        {/* ── Receivables ───────────────────────────────────────────── */}
         {isCurrentMonth && (
-          <motion.section variants={staggerChild(reduce)} className="space-y-4">
-            <QuickAddWidget
-              topCategories={topCategories}
-              onAdded={() => {
-                fetchDashboardData(dateFilter)
-                refreshStreak()
-              }}
-              footnote={
-                !loading && !streakInfo.loggedToday
-                  ? `Log something today to ${streakInfo.streak > 0 ? 'keep' : 'start'} your streak.`
-                  : undefined
-              }
-            />
+          <motion.section variants={staggerChild(reduce)}>
             <ReceivablesCard onSettled={() => fetchDashboardData(dateFilter)} />
           </motion.section>
         )}

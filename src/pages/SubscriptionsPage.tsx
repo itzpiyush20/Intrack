@@ -39,6 +39,7 @@ import {
   isPlannedCategory,
   type UserPlannedPayment,
   type EvaluatedPlannedPayment,
+  type PaymentCadence,
 } from '@/services/plannedPayments'
 import { useAuth } from '@/context/AuthContext'
 import { useCategories } from '@/context/CategoriesContext'
@@ -203,17 +204,31 @@ export default function SubscriptionsPage() {
     return <CreditCard className="h-3.5 w-3.5 text-brand-500" />
   }
 
+  const getCadenceLabel = (cadence?: PaymentCadence, freq?: number) => {
+    if (cadence === 'weekly') return 'Weekly'
+    if (cadence === 'quarterly') return 'Quarterly'
+    if (cadence === 'annual') return 'Annual'
+    if (cadence === 'custom') return `Every ${freq || 8}d`
+    return 'Monthly'
+  }
+
   const handleEditItem = (item: EvaluatedPlannedPayment) => {
-    const existing = userPlannedPayments.find((p) => p.id === item.id)
+    const targetId = item.itemId || item.id
+    const existing = userPlannedPayments.find((p) => p.id === targetId)
     if (existing) {
       setFormModalItem(existing)
     } else {
       setFormModalItem({
-        id: item.id,
-        name: item.name,
+        id: targetId,
+        name: item.name.replace(/\s*\((Week \d+|#\d+)\)$/, ''),
         category: item.categoryName,
         dueDay: item.dueDay,
         expectedAmount: item.expectedAmount,
+        cadence: item.cadence,
+        customFrequencyDays: item.customFrequencyDays,
+        dueDayOfWeek: item.dueDayOfWeek,
+        dueMonth: item.dueMonth,
+        startDate: item.startDate,
       })
     }
     setPrefilledCategory(item.categoryName)
@@ -638,6 +653,9 @@ export default function SubscriptionsPage() {
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-2 border border-sb-hairline text-[11px] font-medium text-sb-ink-muted">
                                   {item.categoryName}
                                 </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-brand-50 border border-brand-200/80 text-[11px] font-semibold text-brand-700">
+                                  {getCadenceLabel(item.cadence, item.customFrequencyDays)}
+                                </span>
                                 <Badge variant={badgeVariant}>{statusText}</Badge>
                               </div>
 
@@ -661,7 +679,7 @@ export default function SubscriptionsPage() {
                                   </>
                                 ) : (
                                   <span>
-                                    Scheduled for Day {item.dueDay} of the month ({formatDate(item.dueDate)})
+                                    Due on {formatDate(item.dueDate)} ({getCadenceLabel(item.cadence, item.customFrequencyDays)})
                                   </span>
                                 )}
                               </div>
