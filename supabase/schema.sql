@@ -819,4 +819,17 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --                              carry-forward cannot resurrect it. Replaces an
 --                              amount-0 convention that held only because the
 --                              one input writing amounts carries min="1"
+--   044_subscription_renewals.sql  public.subscription_charges (one row per
+--                              Razorpay invoice, unique on razorpay_invoice_id
+--                              for webhook-retry idempotency), plus
+--                              apply_subscription_charge() — a straight
+--                              extension from GREATEST(now(), current expiry),
+--                              deliberately NOT routed through
+--                              apply_plan_purchase()'s upgrade/queue rules (035)
+--                              — and clear_subscription_link(), which unlinks a
+--                              cancelled mandate without touching
+--                              subscription_expires_at. profiles already has
+--                              razorpay_subscription_id (035), so no new
+--                              profiles column or safety-net entry is needed
+--                              here.
 -- ==========================================
