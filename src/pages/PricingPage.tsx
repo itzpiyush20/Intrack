@@ -103,7 +103,14 @@ export default function PricingPage() {
 
   const isOnYearly = (isActive || (isCancelled && daysLeft > 0)) && profile?.subscription_plan_type !== 'monthly' && profile?.subscription_plan_type !== 'trial'
   const isOnMonthly = (isActive || (isCancelled && daysLeft > 0)) && profile?.subscription_plan_type === 'monthly'
-  const canBuy = !hasQueuedPlan
+  // A mandate holder already has an auto-renewing Razorpay subscription, so
+  // api/create-subscription.ts always refuses a second one with 409
+  // SUBSCRIPTION_ALREADY_ACTIVE — one mandate at a time, to avoid a double
+  // charge. Nothing to "buy again" for these customers either way: the
+  // subscription renews itself. Keep this separate from hasQueuedPlan, which
+  // still gates legacy one-time customers using the pre-existing queue system.
+  const hasMandate = !!profile?.razorpay_subscription_id
+  const canBuy = !hasQueuedPlan && !hasMandate
 
   const planName = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
   const planPrice = selectedPlan === 'annual' ? String(PRICING.ANNUAL_AMOUNT) : String(PRICING.MONTHLY_AMOUNT)
@@ -417,6 +424,8 @@ export default function PricingPage() {
           >
             {isVisitor
               ? `Get Yearly · ₹${PRICING.ANNUAL_AMOUNT}`
+              : hasMandate
+              ? 'Auto-renewing — manage in Settings'
               : !canBuy
               ? 'A plan is already queued'
               : isOnYearly
@@ -425,7 +434,13 @@ export default function PricingPage() {
               ? `Upgrade to Yearly (₹${PRICING.ANNUAL_AMOUNT})`
               : `Get Yearly · ₹${PRICING.ANNUAL_AMOUNT}`}
           </button>
-          {!isVisitor && isOnYearly && canBuy && (
+          {!isVisitor && isOnYearly && hasMandate && (
+            <p className="text-[11px] text-center text-sb-ink-muted">
+              Renews automatically on {profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'your renewal date'} ·{' '}
+              <Link to="/settings?tab=billing" className="text-brand-600 font-semibold no-underline hover:underline">Manage in Plan &amp; Billing</Link>
+            </p>
+          )}
+          {!isVisitor && isOnYearly && !hasMandate && canBuy && (
             <p className="text-[11px] text-center text-sb-ink-muted">
               Renewing now adds 365 days to your end date — you lose zero prepaid time.
             </p>
@@ -514,12 +529,20 @@ export default function PricingPage() {
           >
             {isVisitor
               ? `Choose Monthly · ₹${PRICING.MONTHLY_AMOUNT}`
+              : hasMandate
+              ? 'Auto-renewing — manage in Settings'
               : !canBuy
               ? 'A plan is already queued'
               : isOnMonthly
               ? `Buy another Monthly cycle (₹${PRICING.MONTHLY_AMOUNT})`
               : `Choose Monthly · ₹${PRICING.MONTHLY_AMOUNT}`}
           </button>
+          {!isVisitor && isOnMonthly && hasMandate && (
+            <p className="text-[11px] text-center text-sb-ink-muted">
+              Renews automatically on {profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'your renewal date'} ·{' '}
+              <Link to="/settings?tab=billing" className="text-brand-600 font-semibold no-underline hover:underline">Manage in Plan &amp; Billing</Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -612,20 +635,29 @@ export default function PricingPage() {
               {/* Checkout Trigger */}
               <button
                 onClick={handleRazorpayCheckout}
-                disabled={processing || hasQueuedPlan}
+                disabled={processing || hasQueuedPlan || hasMandate}
                 className="sb-btn-primary w-full cursor-pointer border-0 py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all min-h-[44px]"
-                style={{ opacity: processing || hasQueuedPlan ? 0.6 : 1 }}
+                style={{ opacity: processing || hasQueuedPlan || hasMandate ? 0.6 : 1 }}
               >
-                {hasQueuedPlan
+                {hasMandate
+                  ? 'Auto-renewing — manage in Settings'
+                  : hasQueuedPlan
                   ? 'A plan is already queued'
                   : processing
                   ? 'Opening secure payment gateway…'
                   : `Pay ₹${planPrice} & Activate ${planName}`}
               </button>
 
-              <p className="text-[11px] text-center text-sb-ink-muted">
-                🔒 Bank-grade 256-bit encryption · Card details are handled directly by the licensed payment gateway, never stored on our servers
-              </p>
+              {hasMandate ? (
+                <p className="text-[11px] text-center text-sb-ink-muted">
+                  You already have an auto-renewing subscription — manage or cancel it from{' '}
+                  <Link to="/settings?tab=billing" className="text-brand-600 no-underline hover:underline font-bold">Plan &amp; Billing</Link>.
+                </p>
+              ) : (
+                <p className="text-[11px] text-center text-sb-ink-muted">
+                  🔒 Bank-grade 256-bit encryption · Card details are handled directly by the licensed payment gateway, never stored on our servers
+                </p>
+              )}
             </div>
           )}
 

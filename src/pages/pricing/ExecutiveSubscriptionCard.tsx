@@ -5,6 +5,7 @@
 // ============================================
 
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { formatDate, cn } from '@/utils'
 import { ANNUAL_SAVING_PCT, PRICING } from '@/constants'
@@ -51,6 +52,12 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
 
   const isOnYearly = (isActive || (isCancelled && daysLeft > 0)) && planType !== 'monthly' && planType !== 'trial'
   const isOnMonthly = (isActive || (isCancelled && daysLeft > 0)) && planType === 'monthly'
+  // A mandate holder's subscription renews itself; api/create-subscription.ts
+  // 409s any second create while one is active, so "buy another cycle" /
+  // "upgrade" buttons must not be offered to these customers. Cancellation is
+  // unaffected — the existing Cancel button below already routes mandate
+  // holders through /api/cancel-subscription.
+  const hasMandate = !!profile?.razorpay_subscription_id
 
   // Human-readable plan title
   const planTitle = isOnYearly
@@ -268,8 +275,22 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
         {/* ── Action Buttons Bar ─────────────────────────────── */}
         <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 border-t border-sb-hairline">
           <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-            {/* If on Monthly: Upgrade to Yearly */}
-            {isOnMonthly && isActive && (
+            {/* If on Monthly with a mandate: renews itself, nothing to buy */}
+            {isOnMonthly && isActive && hasMandate && (
+              <p className="text-xs sm:text-sm text-sb-ink-secondary">
+                Auto-renews monthly on{' '}
+                <span className="font-semibold text-sb-ink">
+                  {profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'your renewal date'}
+                </span>
+                .{' '}
+                <Link to="/settings?tab=billing" className="text-brand-600 font-semibold no-underline hover:underline">
+                  Manage in Plan &amp; Billing
+                </Link>
+              </p>
+            )}
+
+            {/* If on Monthly, legacy one-time customer (no mandate): Upgrade to Yearly */}
+            {isOnMonthly && isActive && !hasMandate && (
               <>
                 <button
                   type="button"
@@ -295,8 +316,22 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
               </>
             )}
 
-            {/* If on Yearly: Extend */}
-            {isOnYearly && isActive && (
+            {/* If on Yearly with a mandate: renews itself, nothing to buy */}
+            {isOnYearly && isActive && hasMandate && (
+              <p className="text-xs sm:text-sm text-sb-ink-secondary">
+                Auto-renews yearly on{' '}
+                <span className="font-semibold text-sb-ink">
+                  {profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'your renewal date'}
+                </span>
+                .{' '}
+                <Link to="/settings?tab=billing" className="text-brand-600 font-semibold no-underline hover:underline">
+                  Manage in Plan &amp; Billing
+                </Link>
+              </p>
+            )}
+
+            {/* If on Yearly, legacy one-time customer (no mandate): Extend */}
+            {isOnYearly && isActive && !hasMandate && (
               <button
                 type="button"
                 onClick={() => onSelectPlan('annual')}
