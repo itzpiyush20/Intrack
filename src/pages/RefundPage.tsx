@@ -11,9 +11,9 @@
 // meeting a three-business-day engineering deadline — on a transaction worth
 // less than the time spent deciding.
 //
-// DO NOT PUBLISH until Razorpay Subscriptions is confirmed live on the account.
-// Section 1 describes auto-renewal; while the product still sells one-time
-// plans, this document would be the false one.
+// Section 5's support SLA is 5 business days, matching TermsPage and every
+// other place this promise appears (owner decision, 2026-09-08 — the old
+// 24-to-48-hour promise was not sustainable).
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
@@ -27,7 +27,7 @@ export default function RefundPage() {
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Cancellation & Refund Policy</h1>
-        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 5, 2026 · Effective immediately</p>
+        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 8, 2026 · Effective immediately</p>
       </div>
 
       <div className="prose max-w-none space-y-10">
@@ -80,7 +80,7 @@ export default function RefundPage() {
           If a charge looks wrong, please contact us first. We can almost always resolve it faster than a bank dispute can, and a refund we issue directly reaches you sooner.
 
           - Email: ${APP_CONFIG.SUPPORT_EMAIL}
-          - Expected response time: we review and respond to billing queries within 24 to 48 hours.
+          - Expected response time: we review and respond to billing queries within 5 business days.
         `)}
       </div>
     </MarketingLayout>

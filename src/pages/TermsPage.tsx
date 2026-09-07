@@ -12,8 +12,8 @@
 //  * The Refund Policy no longer has "limited cases" to point at; §4 now states
 //    the single 7-day promise directly.
 //
-// DO NOT PUBLISH until Subscriptions is confirmed live on the account.
-// Jurisdiction set to Jaipur, Rajasthan in §10.
+// §10 Governing Law names India only — no city, no exclusive-jurisdiction
+// court (owner decision, 2026-09-08).
 // ============================================
 
 import { MarketingLayout } from '@/layouts'
@@ -26,7 +26,7 @@ export default function TermsPage() {
     >
       <div className="mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-sb-ink">Terms of Service</h1>
-        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 5, 2026 · Effective immediately</p>
+        <p className="text-xs mt-1 text-sb-ink-muted">Last updated: September 8, 2026 · Effective immediately</p>
       </div>
 
       <div className="prose max-w-none space-y-10">
@@ -82,7 +82,7 @@ export default function TermsPage() {
           We may suspend or terminate an account that breaches these Terms, in particular the Prohibited Uses above, or where we are required to by law.
 
           - Where it is practical to do so, we will tell you first and give you a chance to put things right. Where the breach is causing active harm — for example an automated request loop degrading the service for others — we may act immediately and tell you afterwards.
-          - If we terminate an account for breach, any remaining paid time is forfeited and is not refunded. If we terminate for any other reason, or discontinue the Service, we will refund the unused portion of your current period.
+          - If we terminate an account for breach, any remaining paid time is forfeited at our discretion; this is not refunded automatically.
           - You may close your account at any time from Profile → Delete Account. Doing so ends your access immediately and erases your data as described in the Privacy Policy; it does not by itself entitle you to a refund outside the 7-day window in section 4.
         `)}
 
@@ -106,8 +106,6 @@ export default function TermsPage() {
 
         {section("10. Governing Law & Jurisdiction", `
           These Terms are governed by the laws of India.
-
-          Any dispute arising out of or in connection with these Terms is subject to the exclusive jurisdiction of the courts at Jaipur, Rajasthan, India.
 
           Nothing in these Terms limits any right you have under the Consumer Protection Act, 2019 or other consumer protection law that cannot be waived by agreement.
         `)}
