@@ -18,6 +18,7 @@ import {
   saveMerchantRuleToDb,
   migrateLocalStorageRulesToDB
 } from '@/services'
+import { cancelSubscription as cancelRazorpaySubscription } from '@/services/subscriptionBilling'
 import { fetchAllTransactions } from '@/services/transactions'
 import { buildRestoreRow, selectRowsToRestore } from '@/services/backupRestore'
 import { encryptText, decryptText, formatDate, toISODateLocal, cn } from '@/utils'
@@ -47,6 +48,9 @@ import {
   Layers,
   Database,
   HandCoins,
+  Receipt,
+  ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react'
 
 /**
@@ -62,6 +66,7 @@ const SETTINGS_TABS = [
   { id: 'general',   label: 'Categories',        icon: Layers },
   { id: 'cards',     label: 'Cards & Balances',  icon: CreditCard },
   { id: 'debts',     label: 'Loans & Debts',     icon: HandCoins },
+  { id: 'billing',   label: 'Plan & Billing',    icon: Receipt },
   { id: 'scanning',  label: 'Scanning',          icon: Mail },
   { id: 'data',      label: 'Data',              icon: Database },
 ] as const
@@ -79,7 +84,7 @@ type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 const RULE_AUTO_APPROVE_DEFAULT = true
 
 export default function SettingsPage() {
-  const { user, hasGoogleToken, disconnectGoogle, signInWithGoogle } = useAuth()
+  const { user, profile, refreshProfile, hasGoogleToken, disconnectGoogle, signInWithGoogle } = useAuth()
   const { showToast } = useToast()
   const { categories, fallbackCategory } = useCategories()
 
@@ -115,6 +120,38 @@ export default function SettingsPage() {
       return
     }
     showToast('Gmail disconnected. We no longer have access to your inbox.', 'success')
+  }
+
+  // Plan & Billing — cancel renewal (mandate holders only; see handleConfirmCancelRenewal)
+  const [cancelRenewalModalOpen, setCancelRenewalModalOpen] = useState(false)
+  const [cancellingRenewal, setCancellingRenewal] = useState(false)
+
+  /**
+   * Cancels the Razorpay mandate at cycle end. Only reachable when the profile
+   * has a razorpay_subscription_id — customers on the legacy one-time model
+   * have no mandate, so this control never shows for them (see SETTINGS_TABS
+   * 'billing' panel below). `cancellingRenewal` gates the button so a double
+   * click cannot fire two cancels.
+   */
+  const handleConfirmCancelRenewal = async () => {
+    if (cancellingRenewal) return
+    setCancellingRenewal(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Your session expired. Please log in again.')
+      }
+      await cancelRazorpaySubscription(session.access_token)
+      await refreshProfile()
+      setCancelRenewalModalOpen(false)
+      const expiryStr = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'the end of your current period'
+      showToast(`Renewal cancelled. Your plan stays active until ${expiryStr} — you will not be charged again.`, 'info')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast(`Failed to cancel renewal: ${message}`, 'error')
+    } finally {
+      setCancellingRenewal(false)
+    }
   }
 
   // Merchant Rules State
@@ -567,6 +604,20 @@ export default function SettingsPage() {
   // the visitor has asked for reduced motion.
   const reduceMotion = useReducedMotion()
 
+  // Plan & Billing panel derived display values.
+  const hasMandate = !!profile?.razorpay_subscription_id
+  const planTypeLabel = profile?.subscription_plan_type === 'monthly'
+    ? 'Monthly'
+    : profile?.subscription_plan_type === 'annual'
+    ? 'Annual'
+    : profile?.subscription_plan_type === 'trial'
+    ? 'Trial'
+    : 'No active plan'
+  const statusLabel = profile?.subscription_status
+    ? profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1)
+    : 'Unknown'
+  const expiresAtLabel = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : null
+
   return (
     <AppLayout>
       <div className="relative animate-fade-in">
@@ -665,6 +716,61 @@ export default function SettingsPage() {
           )}
 
           {tab === 'debts' && <DebtsManager />}
+
+          {tab === 'billing' && (
+            <Card className="relative overflow-hidden border-sb-hairline bg-surface-1 shadow-card rounded-2xl p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/30 before:to-transparent">
+              <h2 className="text-base font-bold text-sb-ink mb-1.5 flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-brand-600 shrink-0" />
+                <span>Plan & Billing</span>
+              </h2>
+              <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">
+                Manage your Intrack membership from here — switching or extending a plan
+                happens on the Pricing page.
+              </p>
+
+              <div className="rounded-xl bg-surface-2/60 border border-sb-hairline p-4 mb-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted">Plan</span>
+                  <span className="text-sm font-semibold text-sb-ink">{planTypeLabel}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted">Status</span>
+                  <span className="text-sm font-semibold text-sb-ink">{statusLabel}</span>
+                </div>
+                {expiresAtLabel && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted">
+                      {hasMandate ? 'Renews on' : 'Access until'}
+                    </span>
+                    <span className="text-sm font-semibold text-sb-ink">{expiresAtLabel}</span>
+                  </div>
+                )}
+              </div>
+
+              {hasMandate ? (
+                <>
+                  <p className="text-sm text-sb-ink-secondary mb-4 leading-relaxed">
+                    Your plan renews automatically via Razorpay. Cancelling stops the next
+                    charge but keeps your access until the date above — nothing is lost today.
+                  </p>
+                  <Button
+                    onClick={() => setCancelRenewalModalOpen(true)}
+                    variant="secondary"
+                    className="w-full sm:w-auto justify-center gap-1.5"
+                  >
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    Cancel renewal
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-sb-ink-secondary leading-relaxed">
+                  {expiresAtLabel
+                    ? 'Nothing is set to auto-renew on this plan — access simply ends on the date above.'
+                    : 'You have no active plan. Visit Pricing to get started.'}
+                </p>
+              )}
+            </Card>
+          )}
 
           {tab === 'scanning' && (
             <>
@@ -1076,6 +1182,48 @@ export default function SettingsPage() {
           <p className="text-sm text-text-secondary leading-relaxed">
             Decrypted backup successfully containing {pendingRestoreData?.length || 0} transactions. Would you like to merge these with your current data? (Only non-duplicate transactions will be added)
           </p>
+        </div>
+      </Modal>
+
+      {/* Cancel Renewal Confirmation Modal */}
+      <Modal
+        isOpen={cancelRenewalModalOpen}
+        onClose={() => {
+          if (!cancellingRenewal) setCancelRenewalModalOpen(false)
+        }}
+        title="Cancel renewal?"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setCancelRenewalModalOpen(false)}
+              disabled={cancellingRenewal}
+            >
+              Keep my plan
+            </Button>
+            <Button
+              onClick={handleConfirmCancelRenewal}
+              loading={cancellingRenewal}
+              disabled={cancellingRenewal}
+            >
+              {cancellingRenewal ? 'Cancelling…' : 'Confirm cancellation'}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-sb-ink-secondary leading-relaxed space-y-2">
+            <p>
+              Your plan stays active until{' '}
+              <span className="font-semibold text-sb-ink">{expiresAtLabel || 'the end of your current period'}</span>.
+              You will not be charged again, and nothing is deleted.
+            </p>
+            <p className="flex items-center gap-1.5 text-xs text-sb-ink-muted">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+              This only stops the next charge — your data and access are unaffected today.
+            </p>
+          </div>
         </div>
       </Modal>
     </AppLayout>
