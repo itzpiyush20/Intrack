@@ -1,6 +1,6 @@
 // ============================================
 // ExecutiveSubscriptionCard — Authenticated User Command Center
-// Displays real-time plan status, expiry telemetry, zero-mandate guarantee,
+// Displays real-time plan status, expiry telemetry, cancel-anytime guarantee,
 // and one-click upgrades, extensions, or self-serve cancellation.
 // ============================================
 
@@ -152,7 +152,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
             </p>
             <p className="text-[11px] text-sb-ink-secondary flex items-center gap-1">
               <Check className="w-3 h-3 text-brand-600" />
-              <span>One-time payment</span>
+              <span>Auto-renewing subscription</span>
             </p>
           </div>
 
@@ -171,14 +171,14 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
             </p>
           </div>
 
-          {/* 3. Auto-Debit Guarantee */}
+          {/* 3. Cancellation Control */}
           <div className="p-4 rounded-2xl bg-surface-2/50 border border-sb-hairline space-y-1">
-            <p className="text-[11px] font-bold text-sb-ink-muted uppercase tracking-wider">Recurring Mandates</p>
+            <p className="text-[11px] font-bold text-sb-ink-muted uppercase tracking-wider">Cancellation</p>
             <p className="text-base sm:text-lg font-extrabold text-sb-ink flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
-              <span>Zero Mandates</span>
+              <span>Cancel Anytime</span>
             </p>
-            <p className="text-[11px] text-sb-ink-secondary">Card never auto-charged</p>
+            <p className="text-[11px] text-sb-ink-secondary">One click, no lock-in contract</p>
           </div>
 
           {/* 4. Automated Scan Allowance */}
@@ -206,7 +206,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                 { title: '2 Automated Daily Scans', desc: '4-hour safety cooldown between runs' },
                 { title: 'Gemini AI Categorization', desc: 'Real-time merchant & category parsing' },
                 { title: 'Subscription Radar', desc: 'Renewal calendar & price bump alerts' },
-                { title: 'Zero Mandates Guarantee', desc: 'Card never auto-charged or stored' },
+                { title: 'Cancel Anytime', desc: 'One click stops future charges, no lock-in' },
                 { title: 'Encrypted Exports', desc: 'Full CSV & JSON financial backup' },
                 { title: 'Read-Only Security', desc: 'Zero banking credentials or PINs stored' },
               ].map((ent) => (
@@ -290,7 +290,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                   className="sb-btn-secondary py-2.5 px-4 text-xs font-semibold cursor-pointer"
                   style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
                 >
-                  Renew Monthly (₹{PRICING.MONTHLY_AMOUNT})
+                  Buy Another Monthly Cycle (₹{PRICING.MONTHLY_AMOUNT})
                 </button>
               </>
             )}
@@ -305,7 +305,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                 style={{ opacity: hasQueuedPlan ? 0.5 : 1 }}
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>Extend for Another Year (₹{PRICING.ANNUAL_AMOUNT})</span>
+                <span>Buy Another Yearly Cycle (₹{PRICING.ANNUAL_AMOUNT})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}

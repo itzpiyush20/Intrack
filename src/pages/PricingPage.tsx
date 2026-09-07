@@ -60,14 +60,14 @@ const MONTHLY_FEATURES = [
   'Real-time merchant & category learning engine',
   'Subscription renewal radar & calendar alerts',
   'Full CSV & JSON exports + Encrypted offline backup',
-  'One-time payment · Zero auto-renew mandates',
+  `Auto-renews monthly at ₹${PRICING.MONTHLY_AMOUNT} · cancel anytime in one click`,
 ]
 
 const YEARLY_FEATURES = [
   'Everything in Monthly — full unrestricted suite',
   'Billed once a year instead of every month',
   `Works out to just ₹${ANNUAL_PER_DAY} a day (Save ${ANNUAL_SAVING_PCT}%)`,
-  'Nothing to renew or re-authorise for 365 days',
+  `Auto-renews yearly at ₹${PRICING.ANNUAL_AMOUNT} · cancel anytime in one click`,
   'Instant plan queueing — stack another year without losing days',
   'Priority support & early access to new banks',
 ]
@@ -107,7 +107,7 @@ export default function PricingPage() {
 
   const planName = selectedPlan === 'annual' ? 'Yearly' : 'Monthly'
   const planPrice = selectedPlan === 'annual' ? String(PRICING.ANNUAL_AMOUNT) : String(PRICING.MONTHLY_AMOUNT)
-  const planSub = selectedPlan === 'annual' ? 'One payment · 365 days of full access' : 'One payment · 30 days of full access'
+  const planSub = selectedPlan === 'annual' ? `Renews yearly at ₹${PRICING.ANNUAL_AMOUNT} until cancelled` : `Renews monthly at ₹${PRICING.MONTHLY_AMOUNT} until cancelled`
 
   const activePlanName = isOnYearly
     ? 'Yearly Plan'
@@ -166,7 +166,7 @@ export default function PricingPage() {
   useEffect(() => {
     setPageMeta({
       title: `Pricing & Plans | ${APP_CONFIG.APP_NAME}`,
-      description: `Intrack costs ₹${PRICING.MONTHLY_AMOUNT} for 30 days or ₹${PRICING.ANNUAL_AMOUNT} for a full year — one-time payments, so nothing auto-renews and no mandate touches your card. Free 7-day trial, no card required.`,
+      description: `Intrack costs ₹${PRICING.MONTHLY_AMOUNT}/month or ₹${PRICING.ANNUAL_AMOUNT}/year, auto-renewing via UPI Autopay or card e-mandate until you cancel. Free 7-day trial, no card required.`,
       canonicalPath: '/pricing',
     })
   }, [])
@@ -366,7 +366,7 @@ export default function PricingPage() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed mb-6">
-            The choice of mindful spenders. Pay once, enjoy effortless bookkeeping for 12 months with zero surprise charges.
+            The choice of mindful spenders. Auto-renews yearly so you never think about it — cancel anytime, no surprise charges beyond the agreed price.
           </p>
 
           {/* Price Display */}
@@ -377,7 +377,7 @@ export default function PricingPage() {
                 <span className="text-xs sm:text-sm text-sb-ink-muted">/ year</span>
               </div>
               <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
-                One-time payment · 365 days of access
+                Auto-renews yearly · ₹{PRICING.ANNUAL_AMOUNT}/year until cancelled
               </p>
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-700 border border-brand-500/30 font-bold font-mono shrink-0">
@@ -420,7 +420,7 @@ export default function PricingPage() {
               : !canBuy
               ? 'A plan is already queued'
               : isOnYearly
-              ? `Extend for another year (₹${PRICING.ANNUAL_AMOUNT})`
+              ? `Buy another Yearly cycle (₹${PRICING.ANNUAL_AMOUNT})`
               : isActive && profile?.subscription_plan_type === 'monthly'
               ? `Upgrade to Yearly (₹${PRICING.ANNUAL_AMOUNT})`
               : `Get Yearly · ₹${PRICING.ANNUAL_AMOUNT}`}
@@ -469,11 +469,11 @@ export default function PricingPage() {
                 <span className="text-xs sm:text-sm text-sb-ink-muted">/ month</span>
               </div>
               <p className="text-[11px] text-sb-ink-muted mt-1 font-medium">
-                One-time payment · 30 days of access
+                Auto-renews monthly · ₹{PRICING.MONTHLY_AMOUNT}/month until cancelled
               </p>
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full bg-surface-1 text-sb-ink-secondary border border-sb-hairline font-bold shrink-0">
-              Zero Mandates
+              Cancel Anytime
             </span>
           </div>
 
@@ -517,7 +517,7 @@ export default function PricingPage() {
               : !canBuy
               ? 'A plan is already queued'
               : isOnMonthly
-              ? `Renew for another month (₹${PRICING.MONTHLY_AMOUNT})`
+              ? `Buy another Monthly cycle (₹${PRICING.MONTHLY_AMOUNT})`
               : `Choose Monthly · ₹${PRICING.MONTHLY_AMOUNT}`}
           </button>
         </div>
@@ -576,7 +576,7 @@ export default function PricingPage() {
                     ₹{planPrice}
                   </p>
                   <p className="text-[10px] text-brand-600 font-bold uppercase tracking-wider">
-                    One-time total
+                    Billed today
                   </p>
                 </div>
               </div>
@@ -676,7 +676,7 @@ export default function PricingPage() {
       <p className="text-xs text-center mt-5 text-sb-ink-muted">
         Questions?{' '}
         <Link to="/support" className="text-brand-600 no-underline hover:underline font-bold">Contact support</Link> ·{' '}
-        <Link to="/refund-policy" className="text-brand-600 no-underline hover:underline font-bold">Refund policy</Link> — 100% full refund available within 7 days.
+        <Link to="/refund-policy" className="text-brand-600 no-underline hover:underline font-bold">Refund policy</Link> — contact us within 7 days of a charge and we will refund it in full (this also cancels your subscription).
       </p>
     </div>
   )
@@ -717,7 +717,7 @@ export default function PricingPage() {
       <p className="text-xs text-center mt-5 text-sb-ink-muted">
         Questions?{' '}
         <Link to="/support" className="text-brand-600 no-underline hover:underline font-bold">Contact support</Link> ·{' '}
-        <Link to="/refund-policy" className="text-brand-600 no-underline hover:underline font-bold">Refund policy</Link> — 100% full refund available within 7 days.
+        <Link to="/refund-policy" className="text-brand-600 no-underline hover:underline font-bold">Refund policy</Link> — contact us within 7 days of a charge and we will refund it in full (this also cancels your subscription).
       </p>
     </div>
   )
@@ -804,15 +804,15 @@ export default function PricingPage() {
             </div>
             <div className="grid sm:grid-cols-3 gap-5 text-xs">
               <div className="space-y-1.5">
-                <p className="font-bold text-sb-ink text-sm">Zero Mandates</p>
+                <p className="font-bold text-sb-ink text-sm">Cancel Anytime</p>
                 <p className="text-sb-ink-secondary leading-relaxed">
-                  No recurring auto-debit mandates on your card or UPI. You retain complete sovereignty and renew only on your terms.
+                  One click stops future charges — your access continues until the paid period ends. No lock-in contract.
                 </p>
               </div>
               <div className="space-y-1.5">
                 <p className="font-bold text-sb-ink text-sm">7-Day Full Refund</p>
                 <p className="text-sb-ink-secondary leading-relaxed">
-                  Unsatisfied for any reason within 7 days? Contact support for a 100% full reversal to your original payment method.
+                  Contact us within 7 days of a charge and we will refund it in full. A refund also cancels your subscription and ends access.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -852,7 +852,7 @@ export default function PricingPage() {
               </h1>
 
               <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-xl">
-                One-time payments with no recurring debit mandates, no auto-renewal surprises, and no stored card details. Every plan starts with a full 7-day trial.
+                Subscriptions renew automatically via secure UPI Autopay or card e-mandate — cancel anytime in one click, and your card details are handled by our licensed payment gateway, never stored by Intrack. Every plan starts with a full 7-day trial.
               </p>
 
               {/* Interactive Billing Toggle Pill */}

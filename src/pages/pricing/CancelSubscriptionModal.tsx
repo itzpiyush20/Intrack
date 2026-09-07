@@ -1,6 +1,6 @@
 // ============================================
 // CancelSubscriptionModal — Self-Serve Cancellation Dialog
-// Provides full transparency: explains zero auto-renew risk,
+// Provides full transparency: explains that cancelling stops future charges,
 // confirms access is retained until expiry, and collects feedback.
 // ============================================
 
@@ -123,9 +123,9 @@ export const CancelSubscriptionModal: React.FC<CancelSubscriptionModalProps> = (
             <div className="flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-sb-ink">Zero Auto-Renew Risk: </span>
+                <span className="font-bold text-sb-ink">Future Charges Stop: </span>
                 <span className="text-sb-ink-secondary">
-                  Intrack never sets up auto-debit mandates on your card or UPI. Your card will never be billed automatically.
+                  Cancelling stops the auto-debit mandate on your card or UPI. You will not be charged again — nothing more happens to this subscription unless you resubscribe.
                 </span>
               </div>
             </div>
@@ -149,11 +149,11 @@ export const CancelSubscriptionModal: React.FC<CancelSubscriptionModalProps> = (
               <div>
                 <span className="font-bold text-sb-ink">7-Day Refund Policy: </span>
                 <span className="text-sb-ink-secondary">
-                  If you made this purchase within the last 7 days, you can request a 100% full refund via{' '}
+                  If your last charge was within 7 days, contact{' '}
                   <Link to="/support" className="text-brand-600 underline font-semibold" onClick={onClose}>
                     Support
                   </Link>
-                  .
+                  {' '}and we will refund it in full — this also cancels your subscription immediately, ending access right away rather than at term end.
                 </span>
               </div>
             </div>

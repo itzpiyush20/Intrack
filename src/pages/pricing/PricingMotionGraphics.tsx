@@ -11,7 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { cn } from '@/utils'
-import { ANNUAL_PER_DAY, APP_CONFIG } from '@/constants'
+import { ANNUAL_PER_DAY, APP_CONFIG, PRICING } from '@/constants'
 
 /**
  * Subtle radiant emerald ambient background glow for the Pricing header.
@@ -211,7 +211,7 @@ export function PricingFaqAccordion() {
   const faqs = [
     {
       q: 'Will my card or bank account be charged automatically on renewal?',
-      a: 'No. Both the Monthly and Yearly plans are strictly ONE-TIME payments. We do not place recurring auto-debit mandates or e-mandates on your card or UPI handle. When your plan expires, access simply pauses until you choose to renew.',
+      a: `Yes. Both the Monthly and Yearly plans auto-renew — we register a UPI Autopay or card e-mandate at checkout, and Razorpay charges it automatically each cycle (₹${PRICING.MONTHLY_AMOUNT}/month or ₹${PRICING.ANNUAL_AMOUNT}/year) until you cancel. Razorpay sends a pre-debit notification before every charge. You can cancel anytime from Settings → Plan & Billing — future charges stop immediately, and your access continues until the end of the period you already paid for.`,
     },
     {
       q: 'What happens when my free 7-day trial ends?',
@@ -223,7 +223,7 @@ export function PricingFaqAccordion() {
     },
     {
       q: 'How does the 7-day refund guarantee work?',
-      a: `If you are unsatisfied for any reason within 7 days of your payment, email ${APP_CONFIG.SUPPORT_EMAIL} or contact us via in-app support. We issue a 100% full refund directly to your original payment method, no questions asked.`,
+      a: `Contact us within 7 days of a charge — email ${APP_CONFIG.SUPPORT_EMAIL} or use in-app support — and we will refund it in full to your original payment method. A refund also cancels your subscription and ends access immediately.`,
     },
     {
       q: 'Which payment methods do you accept?',
