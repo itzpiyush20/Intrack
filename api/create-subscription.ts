@@ -40,10 +40,9 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
  */
 const ALLOWED_ORIGINS = ALLOWED_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
 
-// Razorpay caps total_count at 100 years of cycles. These counts are the
-// practical "until cancelled" ceiling for each cadence: 10 years of monthly
-// cycles, 100 years of annual cycles.
-const TOTAL_COUNT: Record<PlanType, number> = { monthly: 120, annual: 100 }
+// Ten years of cycles on either cadence, which is what "until cancelled" means
+// here. Razorpay requires a finite count and caps it at 100 years.
+const TOTAL_COUNT: Record<PlanType, number> = { monthly: 120, annual: 10 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || ''
