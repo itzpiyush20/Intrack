@@ -34,8 +34,15 @@ export function durationDaysFor(planType: PlanType): number {
  * of silently granting the wrong period.
  */
 export function planTypeForPlanId(planId: string, env: Env = process.env): PlanType | null {
+  const configured = (Object.keys(ENV_KEY) as PlanType[]).map((type) => env[ENV_KEY[type]])
+  if (configured[0] && configured[1] && configured[0] === configured[1]) {
+    throw new Error(
+      `RAZORPAY_PLAN_MONTHLY and RAZORPAY_PLAN_ANNUAL are both set to the same plan id (${configured[0]}); refusing to guess which plan was purchased`,
+    )
+  }
   for (const type of Object.keys(ENV_KEY) as PlanType[]) {
-    if (env[ENV_KEY[type]] === planId) return type
+    const configuredId = env[ENV_KEY[type]]
+    if (configuredId && configuredId === planId) return type
   }
   return null
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planIdFor, durationDaysFor, planTypeForPlanId } from './subscriptionPlans.js'
+import { planIdFor, durationDaysFor, planTypeForPlanId, type PlanType } from './subscriptionPlans.js'
 
 describe('subscriptionPlans', () => {
   const env = { RAZORPAY_PLAN_MONTHLY: 'plan_mon', RAZORPAY_PLAN_ANNUAL: 'plan_ann' }
@@ -14,7 +14,7 @@ describe('subscriptionPlans', () => {
   })
 
   it('rejects an unknown plan type', () => {
-    expect(() => planIdFor('lifetime' as any, env)).toThrow(/unknown plan type/i)
+    expect(() => planIdFor('lifetime' as PlanType, env)).toThrow(/unknown plan type/i)
   })
 
   it('reports the duration each plan buys', () => {
@@ -25,5 +25,20 @@ describe('subscriptionPlans', () => {
   it('maps a Razorpay plan id back to a plan type', () => {
     expect(planTypeForPlanId('plan_ann', env)).toBe('annual')
     expect(planTypeForPlanId('plan_unknown', env)).toBeNull()
+  })
+
+  it('never matches an empty/malformed plan id against an unconfigured (empty) env var', () => {
+    expect(
+      planTypeForPlanId('', { RAZORPAY_PLAN_MONTHLY: '', RAZORPAY_PLAN_ANNUAL: '' }),
+    ).toBeNull()
+  })
+
+  it('throws rather than guessing when both plan ids are configured identically', () => {
+    expect(() =>
+      planTypeForPlanId('plan_dup', {
+        RAZORPAY_PLAN_MONTHLY: 'plan_dup',
+        RAZORPAY_PLAN_ANNUAL: 'plan_dup',
+      }),
+    ).toThrow(/same plan id/i)
   })
 })
