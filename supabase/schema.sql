@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   subscription_expires_at TIMESTAMPTZ DEFAULT (now() + interval '7 days'),
   razorpay_subscription_id TEXT,
   razorpay_order_id TEXT,
+  -- Set when Razorpay reports a failed renewal (subscription.halted); cleared
+  -- by the next successful charge. Display-only — it never gates access. 045.
+  subscription_halted_at TIMESTAMPTZ,
   -- A plan bought while another was still running. All four are NULL together
   -- or set together; pending_plan_type IS NOT NULL means "something is queued".
   -- See migration 035.
@@ -60,6 +63,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ai_scan_calls_reset_at TIME
 -- predates them fails every UPDATE on profiles with error 42703 until they exist.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS razorpay_subscription_id TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS subscription_halted_at TIMESTAMPTZ;
 -- protect_server_only_profile_columns reads all four, so a database that
 -- predates them fails every UPDATE on profiles with error 42703 until they exist.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS pending_plan_type TEXT;
@@ -304,6 +308,7 @@ BEGIN
      OR NEW.subscription_plan_type  IS DISTINCT FROM OLD.subscription_plan_type
      OR NEW.razorpay_subscription_id IS DISTINCT FROM OLD.razorpay_subscription_id
      OR NEW.razorpay_order_id        IS DISTINCT FROM OLD.razorpay_order_id
+     OR NEW.subscription_halted_at   IS DISTINCT FROM OLD.subscription_halted_at
      OR NEW.is_admin                 IS DISTINCT FROM OLD.is_admin
   THEN
     RAISE EXCEPTION 'Cannot modify server-managed subscription/admin fields directly';

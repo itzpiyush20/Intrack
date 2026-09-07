@@ -170,14 +170,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`Webhook applied ${invoiceId} for user ${userId}: ${result.outcome}`)
     }
 
-    // 'halted' means Razorpay has exhausted its retries. Nothing is revoked
-    // here: the period already paid for runs to its end date and then lapses on
-    // its own. Razorpay has already emailed the customer an "Update Card" link.
-    if (event.event === 'subscription.cancelled' || event.event === 'subscription.halted') {
+    // 'halted' is NOT a cancellation. Razorpay has exhausted its auto-charge
+    // retries, but the mandate is still alive and the customer can revive it by
+    // authenticating a new card from the email Razorpay already sent them.
+    // Unlinking here would make the app forget a subscription that can still
+    // charge, so the failure is recorded as a flag instead and Settings shows
+    // it. The flag clears itself on the next successful charge.
+    //
+    // Nothing is revoked either way: the period already paid for runs to its
+    // end date and then lapses on its own.
+    if (event.event === 'subscription.halted') {
       const sub = event.payload.subscription.entity
       const { userId } = sub.notes || {}
       if (!userId) {
-        console.warn(`Webhook ${event.event} missing userId in notes`)
+        console.warn('Webhook subscription.halted missing userId in notes')
+        return res.status(200).json({ status: 'ignored_missing_notes' })
+      }
+
+      const { error } = await supabaseAdmin.rpc('mark_subscription_halted', {
+        p_user_id: userId,
+        p_subscription_id: sub.id,
+      })
+      if (error) throw error
+      console.log(`Webhook flagged halted subscription ${sub.id} for user ${userId}`)
+    }
+
+    // Cancellation is terminal at Razorpay — a cancelled subscription cannot be
+    // restarted, so the link is dropped and a returning customer authorises a
+    // fresh mandate. subscription_expires_at is deliberately untouched: the
+    // customer keeps the period they paid for, which is what the Refund Policy
+    // promises.
+    if (event.event === 'subscription.cancelled') {
+      const sub = event.payload.subscription.entity
+      const { userId } = sub.notes || {}
+      if (!userId) {
+        console.warn('Webhook subscription.cancelled missing userId in notes')
         return res.status(200).json({ status: 'ignored_missing_notes' })
       }
 
@@ -186,7 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         p_subscription_id: sub.id,
       })
       if (error) throw error
-      console.log(`Webhook ${event.event} unlinked subscription ${sub.id} for user ${userId}`)
+      console.log(`Webhook cancelled and unlinked subscription ${sub.id} for user ${userId}`)
     }
 
     return res.status(200).json({ status: 'ok' })

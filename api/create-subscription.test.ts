@@ -83,7 +83,54 @@ describe('create-subscription', () => {
       notes: { userId: 'user-1', planType: 'annual' },
     }))
     expect(r.statusCode).toBe(200)
-    expect(r.body).toEqual({ id: 'sub_1', planType: 'annual' })
+    expect(r.body).toEqual({ id: 'sub_1', planType: 'annual', startsAt: null })
+  })
+
+  it('starts immediately, with no start_at, for a customer holding no paid time', async () => {
+    mockCreate.mockResolvedValue({ id: 'sub_1', status: 'created' })
+    const r = res()
+    await handler({
+      method: 'POST', headers: { authorization: 'Bearer t' }, body: { planType: 'monthly' },
+    } as unknown as VercelRequest, r as unknown as VercelResponse)
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ start_at: expect.anything() }),
+    )
+  })
+
+  it('schedules the first charge at expiry for a customer who still has paid days left', async () => {
+    // The returning-customer case: they cancelled, kept 20 days, and came back.
+    // Charging today would bill them for days they already own.
+    const expiry = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString()
+    mockMaybeSingle.mockResolvedValue({
+      data: { razorpay_subscription_id: null, subscription_expires_at: expiry },
+    })
+    mockCreate.mockResolvedValue({ id: 'sub_2', status: 'created' })
+    const r = res()
+    await handler({
+      method: 'POST', headers: { authorization: 'Bearer t' }, body: { planType: 'monthly' },
+    } as unknown as VercelRequest, r as unknown as VercelResponse)
+
+    const expected = Math.floor(Date.parse(expiry) / 1000)
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ start_at: expected }),
+    )
+    expect(r.body).toEqual({ id: 'sub_2', planType: 'monthly', startsAt: expected })
+  })
+
+  it('starts immediately for a customer whose access already lapsed', async () => {
+    const expiry = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+    mockMaybeSingle.mockResolvedValue({
+      data: { razorpay_subscription_id: null, subscription_expires_at: expiry },
+    })
+    mockCreate.mockResolvedValue({ id: 'sub_3', status: 'created' })
+    const r = res()
+    await handler({
+      method: 'POST', headers: { authorization: 'Bearer t' }, body: { planType: 'monthly' },
+    } as unknown as VercelRequest, r as unknown as VercelResponse)
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ start_at: expect.anything() }),
+    )
+    expect(r.body).toEqual({ id: 'sub_3', planType: 'monthly', startsAt: null })
   })
 
   it('refuses to create a second subscription while one is already active', async () => {

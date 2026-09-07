@@ -27,7 +27,7 @@ import {
   Ticket,
   EyeOff
 } from 'lucide-react'
-import { cancelSubscription as cancelLegacySubscription, resumeSubscription } from '@/services'
+import { cancelSubscription as cancelLegacySubscription } from '@/services'
 import { createSubscription, cancelSubscription as cancelRazorpaySubscription } from '@/services/subscriptionBilling'
 import {
   PricingAmbientBackground,
@@ -155,16 +155,21 @@ export default function PricingPage() {
     }
   }
 
+  /**
+   * Razorpay cannot un-cancel a subscription — cancellation is terminal there —
+   * so "resume" means authorising a fresh mandate. It deliberately runs the
+   * normal checkout: create-subscription schedules the first charge for the day
+   * the customer's existing access runs out, so they are not billed for days
+   * they already own.
+   *
+   * The previous implementation flipped subscription_status back to 'active' in
+   * the database and told the customer they were renewing. With real mandates
+   * that is a lie the customer only discovers when their access lapses.
+   */
   const handleReactivate = async () => {
     setReactivating(true)
     try {
-      const { error } = await resumeSubscription()
-      if (error) throw error
-      await refreshProfile()
-      showToast('Subscription resumed! Full automated tracking remains active.', 'success')
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      showToast(`Failed to resume subscription: ${message}`, 'error')
+      await handleRazorpayCheckout()
     } finally {
       setReactivating(false)
     }
@@ -228,7 +233,7 @@ export default function PricingPage() {
         throw new Error('Payments are not configured on this deployment. Please contact support — you have not been charged.')
       }
 
-      const { id: subscriptionId } = await createSubscription(selectedPlan, session.access_token)
+      const { id: subscriptionId, startsAt } = await createSubscription(selectedPlan, session.access_token)
 
       const options = {
         key: clientKey,
@@ -245,7 +250,15 @@ export default function PricingPage() {
           // grants access. A closed browser or a handler that never fires
           // must never cost the customer their plan.
           await refreshProfile()
-          showToast(`Payment received. Your ${planName} plan activates in a moment.`, 'success')
+          showToast(
+            startsAt
+              // A scheduled start authorises the mandate with a ~₹5 token
+              // charge Razorpay refunds immediately. Saying so here stops that
+              // debit reading as a surprise charge on their statement.
+              ? `Mandate authorised. Your ${planName} plan starts on ${formatDate(new Date(startsAt * 1000).toISOString())} — you keep the days you already paid for, and the small verification charge is refunded automatically.`
+              : `Payment received. Your ${planName} plan activates in a moment.`,
+            'success',
+          )
           navigate('/dashboard')
         },
         modal: { ondismiss: () => setProcessing(false) },

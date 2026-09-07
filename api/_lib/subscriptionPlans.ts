@@ -29,6 +29,36 @@ export function durationDaysFor(planType: PlanType): number {
 }
 
 /**
+ * Razorpay rejects a start_at that is not comfortably in the future, and a
+ * request can sit in flight for a while. An expiry closer than this just starts
+ * the subscription now.
+ */
+const START_AT_BUFFER_MS = 60 * 60 * 1000
+
+/**
+ * When a customer still holds paid access, their subscription's first charge is
+ * scheduled for the day that access runs out — they must not pay twice for the
+ * same days. Returns a Unix timestamp for Razorpay's `start_at`, or null to
+ * start immediately.
+ *
+ * Razorpay authorises a future-dated subscription with a small token charge
+ * (~₹5) that it refunds straight away, then bills the real amount on the date
+ * returned here.
+ */
+export function scheduledStartFor(
+  expiresAt: string | null | undefined,
+  now: Date = new Date(),
+): number | null {
+  if (!expiresAt) return null
+  const expiryMs = Date.parse(expiresAt)
+  // An unparseable date must never reach Razorpay as NaN, which would either be
+  // rejected or — worse — silently coerced into a wrong billing date.
+  if (Number.isNaN(expiryMs)) return null
+  if (expiryMs - now.getTime() < START_AT_BUFFER_MS) return null
+  return Math.floor(expiryMs / 1000)
+}
+
+/**
  * The webhook receives a plan id and must decide what was bought. Returns null
  * rather than guessing, so an unrecognised plan is logged and ignored instead
  * of silently granting the wrong period.

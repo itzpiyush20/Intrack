@@ -617,6 +617,10 @@ export default function SettingsPage() {
     ? profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1)
     : 'Unknown'
   const expiresAtLabel = profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : null
+  // Razorpay tried the renewal, exhausted its retries, and emailed the customer
+  // an update-payment link. The mandate is still alive and can revive, so this
+  // is a warning to act on — not a cancellation.
+  const renewalFailed = hasMandate && !!profile?.subscription_halted_at
 
   return (
     <AppLayout>
@@ -740,12 +744,29 @@ export default function SettingsPage() {
                 {expiresAtLabel && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-sb-ink-muted">
-                      {hasMandate ? 'Renews on' : 'Access until'}
+                      {hasMandate && !renewalFailed ? 'Renews on' : 'Access until'}
                     </span>
                     <span className="text-sm font-semibold text-sb-ink">{expiresAtLabel}</span>
                   </div>
                 )}
               </div>
+
+              {renewalFailed && (
+                <div
+                  role="status"
+                  className="rounded-xl border border-amber-300 bg-amber-50 p-4 mb-4 flex items-start gap-2.5"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" aria-hidden="true" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-amber-900">Last renewal payment failed</p>
+                    <p className="text-sm text-amber-900/90 leading-relaxed">
+                      Razorpay could not charge your saved payment method and has emailed you a
+                      link to update it. Your access continues until {expiresAtLabel || 'your current period ends'} either
+                      way — updating the payment method is what keeps it going after that.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {hasMandate ? (
                 <>

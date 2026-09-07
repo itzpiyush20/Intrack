@@ -93,4 +93,34 @@ describe('webhook — subscription events', () => {
     })
     expect(r.statusCode).toBe(200)
   })
+
+  it('flags a halted subscription instead of unlinking it, so a revived mandate is not forgotten', async () => {
+    // Razorpay can revive a halted subscription once the customer authenticates
+    // a new card. Unlinking here would make the app forget a mandate that can
+    // still charge.
+    const halted = {
+      event: 'subscription.halted',
+      payload: { subscription: { entity: { id: 'sub_1', notes: { userId: 'user-1' } } } },
+    }
+    mockRpc.mockResolvedValue({ data: true, error: null })
+    const r = res()
+    await handler(reqWith(halted), r)
+    expect(mockRpc).toHaveBeenCalledWith('mark_subscription_halted', {
+      p_user_id: 'user-1',
+      p_subscription_id: 'sub_1',
+    })
+    expect(mockRpc).not.toHaveBeenCalledWith('clear_subscription_link', expect.anything())
+    expect(r.statusCode).toBe(200)
+  })
+
+  it('ignores a halted event with no userId rather than flagging the wrong account', async () => {
+    const orphan = {
+      event: 'subscription.halted',
+      payload: { subscription: { entity: { id: 'sub_1', notes: {} } } },
+    }
+    const r = res()
+    await handler(reqWith(orphan), r)
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect(r.body.status).toBe('ignored_missing_notes')
+  })
 })

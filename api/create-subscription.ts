@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Razorpay from 'razorpay'
 import { createClient } from '@supabase/supabase-js'
-import { planIdFor, type PlanType } from './_lib/subscriptionPlans.js'
+import { planIdFor, scheduledStartFor, type PlanType } from './_lib/subscriptionPlans.js'
 
 const razorpayKeyId = [process.env.RAZORPAY_KEY_ID, process.env.VITE_RAZORPAY_KEY_ID]
   .find(k => k && k.startsWith('rzp_')) || process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || ''
@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // refund policy exists for — refused here, before any money moves.
   const { data: profileRow } = await supabaseAdmin
     .from('profiles')
-    .select('razorpay_subscription_id')
+    .select('razorpay_subscription_id, subscription_expires_at')
     .eq('id', userId)
     .maybeSingle()
 
@@ -102,6 +102,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
+  // Anyone arriving here with time still on the clock — a customer who
+  // cancelled and came back, or a legacy one-time buyer moving to
+  // auto-renewal — has their first charge scheduled for the day their current
+  // access runs out. Starting immediately would take money for days they
+  // already own. Razorpay authorises the mandate now with a ~₹5 token charge
+  // it refunds straight away, then bills the real amount on start_at.
+  const startAt = scheduledStartFor(profileRow?.subscription_expires_at)
+
   try {
     const subscription = await razorpay.subscriptions.create({
       plan_id: planIdFor(planType),
@@ -110,10 +118,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // authorisation, charge, failure and cancellation emails. Razorpay
       // owning that billing correspondence is deliberate for this migration.
       customer_notify: 1,
+      ...(startAt ? { start_at: startAt } : {}),
       notes: { userId, planType },
     })
 
-    return res.status(200).json({ id: subscription.id, planType })
+    return res.status(200).json({
+      id: subscription.id,
+      planType,
+      // The UI has to say "you will not be charged until <date>", so the
+      // decision made here travels with the response rather than being
+      // re-derived in the browser from a profile it may not have refreshed.
+      startsAt: startAt ?? null,
+    })
   } catch (error: unknown) {
     console.error('Error creating Razorpay subscription:', error)
     const statusCode = (error as { statusCode?: number })?.statusCode

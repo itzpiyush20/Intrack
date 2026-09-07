@@ -23,6 +23,7 @@ export interface Database {
           subscription_expires_at: string | null
           subscription_plan_type: string | null
           razorpay_subscription_id: string | null
+          subscription_halted_at: string | null
           is_admin: boolean
           ai_calls_count: number
           ai_scan_calls_count: number
@@ -46,6 +47,7 @@ export interface Database {
           subscription_expires_at?: string | null
           subscription_plan_type?: string | null
           razorpay_subscription_id?: string | null
+          subscription_halted_at?: string | null
           is_admin?: boolean
           ai_calls_count?: number
           ai_scan_calls_count?: number
@@ -65,6 +67,7 @@ export interface Database {
           subscription_expires_at?: string | null
           subscription_plan_type?: string | null
           razorpay_subscription_id?: string | null
+          subscription_halted_at?: string | null
           is_admin?: boolean
           ai_calls_count?: number
           ai_scan_calls_count?: number

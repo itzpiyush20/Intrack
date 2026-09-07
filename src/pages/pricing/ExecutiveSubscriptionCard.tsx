@@ -368,7 +368,10 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
               </>
             )}
 
-            {/* If Cancelled with days remaining: Resume */}
+            {/* Cancelled with days remaining. Razorpay cannot restart a
+                cancelled subscription, so this authorises a new mandate — and
+                the first charge is scheduled for the day the remaining days run
+                out, which is why the label promises no charge today. */}
             {isCancelled && daysLeft > 0 && (
               <button
                 type="button"
@@ -377,7 +380,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                 className="sb-btn-primary py-2.5 px-4 text-xs font-bold cursor-pointer border-0 flex items-center gap-1.5 shadow-sm"
               >
                 <RotateCcw className={cn("w-3.5 h-3.5", isReactivating && "animate-spin")} />
-                <span>{isReactivating ? 'Resuming…' : 'Resume Subscription'}</span>
+                <span>{isReactivating ? 'Opening checkout…' : 'Turn renewal back on'}</span>
               </button>
             )}
 

@@ -237,24 +237,16 @@ export async function cancelSubscription(reason?: string, feedback?: string) {
   return { error: null, success: true }
 }
 
-/**
- * Resume or restore an active subscription that was previously marked as cancelled.
- */
-export async function resumeSubscription() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: new Error('User not authenticated') }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      subscription_status: 'active',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', user.id)
-
-  if (error) return { error }
-
-  localStorage.setItem(`intrack_sub_status_${user.id}`, 'active')
-  return { error: null, success: true }
-}
+// resumeSubscription() was removed with the move to Razorpay Subscriptions.
+//
+// It set subscription_status back to 'active' in the database and nothing else.
+// Under the one-time model that was harmless — nothing renewed either way, so
+// the status was cosmetic. Against a real mandate it became a lie: Razorpay
+// treats cancellation as terminal and offers no un-cancel, so the customer was
+// shown "active, renewing" while no mandate existed and no charge would ever
+// happen. They would only find out when their access silently lapsed.
+//
+// Resuming now runs the ordinary checkout and authorises a fresh mandate, with
+// the first charge scheduled for the day the customer's remaining paid days run
+// out. See handleReactivate in src/pages/PricingPage.tsx.
 

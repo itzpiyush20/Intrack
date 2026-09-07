@@ -29,8 +29,18 @@ async function post<T>(path: string, accessToken: string, body?: unknown): Promi
   return data as T
 }
 
+/**
+ * `startsAt` is a Unix timestamp when the customer still holds paid days and
+ * the first charge is scheduled for the day those run out, or null when billing
+ * starts immediately. The caller needs it to tell the customer which of the two
+ * happened before they authorise anything.
+ */
 export function createSubscription(planType: PlanType, accessToken: string) {
-  return post<{ id: string; planType: PlanType }>('/api/create-subscription', accessToken, { planType })
+  return post<{ id: string; planType: PlanType; startsAt: number | null }>(
+    '/api/create-subscription',
+    accessToken,
+    { planType },
+  )
 }
 
 export function cancelSubscription(accessToken: string) {
