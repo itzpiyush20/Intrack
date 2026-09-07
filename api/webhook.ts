@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { verifyHmacSignature, planDurationDays } from './_lib/razorpaySignature.js'
+import { planTypeForPlanId, durationDaysFor } from './_lib/subscriptionPlans.js'
 
 export const config = {
   api: {
@@ -122,6 +123,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             console.warn('Webhook failed to record payment for order', orderId, paymentError.message)
           }
         })
+    }
+
+    if (event.event === 'subscription.charged') {
+      const sub = event.payload.subscription.entity
+      const payment = event.payload.payment?.entity
+      const { userId } = sub.notes || {}
+
+      if (!userId) {
+        console.warn('Webhook subscription.charged missing userId in notes')
+        return res.status(200).json({ status: 'ignored_missing_notes' })
+      }
+
+      // Never guess a plan. An unrecognised plan id means someone else's plan
+      // or a plan created outside this app, and granting a period for it would
+      // hand out access nobody paid us for.
+      const planType = planTypeForPlanId(sub.plan_id)
+      if (!planType) {
+        console.warn('Webhook subscription.charged for unknown plan:', sub.plan_id)
+        return res.status(200).json({ status: 'ignored_unknown_plan' })
+      }
+
+      // The invoice id is the idempotency key: Razorpay retries this webhook
+      // until acknowledged, and each cycle has exactly one invoice.
+      const invoiceId = payment?.invoice_id
+      if (!invoiceId) {
+        console.warn('Webhook subscription.charged missing invoice id for', sub.id)
+        return res.status(200).json({ status: 'ignored_missing_invoice' })
+      }
+
+      const { data: result, error } = await supabaseAdmin.rpc('apply_subscription_charge', {
+        p_user_id: userId,
+        p_subscription_id: sub.id,
+        p_invoice_id: invoiceId,
+        p_plan_type: planType,
+        p_duration_days: durationDaysFor(planType),
+        // Razorpay reports paise; amount_inr holds rupees.
+        p_amount_inr: typeof payment?.amount === 'number' ? payment.amount / 100 : 0,
+      })
+
+      if (error) throw error
+      if (!result) {
+        console.error('Subscription charge matched no profile for userId:', userId, 'sub:', sub.id)
+        throw new Error('No matching profile found to update.')
+      }
+      console.log(`Webhook applied ${invoiceId} for user ${userId}: ${result.outcome}`)
+    }
+
+    // 'halted' means Razorpay has exhausted its retries. Nothing is revoked
+    // here: the period already paid for runs to its end date and then lapses on
+    // its own. Razorpay has already emailed the customer an "Update Card" link.
+    if (event.event === 'subscription.cancelled' || event.event === 'subscription.halted') {
+      const sub = event.payload.subscription.entity
+      const { userId } = sub.notes || {}
+      if (!userId) {
+        console.warn(`Webhook ${event.event} missing userId in notes`)
+        return res.status(200).json({ status: 'ignored_missing_notes' })
+      }
+
+      const { error } = await supabaseAdmin.rpc('clear_subscription_link', {
+        p_user_id: userId,
+        p_subscription_id: sub.id,
+      })
+      if (error) throw error
+      console.log(`Webhook ${event.event} unlinked subscription ${sub.id} for user ${userId}`)
     }
 
     return res.status(200).json({ status: 'ok' })
