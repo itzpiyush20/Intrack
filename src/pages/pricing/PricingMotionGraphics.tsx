@@ -1,17 +1,14 @@
 import { useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { 
-  ShieldCheck, 
-  Lock, 
-  Sparkles, 
-  Coffee, 
-  ChevronDown, 
-  CreditCard,
+import {
+  ShieldCheck,
+  Lock,
+  ChevronDown,
+  RotateCcw,
   Zap,
-  RotateCcw
 } from 'lucide-react'
 import { cn } from '@/utils'
-import { ANNUAL_PER_DAY, APP_CONFIG, PRICING } from '@/constants'
+import { APP_CONFIG, PRICING } from '@/constants'
 
 /**
  * Subtle radiant emerald ambient background glow for the Pricing header.
@@ -21,9 +18,9 @@ export function PricingAmbientBackground() {
 
   if (reduce) {
     return (
-      <div 
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-72 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(14,122,93,0.12),transparent_70%)] pointer-events-none" 
-        aria-hidden="true" 
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-72 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(14,122,93,0.12),transparent_70%)] pointer-events-none"
+        aria-hidden="true"
       />
     )
   }
@@ -54,147 +51,27 @@ export function PricingAmbientBackground() {
 }
 
 /**
- * Interactive Cost-to-Value Comparison Component.
- * Shows how the annual plan's per-day cost compares to everyday
- * discretionary purchases. The per-day figure is derived from PRICING, so a
- * price change moves the whole comparison with it.
+ * Compact trust indicator pills for below the pricing cards.
+ * Uses CSS scroll-reveal (data-reveal) for entrance animation.
  */
-export function CostToValueVisual() {
-  const [selectedItem, setSelectedItem] = useState<number>(0)
-
-  const comparisons = [
-    { label: 'Cutting Chai', cost: 15, desc: 'Single tea tap' },
-    { label: 'Filter Coffee', cost: 80, desc: 'Cafe beverage' },
-    { label: 'Swiggy Delivery', cost: 240, desc: 'Average food order' },
-    { label: 'OTT Subscription', cost: 649, desc: 'Monthly streaming' },
-  ]
-
-  const current = comparisons[selectedItem]
-  const intrackDailyCost = Number(ANNUAL_PER_DAY)
-  const ratio = Math.round(current.cost / intrackDailyCost)
-  const percentSaved = Math.round(((current.cost - intrackDailyCost) / current.cost) * 100)
-
-  return (
-    <div className="rounded-3xl border border-sb-hairline bg-surface-1 p-6 sm:p-8 shadow-sm relative overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sb-hairline pb-5 mb-6">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-600 mb-1">
-            <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-            <span>Perspective &amp; Return On Investment</span>
-          </div>
-          <h3 className="text-xl font-bold text-sb-ink">The ₹{ANNUAL_PER_DAY} / Day Reality Check</h3>
-          <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1">
-            Compare Intrack's full autonomous finance suite with everyday expenses.
-          </p>
-        </div>
-
-        {/* Selected badge */}
-        <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-3.5 py-1.5 rounded-2xl shrink-0 self-start sm:self-auto">
-          <Coffee className="w-4 h-4 text-brand-600" />
-          <span className="text-xs font-bold text-brand-700">
-            1 Day = ₹{ANNUAL_PER_DAY}
-          </span>
-        </div>
-      </div>
-
-      {/* Comparison Selector Chips */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
-        {comparisons.map((item, idx) => {
-          const isSelected = selectedItem === idx
-          return (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => setSelectedItem(idx)}
-              className={cn(
-                'flex flex-col p-3 rounded-xl border text-left transition-all cursor-pointer bg-transparent',
-                isSelected
-                  ? 'bg-surface-2 border-brand-500/50 shadow-sm ring-1 ring-brand-500/20'
-                  : 'border-sb-hairline bg-surface-1 hover:bg-surface-2/50 text-sb-ink-muted'
-              )}
-            >
-              <span className="text-xs font-semibold text-sb-ink">{item.label}</span>
-              <span className="text-[11px] font-mono text-sb-ink-muted mt-0.5">₹{item.cost}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Animated Visual Gauge */}
-      <div className="p-5 rounded-2xl bg-surface-2/50 border border-sb-hairline space-y-4">
-        <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-sb-ink">{current.label} (₹{current.cost}) vs Intrack (₹{ANNUAL_PER_DAY}/day)</span>
-          <span className="text-brand-600 font-mono">1 Intrack Day = {(100 / ratio).toFixed(1)}% of cost</span>
-        </div>
-
-        {/* Dual Bar Graphic */}
-        <div className="space-y-2">
-          {/* Competitor / Daily Spends bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-sb-ink-muted w-24 shrink-0 truncate">{current.label}</span>
-            <div className="flex-1 h-3 rounded-full bg-surface-1 border border-sb-hairline overflow-hidden">
-              <div className="h-full bg-slate-300 rounded-full w-full" />
-            </div>
-            <span className="text-xs font-mono font-semibold text-sb-ink w-14 text-right">₹{current.cost}</span>
-          </div>
-
-          {/* Intrack Bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-bold text-brand-600 w-24 shrink-0 truncate">Intrack</span>
-            <div className="flex-1 h-3 rounded-full bg-surface-1 border border-sb-hairline overflow-hidden">
-              <motion.div
-                key={selectedItem}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.max(4, Math.min(100, (intrackDailyCost / current.cost) * 100))}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className="h-full bg-brand-500 rounded-full"
-              />
-            </div>
-            <span className="text-xs font-mono font-bold text-brand-600 w-14 text-right">₹{ANNUAL_PER_DAY}</span>
-          </div>
-        </div>
-
-        <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-sb-ink-secondary gap-2 border-t border-sb-hairline">
-          <span>
-            Intrack gives you 24 hours of autonomous transaction bookkeeping for <strong className="text-brand-700">{ratio}x less</strong> than one {current.label.toLowerCase()}.
-          </span>
-          <span className="font-semibold text-brand-600 shrink-0 bg-brand-500/10 px-2.5 py-0.5 rounded-full border border-brand-500/20">
-            {percentSaved}% Less Than {current.label}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * High-Trust Telemetry Ribbon.
- */
-export function TrustTelemetryRibbon() {
+export function PricingTrustPills() {
   const items = [
-    { icon: ShieldCheck, title: '100% Read-Only', desc: 'Google-verified OAuth scope' },
-    { icon: Lock, title: 'No Bank Credentials', desc: 'Never asks for passwords or PINs' },
-    { icon: CreditCard, title: 'Secure Payment Gateway', desc: '256-bit encrypted checkout' },
-    { icon: RotateCcw, title: '7-Day Refund Policy', desc: 'Full refund, no questions asked' },
+    { icon: ShieldCheck, text: 'Cancel anytime, one click' },
+    { icon: RotateCcw, text: '7-day full refund policy' },
+    { icon: Lock, text: 'Read-only OAuth, no passwords' },
   ]
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4" data-reveal>
       {items.map((item) => {
         const Icon = item.icon
         return (
           <div
-            key={item.title}
-            className="flex items-center gap-3 p-3.5 rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs"
+            key={item.text}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-sb-hairline bg-surface-1 shadow-xs text-xs font-medium text-sb-ink-secondary"
           >
-            <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4 text-brand-600" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-sb-ink">{item.title}</p>
-              <p className="text-[11px] text-sb-ink-muted">{item.desc}</p>
-            </div>
+            <Icon className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+            <span>{item.text}</span>
           </div>
         )
       })}
@@ -204,6 +81,7 @@ export function TrustTelemetryRibbon() {
 
 /**
  * Interactive FAQ Accordion tailored for Pricing.
+ * Uses CSS scroll-reveal for entrance, framer-motion for expand/collapse.
  */
 export function PricingFaqAccordion() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
@@ -232,22 +110,22 @@ export function PricingFaqAccordion() {
   ]
 
   return (
-    <div className="rounded-3xl border border-sb-hairline bg-surface-1 p-6 sm:p-8 space-y-4">
-      <div className="text-center max-w-xl mx-auto mb-6">
+    <div className="space-y-4" data-reveal>
+      <div className="text-center max-w-xl mx-auto mb-2">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-600 mb-1">
           <Zap className="w-3.5 h-3.5 text-brand-500" />
           Frequently Asked Questions
         </div>
-        <h3 className="text-2xl font-bold text-sb-ink">Everything you need to know</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-sb-ink">Everything you need to know</h3>
       </div>
 
-      <div className="space-y-3 max-w-2xl mx-auto">
+      <div className="space-y-2.5 max-w-2xl mx-auto">
         {faqs.map((faq, idx) => {
           const isOpen = openIndex === idx
           return (
             <div
               key={idx}
-              className="rounded-xl border border-sb-hairline bg-surface-2/40 overflow-hidden transition-colors"
+              className="rounded-xl border border-sb-hairline bg-surface-1 overflow-hidden transition-colors"
             >
               <button
                 type="button"

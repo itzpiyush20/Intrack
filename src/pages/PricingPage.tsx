@@ -1,13 +1,15 @@
 // ============================================
-// PricingPage — Modern Luxury Fintech Edition
-// Features-First Showcase, Intrack Design System & Dynamic Auth Views
+// PricingPage — Clean Fintech Pricing with Motion Graphics
+// 3-Column Plan Cards, Animated Selections, Dual Auth Views
 // ============================================
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import AppLayout from '@/layouts/AppLayout'
 import { useAuth, useToast } from '@/context'
 import { formatDate, cn } from '@/utils'
+import { useScrollReveal } from '@/hooks'
 import { setPageMeta } from '@/utils/seo'
 import { ANNUAL_PER_DAY, ANNUAL_SAVING_PCT, APP_CONFIG, PRICING } from '@/constants'
 import { supabase } from '@/services/supabase'
@@ -16,23 +18,14 @@ import { createSubscription, cancelSubscription as cancelRazorpaySubscription } 
 import {
   PricingAmbientBackground,
   PricingFaqAccordion,
+  PricingTrustPills,
   CancelSubscriptionModal,
   RedeemPromoModal,
-  CostToValueVisual,
 } from './pricing'
 import {
-  ShieldCheck,
   Ticket,
-  RotateCcw,
   Loader2,
-  Clock,
   Sparkles,
-  Lock,
-  Mail,
-  Tags,
-  Calendar,
-  FileSpreadsheet,
-  DownloadCloud,
   Check,
 } from 'lucide-react'
 
@@ -53,12 +46,24 @@ declare global {
   }
 }
 
+// ── Motion presets ───────────────────────────────────────────────
+const EASE = [0.16, 1, 0.3, 1] as const
+
+const cardVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+}
+
 export default function PricingPage() {
   const navigate = useNavigate()
   const { user, profile, daysLeft, openAuthModal, refreshProfile } = useAuth()
   const { showToast } = useToast()
+  const reduce = useReducedMotion()
 
-  // Profile subscription status
+  // Scroll-reveal for CSS-animated sections (trust pills, FAQ)
+  useScrollReveal()
+
+  // ── Profile subscription status ────────────────────────────────
   const status = profile?.subscription_status
   const isExpired = status === 'expired' || (status === 'active' && daysLeft <= 0) || (status === 'trial' && daysLeft <= 0)
   const isCancelled = status === 'cancelled'
@@ -73,13 +78,13 @@ export default function PricingPage() {
   const currentPlanKey: PlanType = isOnYearly ? 'annual' : isOnMonthly ? 'monthly' : 'trial'
   const trialLocked = !!user && (isActive || isCancelled || profile?.trial_started_at !== undefined)
 
-  // Plan selection (derived cleanly without cascading render effects)
+  // ── Plan selection ─────────────────────────────────────────────
   const [userSelectedPlan, setUserSelectedPlan] = useState<PlanType | null>(null)
   const defaultPlan: PlanType = user ? currentPlanKey : 'annual'
   const selectedPlan: PlanType = userSelectedPlan ?? defaultPlan
   const setSelectedPlan = (p: PlanType) => setUserSelectedPlan(p)
 
-  // Modals & Async state
+  // ── Modals & Async state ───────────────────────────────────────
   const [processingPlan, setProcessingPlan] = useState<'monthly' | 'annual' | null>(null)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -224,7 +229,7 @@ export default function PricingPage() {
     }
   }
 
-  // ── Plan Labels & Computations ─────────────────────────────────
+  // ── Plan Labels ────────────────────────────────────────────────
   const activePlanName = isOnYearly
     ? 'Annual Plan'
     : isOnMonthly
@@ -236,28 +241,6 @@ export default function PricingPage() {
     : isExpired
     ? 'Subscription Expired'
     : 'Subscription Expired'
-
-  const renewalDateStr = profile?.subscription_expires_at
-    ? formatDate(profile.subscription_expires_at)
-    : isTrial
-    ? `Trial ends in ${daysLeft} days`
-    : 'No renewal scheduled'
-
-  const renewalAmountStr = isTrial
-    ? 'No charge — pick a plan to continue'
-    : isOnYearly
-    ? `₹${PRICING.ANNUAL_AMOUNT} on autopay`
-    : isOnMonthly
-    ? `₹${PRICING.MONTHLY_AMOUNT} on autopay`
-    : 'Expired'
-
-  const totalCycleDays = isOnYearly ? 365 : isOnMonthly ? 30 : 7
-  const daysUsed = Math.max(0, totalCycleDays - daysLeft)
-  const cycleProgressPct = Math.min(100, Math.max(0, Math.round((daysUsed / totalCycleDays) * 100)))
-
-  // Scans telemetry
-  const scansToday = profile?.scans_today ?? 0
-  const scansRemaining = Math.max(0, 2 - scansToday)
 
   const isCurrentPlanSelected = user && (
     (selectedPlan === 'annual' && isOnYearly) ||
@@ -271,578 +254,367 @@ export default function PricingPage() {
     annual: 'Annual Plan',
   }
 
-  // Core product capabilities
-  const productFeatures = [
-    {
-      icon: Mail,
-      title: 'Autonomous Bank Alert Sync',
-      desc: 'Seamlessly reads transaction emails from 50+ Indian banks & UPI apps (HDFC, ICICI, SBI, Axis, Cred, Google Pay, Paytm). Zero manual entry.',
-      tag: 'Read-only OAuth',
-    },
-    {
-      icon: Tags,
-      title: 'Intelligent Auto-Categorization',
-      desc: 'Sorts every expense into dining, groceries, utilities, and travel. Automatically cleans messy merchant strings and remembers your corrections.',
-      tag: 'Learning Engine',
-    },
-    {
-      icon: Calendar,
-      title: 'Subscription & Renewal Radar',
-      desc: 'Detects upcoming recurring charges, subscriptions, and EMIs well in advance so you avoid unexpected debits and forgotten renewals.',
-      tag: 'Proactive Alerts',
-    },
-    {
-      icon: FileSpreadsheet,
-      title: 'Client-Side Statement Import',
-      desc: 'Import HDFC, ICICI, SBI, and Axis CSV statements directly. Parsing runs 100% locally in your browser — your files never touch external servers.',
-      tag: '100% Private',
-    },
-    {
-      icon: DownloadCloud,
-      title: 'Instant Data Export & Zero Lock-in',
-      desc: 'Download your entire financial ledger anytime as CSV or JSON. Cancel anytime in one click without retention calls or roadblocks.',
-      tag: 'Full Ownership',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Bank-Grade Privacy Architecture',
-      desc: 'Restricted read-only Google OAuth scope. We never request or store bank account passwords, debit/credit cards, PINs, or OTPs.',
-      tag: 'Safe & Secure',
-    },
-  ]
+  // ══════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════
 
   return (
     <AppLayout>
       <div className="relative min-h-screen bg-surface-0 text-sb-ink pb-20 pt-6 sm:pt-10 px-4 sm:px-6 lg:px-8">
         <PricingAmbientBackground />
 
-        <div className="relative mx-auto max-w-5xl space-y-12 sm:space-y-16">
+        <div className="relative mx-auto max-w-5xl space-y-10 sm:space-y-14">
 
-          {/* ══════════════════════════════════════════════════════════════
-              HEADER AREA
-              Public Hero (Before Login) vs Member Command Center (After Login)
-              ══════════════════════════════════════════════════════════════ */}
-          {!user ? (
-            /* ── Public Visitor Hero ──────────────────────────────── */
-            <div className="text-center space-y-4 max-w-3xl mx-auto pt-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-600 border border-brand-500/20 text-xs font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                <span>Intrack Expense Intelligence · Built for India</span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-display text-sb-ink">
-                Plans that pay for themselves.
-              </h1>
-              <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed">
-                Connect Gmail once. Autonomous bank alert scans, smart category learning, subscription radar, and automated financial clarity. Zero lock-in, cancel anytime.
-              </p>
+          {/* ══════════════════════════════════════════════════════
+              HERO — Unified for both public and authenticated
+              ══════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={reduce ? undefined : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reduce ? { duration: 0 } : { duration: 0.5, ease: EASE }}
+            className="text-center space-y-3 max-w-2xl mx-auto pt-4"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-600 border border-brand-500/20 text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              <span>Simple, transparent pricing</span>
             </div>
-          ) : (
-            /* ── Member Command Center Header ─────────────────────── */
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-600 border border-brand-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                  Member Command Center
-                </span>
-                <span className="text-xs font-mono text-sb-ink-muted">
-                  {user.email}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight font-display text-sb-ink">
-                Subscription &amp; Billing
-              </h1>
-              <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-                Review your active membership, billing cycle telemetry, and plan options.
-              </p>
-            </div>
-          )}
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-display text-sb-ink">
+              Pricing
+            </h1>
+            <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-lg mx-auto">
+              {!user
+                ? 'Start with a free 7-day trial. Every feature included on every plan. Cancel anytime.'
+                : 'Manage your subscription. Every feature included on every plan.'}
+            </p>
+          </motion.div>
 
-          {/* ══════════════════════════════════════════════════════════════
-              MEMBER STATUS CARD (LOGGED-IN ONLY)
-              ══════════════════════════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════════════════════
+              MEMBER STATUS BANNER — Compact, logged-in only
+              ══════════════════════════════════════════════════════ */}
           {user && (
-            <div className="rounded-2xl border border-sb-hairline bg-surface-1 p-6 sm:p-8 shadow-xs relative overflow-hidden">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-brand-500/5 blur-3xl"
-              />
-
-              <div className="relative z-10 space-y-6">
-                {/* Top Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-sb-hairline">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-brand-500/10 text-brand-600 border border-brand-500/20 font-mono">
-                        {isTrial ? 'Trial Active' : isActive ? 'Active Member' : isCancelled ? 'Cancellation Scheduled' : isExpired ? 'Subscription Expired' : 'Plan Inactive'}
-                      </span>
-                      {hasMandate && (
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-surface-2 text-sb-ink-secondary border border-sb-hairline font-mono">
-                          Autopay Mandate Active
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display text-sb-ink">
-                      {activePlanName}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1">
-                      {isTrial
-                        ? `Complimentary unrestricted trial · ${daysLeft} days remaining.`
-                        : isActive
-                        ? `Active on autopay. Renews on ${renewalDateStr}.`
-                        : isCancelled && daysLeft > 0
-                        ? `Cancelled · full access active until ${renewalDateStr}.`
-                        : 'No active subscription. Pick a plan below to resume scans.'}
-                    </p>
+            <motion.div
+              initial={reduce ? undefined : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={reduce ? { duration: 0 } : { duration: 0.4, ease: EASE, delay: 0.1 }}
+              className="rounded-2xl border border-sb-hairline bg-surface-1 px-5 py-4 shadow-xs"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={cn(
+                    'inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full border font-mono shrink-0',
+                    isActive ? 'bg-brand-500/10 text-brand-600 border-brand-500/20' :
+                    isTrial ? 'bg-amber-500/10 text-amber-700 border-amber-500/20' :
+                    isCancelled ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                    'bg-surface-2 text-sb-ink-muted border-sb-hairline'
+                  )}>
+                    <span className={cn(
+                      'w-1.5 h-1.5 rounded-full',
+                      isActive ? 'bg-brand-500 animate-pulse' :
+                      isTrial ? 'bg-amber-500 animate-pulse' :
+                      isCancelled ? 'bg-rose-500' :
+                      'bg-sb-ink-muted'
+                    )} />
+                    {isTrial ? 'Trial' : isActive ? 'Active' : isCancelled ? 'Cancelled' : 'Expired'}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-sb-ink">{activePlanName}</span>
+                    {daysLeft > 0 && (
+                      <span className="text-xs text-sb-ink-secondary ml-1.5">· {daysLeft}d left</span>
+                    )}
                   </div>
+                </div>
 
-                  <div className="shrink-0 flex items-center gap-3">
-                    <a
-                      href="#billing"
-                      className="sb-btn-primary py-2 px-4 text-xs font-bold shadow-sm"
-                    >
-                      Change plan
-                    </a>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPromoModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sb-hairline text-xs font-semibold text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer bg-surface-1"
+                  >
+                    <Ticket className="w-3 h-3 text-brand-600" />
+                    Redeem code
+                  </button>
+                  {(hasMandate || isActive) && (
                     <button
                       type="button"
-                      onClick={() => setPromoModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-sb-hairline text-xs font-bold text-sb-ink hover:bg-surface-2 transition-colors cursor-pointer bg-surface-1"
+                      onClick={() => setCancelModalOpen(true)}
+                      className="text-xs font-semibold text-rose-600/80 hover:text-rose-700 bg-transparent border-0 cursor-pointer transition-colors px-2 py-1.5 rounded-lg hover:bg-rose-500/10"
                     >
-                      <Ticket className="w-3.5 h-3.5 text-brand-600" />
-                      <span>Redeem promo</span>
+                      Cancel
                     </button>
-                  </div>
-                </div>
-
-                {/* 3 Columns: Expiry, Cycle Bar, Payment Method */}
-                <div className="grid sm:grid-cols-3 gap-6 pt-1">
-                  {/* Col 1 */}
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-bold tracking-wider uppercase text-sb-ink-muted">
-                      Renewal &amp; Expiry
-                    </div>
-                    <div className="text-base sm:text-lg font-extrabold font-mono text-sb-ink">
-                      {renewalDateStr}
-                    </div>
-                    <div className="text-xs text-sb-ink-secondary">
-                      {renewalAmountStr}
-                    </div>
-                  </div>
-
-                  {/* Col 2 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-bold tracking-wider uppercase text-sb-ink-muted">
-                      <span>Billing cycle</span>
-                      <span className="font-mono">{daysLeft > 0 ? `${daysLeft}d left` : '0d left'}</span>
-                    </div>
-                    <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-brand-500 rounded-full transition-all duration-500"
-                        style={{ width: `${cycleProgressPct}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-sb-ink-secondary">
-                      {daysLeft > 0
-                        ? `${daysUsed} of ${totalCycleDays} days used in this cycle`
-                        : 'Prepaid period complete'}
-                    </div>
-                  </div>
-
-                  {/* Col 3 */}
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-bold tracking-wider uppercase text-sb-ink-muted">
-                      Payment method
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 text-[10px] font-extrabold font-mono border border-brand-500/20">
-                          {hasMandate ? 'AUTOPAY' : 'UPI'}
-                        </span>
-                        <span className="text-xs font-semibold text-sb-ink">
-                          {hasMandate ? 'Razorpay E-Mandate' : isTrial ? 'No card required' : 'Manual UPI'}
-                        </span>
-                      </div>
-                      {(hasMandate || isActive) && (
-                        <button
-                          type="button"
-                          onClick={() => setCancelModalOpen(true)}
-                          className="text-xs font-semibold text-[var(--status-danger-text)] hover:underline bg-transparent border-0 cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-xs text-sb-ink-muted">
-                      {hasMandate ? 'Automatic recurring billing active' : 'Cancel anytime in one click'}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════════
-              FEATURE SHOWCASE (PRESENTED FIRST)
-              Highlighting Core Product Capabilities with Motion Graphics
-              ══════════════════════════════════════════════════════════════ */}
-          <section className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand-600 mb-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Platform Capabilities</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display text-sb-ink">
-                  Everything you need for effortless finances
-                </h2>
-                <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1 max-w-2xl">
-                  Bank-grade intelligence built specifically for the Indian financial ecosystem. Full product access is included on every plan.
-                </p>
-              </div>
-
-              {user && (
-                /* Member quick telemetry pill */
-                <div className="flex items-center gap-2 bg-surface-1 border border-sb-hairline px-3.5 py-1.5 rounded-xl shadow-xs self-start sm:self-auto">
-                  <Clock className="w-4 h-4 text-brand-600" />
-                  <span className="text-xs font-semibold text-sb-ink">
-                    {scansRemaining > 0 ? `${scansRemaining} daily scans remaining` : '2/2 scans used today'}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* 6 Feature Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {productFeatures.map((feat) => {
-                const Icon = feat.icon
-                return (
-                  <div
-                    key={feat.title}
-                    className="p-6 rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs hover:shadow-md hover:border-brand-500/30 transition-all flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-600 flex items-center justify-center border border-brand-500/20 group-hover:scale-105 transition-transform">
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 font-mono">
-                          {feat.tag}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-sb-ink mb-2">
-                        {feat.title}
-                      </h3>
-                      <p className="text-xs text-sb-ink-secondary leading-relaxed">
-                        {feat.desc}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Interactive Return-on-Investment & Cost-to-Value Motion Graphic */}
-            <CostToValueVisual />
-          </section>
-
-          {/* ══════════════════════════════════════════════════════════════
-              PAYMENT OPTIONS / PRICING SELECTOR
-              Presented after features so the user reads capabilities first
-              ══════════════════════════════════════════════════════════════ */}
-          <section id="billing" className="space-y-6 pt-6 border-t border-sb-hairline">
-            <div className="flex items-baseline justify-between gap-5 flex-wrap">
-              <div>
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand-600 mb-1.5">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Transparent Pricing</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display text-sb-ink">
-                  {user ? 'Change how you pay' : 'Choose how you pay'}
-                </h2>
-                <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1">
-                  Billing cadence only — all 6 capabilities above are identical across all options.
-                </p>
-              </div>
-            </div>
-
-            {/* 3 Selectable Cards in Vertical Selector Layout */}
-            <div className="flex flex-col gap-3">
-              {/* Plan 1: 7-Day Trial */}
-              <button
+          {/* ══════════════════════════════════════════════════════
+              PLAN CARDS — 3-Column Grid with Motion
+              ══════════════════════════════════════════════════════ */}
+          <section id="billing" className="space-y-6">
+            <motion.div
+              initial="initial"
+              animate="animate"
+              variants={reduce ? undefined : {
+                initial: {},
+                animate: { transition: { staggerChildren: 0.1 } },
+              }}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5"
+            >
+              {/* ── Trial Card ──────────────────────────────────── */}
+              <motion.button
+                variants={reduce ? undefined : cardVariants}
+                whileHover={reduce || trialLocked ? undefined : { y: -4, transition: { duration: 0.2 } }}
+                whileTap={reduce || trialLocked ? undefined : { scale: 0.98 }}
                 type="button"
-                onClick={() => {
-                  if (!trialLocked) setSelectedPlan('trial')
-                }}
+                onClick={() => { if (!trialLocked) setSelectedPlan('trial') }}
                 disabled={trialLocked}
                 className={cn(
-                  'flex items-center gap-4 sm:gap-8 flex-wrap w-full text-left font-sans p-5 sm:p-6 rounded-2xl transition-all border',
+                  'relative flex flex-col items-start text-left p-6 rounded-2xl border transition-colors font-sans',
                   trialLocked
                     ? 'opacity-50 cursor-not-allowed border-sb-hairline bg-surface-1'
                     : selectedPlan === 'trial'
-                    ? 'border-brand-500 bg-brand-500/5 shadow-sm ring-1 ring-brand-500/20 cursor-pointer'
+                    ? 'border-brand-500 bg-brand-500/5 shadow-sm cursor-pointer'
                     : 'border-sb-hairline bg-surface-1 shadow-xs hover:border-brand-500/40 cursor-pointer',
                 )}
               >
-                <div className="flex items-center gap-3.5 min-w-[200px] shrink-0">
-                  <span
-                    className={cn(
-                      'w-4.5 h-4.5 rounded-full shrink-0 border box-border bg-surface-1 transition-all',
-                      selectedPlan === 'trial'
-                        ? 'border-[5px] border-brand-500'
-                        : 'border-2 border-border-default',
-                    )}
+                {selectedPlan === 'trial' && !trialLocked && (
+                  <motion.div
+                    layoutId="plan-ring"
+                    className="absolute inset-0 rounded-2xl ring-2 ring-brand-500/30 pointer-events-none"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
-                  <div>
-                    <span className="block text-lg sm:text-xl font-extrabold tracking-tight font-display text-sb-ink">
-                      7-Day Trial
-                    </span>
-                    <span className="inline-block text-[10px] font-extrabold tracking-wider uppercase text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 mt-1">
-                      {trialLocked ? 'Trial used' : 'Complimentary'}
-                    </span>
-                  </div>
+                )}
+                <span className={cn(
+                  'inline-flex text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded border mb-4',
+                  trialLocked
+                    ? 'text-sb-ink-muted bg-surface-2 border-sb-hairline'
+                    : user && isTrial
+                    ? 'text-amber-700 bg-amber-500/10 border-amber-500/20'
+                    : 'text-brand-600 bg-brand-500/10 border-brand-500/20'
+                )}>
+                  {trialLocked ? 'Trial used' : user && isTrial ? 'Current plan' : 'Free'}
+                </span>
+                <h3 className="text-lg font-extrabold text-sb-ink mb-1 tracking-tight">7-Day Trial</h3>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-3xl font-extrabold font-mono tnum text-sb-ink">₹0</span>
+                  <span className="text-xs font-medium text-sb-ink-muted">/ 7 days</span>
                 </div>
-                <div className="min-w-[140px] shrink-0">
-                  <span className="text-xl sm:text-2xl font-extrabold tracking-tight font-mono tnum text-sb-ink">
-                    ₹0
-                  </span>
-                  <span className="text-xs font-semibold text-sb-ink-muted"> / 7 days</span>
-                </div>
-                <div className="flex-1 min-w-[200px] text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-                  No credit card required. Full unrestricted product, zero commitment.
-                </div>
-              </button>
+                <p className="text-xs text-sb-ink-secondary leading-relaxed mt-auto">
+                  No credit card required. Full product access, zero commitment.
+                </p>
+              </motion.button>
 
-              {/* Plan 2: Monthly */}
-              <button
+              {/* ── Monthly Card ─────────────────────────────────── */}
+              <motion.button
+                variants={reduce ? undefined : cardVariants}
+                whileHover={reduce ? undefined : { y: -4, transition: { duration: 0.2 } }}
+                whileTap={reduce ? undefined : { scale: 0.98 }}
                 type="button"
                 onClick={() => setSelectedPlan('monthly')}
                 className={cn(
-                  'flex items-center gap-4 sm:gap-8 flex-wrap w-full text-left font-sans p-5 sm:p-6 rounded-2xl transition-all cursor-pointer border',
+                  'relative flex flex-col items-start text-left p-6 rounded-2xl border transition-colors cursor-pointer font-sans',
                   selectedPlan === 'monthly'
-                    ? 'border-brand-500 bg-brand-500/5 shadow-sm ring-1 ring-brand-500/20'
+                    ? 'border-brand-500 bg-brand-500/5 shadow-sm'
                     : 'border-sb-hairline bg-surface-1 shadow-xs hover:border-brand-500/40',
                 )}
               >
-                <div className="flex items-center gap-3.5 min-w-[200px] shrink-0">
-                  <span
-                    className={cn(
-                      'w-4.5 h-4.5 rounded-full shrink-0 border box-border bg-surface-1 transition-all',
-                      selectedPlan === 'monthly'
-                        ? 'border-[5px] border-brand-500'
-                        : 'border-2 border-border-default',
-                    )}
+                {selectedPlan === 'monthly' && (
+                  <motion.div
+                    layoutId="plan-ring"
+                    className="absolute inset-0 rounded-2xl ring-2 ring-brand-500/30 pointer-events-none"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
-                  <div>
-                    <span className="block text-lg sm:text-xl font-extrabold tracking-tight font-display text-sb-ink">
-                      Monthly Plan
-                    </span>
-                    <span className="inline-block text-[10px] font-extrabold tracking-wider uppercase text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 mt-1">
-                      {user && isOnMonthly ? 'Current plan' : 'Flexible'}
-                    </span>
-                  </div>
+                )}
+                <span className={cn(
+                  'inline-flex text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded border mb-4',
+                  user && isOnMonthly
+                    ? 'text-brand-600 bg-brand-500/10 border-brand-500/20'
+                    : 'text-sb-ink-muted bg-surface-2 border-sb-hairline'
+                )}>
+                  {user && isOnMonthly ? 'Current plan' : 'Flexible'}
+                </span>
+                <h3 className="text-lg font-extrabold text-sb-ink mb-1 tracking-tight">Monthly Plan</h3>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-3xl font-extrabold font-mono tnum text-sb-ink">₹{PRICING.MONTHLY_AMOUNT}</span>
+                  <span className="text-xs font-medium text-sb-ink-muted">/ month</span>
                 </div>
-                <div className="min-w-[140px] shrink-0">
-                  <span className="text-xl sm:text-2xl font-extrabold tracking-tight font-mono tnum text-sb-ink">
-                    ₹{PRICING.MONTHLY_AMOUNT}
-                  </span>
-                  <span className="text-xs font-semibold text-sb-ink-muted"> / month</span>
-                </div>
-                <div className="flex-1 min-w-[200px] text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-                  Auto-renews monthly via UPI Autopay or card mandate. Cancel anytime in one click.
-                </div>
-              </button>
+                <p className="text-xs text-sb-ink-secondary leading-relaxed mt-auto">
+                  Auto-renews via UPI Autopay or card mandate. Cancel anytime in one click.
+                </p>
+              </motion.button>
 
-              {/* Plan 3: Annual */}
-              <button
+              {/* ── Annual Card — Elevated with Best Value ────────── */}
+              <motion.button
+                variants={reduce ? undefined : cardVariants}
+                whileHover={reduce ? undefined : { y: -6, transition: { duration: 0.2 } }}
+                whileTap={reduce ? undefined : { scale: 0.98 }}
                 type="button"
                 onClick={() => setSelectedPlan('annual')}
                 className={cn(
-                  'flex items-center gap-4 sm:gap-8 flex-wrap w-full text-left font-sans p-5 sm:p-6 rounded-2xl transition-all cursor-pointer border',
+                  'relative flex flex-col items-start text-left p-6 pt-8 rounded-2xl border transition-colors cursor-pointer font-sans',
                   selectedPlan === 'annual'
-                    ? 'border-brand-500 bg-brand-500/5 shadow-sm ring-1 ring-brand-500/20'
-                    : 'border-sb-hairline bg-surface-1 shadow-xs hover:border-brand-500/40',
+                    ? 'border-brand-500 bg-brand-500/5 shadow-md'
+                    : 'border-brand-500/30 bg-surface-1 shadow-sm hover:border-brand-500/50',
                 )}
               >
-                <div className="flex items-center gap-3.5 min-w-[200px] shrink-0">
-                  <span
-                    className={cn(
-                      'w-4.5 h-4.5 rounded-full shrink-0 border box-border bg-surface-1 transition-all',
-                      selectedPlan === 'annual'
-                        ? 'border-[5px] border-brand-500'
-                        : 'border-2 border-border-default',
-                    )}
+                {/* Best Value floating ribbon */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm whitespace-nowrap">
+                    <Sparkles className="w-3 h-3" />
+                    Best Value
+                  </span>
+                </div>
+                {selectedPlan === 'annual' && (
+                  <motion.div
+                    layoutId="plan-ring"
+                    className="absolute inset-0 rounded-2xl ring-2 ring-brand-500/30 pointer-events-none"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
-                  <div>
-                    <span className="block text-lg sm:text-xl font-extrabold tracking-tight font-display text-sb-ink">
-                      Annual Plan
-                    </span>
-                    <span className="inline-block text-[10px] font-extrabold tracking-wider uppercase text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 mt-1">
-                      {user && isOnYearly ? 'Current plan' : `Save ${ANNUAL_SAVING_PCT}% · Best Value`}
-                    </span>
-                  </div>
+                )}
+                <span className={cn(
+                  'inline-flex text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded border mb-4',
+                  user && isOnYearly
+                    ? 'text-brand-600 bg-brand-500/10 border-brand-500/20'
+                    : 'text-brand-600 bg-brand-500/10 border-brand-500/20'
+                )}>
+                  {user && isOnYearly ? 'Current plan' : `Save ${ANNUAL_SAVING_PCT}%`}
+                </span>
+                <h3 className="text-lg font-extrabold text-sb-ink mb-1 tracking-tight">Annual Plan</h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-3xl font-extrabold font-mono tnum text-sb-ink">₹{PRICING.ANNUAL_AMOUNT}</span>
+                  <span className="text-xs font-medium text-sb-ink-muted">/ year</span>
                 </div>
-                <div className="min-w-[140px] shrink-0">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl sm:text-2xl font-extrabold tracking-tight font-mono tnum text-sb-ink">
-                      ₹{PRICING.ANNUAL_AMOUNT}
-                    </span>
-                    <span className="text-xs font-semibold text-sb-ink-muted"> / year</span>
-                  </div>
-                  <span className="block text-[11px] font-mono text-brand-600 font-semibold mt-0.5">
-                    ≈ ₹{ANNUAL_PER_DAY} / day
-                  </span>
-                </div>
-                <div className="flex-1 min-w-[200px] text-xs sm:text-sm text-sb-ink-secondary leading-relaxed">
-                  Our most popular tier. Complete peace of mind and maximum savings for the full year.
-                </div>
-              </button>
-            </div>
+                <span className="text-[11px] font-mono text-brand-600 font-semibold mb-3">
+                  ≈ ₹{ANNUAL_PER_DAY} / day
+                </span>
+                <p className="text-xs text-sb-ink-secondary leading-relaxed mt-auto">
+                  Maximum savings. Uninterrupted autonomous tracking all year.
+                </p>
+              </motion.button>
+            </motion.div>
 
-            {/* Selected Plan Summary Callout Box */}
-            <div className="rounded-2xl border border-brand-500/25 bg-brand-500/5 p-6 sm:p-7 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div className="space-y-1.5 max-w-xl">
-                  <div className="inline-flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 bg-brand-500/15 px-2 py-0.5 rounded border border-brand-500/25 font-mono">
-                      {isCurrentPlanSelected ? 'Current Plan' : 'Selected Plan'}
-                    </span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-extrabold text-sb-ink font-display m-0">
-                    {planTitles[selectedPlan]} {selectedPlan === 'annual' && `(Save ${ANNUAL_SAVING_PCT}%)`}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed m-0">
-                    {selectedPlan === 'trial'
-                      ? '7 days complimentary access with full email scanning and auto-categorization. No credit card required.'
-                      : selectedPlan === 'monthly'
-                      ? `₹${PRICING.MONTHLY_AMOUNT} billed monthly. Flexible cadence, pause or cancel anytime in one click.`
-                      : `₹${PRICING.ANNUAL_AMOUNT} billed once a year (≈ ₹${ANNUAL_PER_DAY} / day). Maximum savings, uninterrupted autonomous tracking.`}
-                  </p>
-                </div>
-
-                <div className="shrink-0 flex flex-col items-stretch sm:items-end gap-2">
-                  {!user ? (
-                    /* Public CTA */
-                    <button
-                      type="button"
-                      onClick={() => openAuthModal('/pricing', 'signup')}
-                      className="sb-btn-primary py-3 px-6 text-sm font-bold shadow-md hover:shadow-lg transition-all"
-                    >
+            {/* ── Selected Plan Summary + CTA ─────────────────── */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedPlan}
+                initial={reduce ? undefined : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: -8 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.22, ease: EASE }}
+                className="rounded-2xl border border-brand-500/25 bg-brand-500/5 p-6 sm:p-7 shadow-xs"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                  <div className="space-y-1 max-w-xl">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 bg-brand-500/15 px-2 py-0.5 rounded border border-brand-500/25 font-mono">
+                        {isCurrentPlanSelected ? 'Current Plan' : 'Selected Plan'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-extrabold text-sb-ink font-display m-0">
+                      {planTitles[selectedPlan]} {selectedPlan === 'annual' && `(Save ${ANNUAL_SAVING_PCT}%)`}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-sb-ink-secondary leading-relaxed m-0">
                       {selectedPlan === 'trial'
-                        ? 'Start 7-Day Free Trial'
-                        : `Subscribe to ${planTitles[selectedPlan]}`}
-                    </button>
-                  ) : isCurrentPlanSelected ? (
-                    /* Current Plan Badge */
-                    <button
-                      type="button"
-                      disabled
-                      className="py-3 px-6 text-xs font-bold rounded-xl bg-surface-2 text-sb-ink-muted border border-sb-hairline cursor-default"
-                    >
-                      Current Plan Active
-                    </button>
-                  ) : selectedPlan === 'trial' ? (
-                    /* Trial Disabled for Logged In */
-                    <button
-                      type="button"
-                      disabled
-                      className="py-3 px-6 text-xs font-bold rounded-xl bg-surface-2 text-sb-ink-muted border border-sb-hairline cursor-default"
-                    >
-                      Trial Already Used
-                    </button>
-                  ) : (
-                    /* Direct Razorpay Checkout */
-                    <button
-                      type="button"
-                      onClick={() => handleDirectCheckout(selectedPlan)}
-                      disabled={processingPlan === selectedPlan || hasMandate}
-                      className={cn(
-                        'sb-btn-primary py-3 px-6 text-sm font-bold shadow-md hover:shadow-lg transition-all',
-                        hasMandate && 'opacity-50 cursor-not-allowed',
-                      )}
-                    >
-                      {processingPlan === selectedPlan ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Opening Gateway…</span>
-                        </>
-                      ) : hasMandate ? (
-                        'Auto-renewing Mandate'
-                      ) : (
-                        `Pay Now ₹${selectedPlan === 'annual' ? PRICING.ANNUAL_AMOUNT : PRICING.MONTHLY_AMOUNT}`
-                      )}
-                    </button>
-                  )}
+                        ? '7 days complimentary access with full email scanning and auto-categorization. No credit card required.'
+                        : selectedPlan === 'monthly'
+                        ? `₹${PRICING.MONTHLY_AMOUNT} billed monthly. Flexible cadence, pause or cancel anytime in one click.`
+                        : `₹${PRICING.ANNUAL_AMOUNT} billed once a year (≈ ₹${ANNUAL_PER_DAY} / day). Maximum savings, uninterrupted autonomous tracking.`}
+                    </p>
+                  </div>
 
-                  <span className="text-[11px] text-sb-ink-muted text-center sm:text-right">
-                    Auto-renews via UPI Autopay / card mandate · Cancel anytime
-                  </span>
+                  <div className="shrink-0 flex flex-col items-stretch sm:items-end gap-2">
+                    {!user ? (
+                      /* Public CTA */
+                      <button
+                        type="button"
+                        onClick={() => openAuthModal('/pricing', 'signup')}
+                        className="sb-btn-primary py-3 px-6 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                      >
+                        {selectedPlan === 'trial'
+                          ? 'Start 7-Day Free Trial'
+                          : `Subscribe to ${planTitles[selectedPlan]}`}
+                      </button>
+                    ) : isCurrentPlanSelected ? (
+                      /* Current Plan Badge */
+                      <button
+                        type="button"
+                        disabled
+                        className="py-3 px-6 text-xs font-bold rounded-xl bg-surface-2 text-sb-ink-muted border border-sb-hairline cursor-default inline-flex items-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" />
+                        Current Plan Active
+                      </button>
+                    ) : selectedPlan === 'trial' ? (
+                      /* Trial Disabled for Logged In */
+                      <button
+                        type="button"
+                        disabled
+                        className="py-3 px-6 text-xs font-bold rounded-xl bg-surface-2 text-sb-ink-muted border border-sb-hairline cursor-default"
+                      >
+                        Trial Already Used
+                      </button>
+                    ) : (
+                      /* Direct Razorpay Checkout */
+                      <button
+                        type="button"
+                        onClick={() => handleDirectCheckout(selectedPlan)}
+                        disabled={processingPlan === selectedPlan || hasMandate}
+                        className={cn(
+                          'sb-btn-primary py-3 px-6 text-sm font-bold shadow-md hover:shadow-lg transition-all',
+                          hasMandate && 'opacity-50 cursor-not-allowed',
+                        )}
+                      >
+                        {processingPlan === selectedPlan ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Opening Gateway…</span>
+                          </>
+                        ) : hasMandate ? (
+                          'Auto-renewing Mandate'
+                        ) : (
+                          `Pay Now ₹${selectedPlan === 'annual' ? PRICING.ANNUAL_AMOUNT : PRICING.MONTHLY_AMOUNT}`
+                        )}
+                      </button>
+                    )}
+
+                    <span className="text-[11px] text-sb-ink-muted text-center sm:text-right">
+                      {selectedPlan === 'trial'
+                        ? 'No credit card or payment method required'
+                        : 'Auto-renews via UPI Autopay / card mandate · Cancel anytime'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </AnimatePresence>
+          </section>
 
-            {/* Discrete Promo Coupon Trigger */}
-            <div className="text-center pt-2">
+          {/* ── Promo Coupon Link (public only — logged-in has it in the status banner) ── */}
+          {!user && (
+            <div className="text-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal('/pricing', 'login')
-                    return
-                  }
-                  setPromoModalOpen(true)
-                }}
+                onClick={() => openAuthModal('/pricing', 'login')}
                 className="inline-flex items-center gap-2 text-xs font-semibold text-sb-ink-muted hover:text-brand-600 transition-colors bg-transparent border-0 cursor-pointer"
               >
                 <Ticket className="w-3.5 h-3.5" />
-                <span>Have an invitation or coupon code? Click to redeem</span>
+                <span>Have an invitation or coupon code? Sign in to redeem</span>
               </button>
             </div>
-          </section>
+          )}
 
-          {/* ══════════════════════════════════════════════════════════════
-              TRUST & SECURITY RIBBON
-              ══════════════════════════════════════════════════════════════ */}
-          <div className="rounded-2xl border border-sb-hairline bg-surface-1 p-6 sm:p-8 shadow-xs">
-            <div className="grid sm:grid-cols-3 gap-6 text-xs">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-sb-ink font-bold text-sm">
-                  <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
-                  <span>Cancel Anytime</span>
-                </div>
-                <p className="text-sb-ink-secondary leading-relaxed">
-                  One click stops future charges with zero hassle. Your access continues until the paid period ends.
-                </p>
-              </div>
+          {/* ══════════════════════════════════════════════════════
+              TRUST PILLS — Compact Row
+              ══════════════════════════════════════════════════════ */}
+          <PricingTrustPills />
 
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-sb-ink font-bold text-sm">
-                  <RotateCcw className="w-4 h-4 text-brand-600 shrink-0" />
-                  <span>7-Day Full Refund</span>
-                </div>
-                <p className="text-sb-ink-secondary leading-relaxed">
-                  Contact us within 7 days of any charge for an unconditional 100% refund.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-sb-ink font-bold text-sm">
-                  <Lock className="w-4 h-4 text-brand-600 shrink-0" />
-                  <span>Bank-Grade Privacy</span>
-                </div>
-                <p className="text-sb-ink-secondary leading-relaxed">
-                  Google OAuth read-only permissions. Intrack never asks for nor stores passwords, PINs, or card numbers.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ══════════════════════════════════════════════════════════════
-              COMPACT FAQ ACCORDION
-              ══════════════════════════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════════════════════
+              FAQ ACCORDION
+              ══════════════════════════════════════════════════════ */}
           <PricingFaqAccordion />
 
-          {/* ══════════════════════════════════════════════════════════════
+          {/* ══════════════════════════════════════════════════════
               MODALS
-              ══════════════════════════════════════════════════════════════ */}
+              ══════════════════════════════════════════════════════ */}
           <CancelSubscriptionModal
             isOpen={cancelModalOpen}
             onClose={() => setCancelModalOpen(false)}
