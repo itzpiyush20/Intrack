@@ -8,7 +8,7 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.vercel/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.vercel/**', '**/.claude/**'],
     // Placeholder credentials so `src/services/supabase.ts` can construct its
     // client at import time. Every test that touches the database injects its
     // own mock client (via the `db` option on scanRealGmailInbox, or vi.mock),
