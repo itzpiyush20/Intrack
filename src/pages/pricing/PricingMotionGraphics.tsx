@@ -222,7 +222,7 @@ export function PricingFaqAccordion() {
       a: 'Yes! When you buy a plan while already having active days, our server seamlessly queues the new plan to begin the exact day your existing plan concludes. You never lose any prepaid time.',
     },
     {
-      q: 'How does the 7-day refund guarantee work?',
+      q: 'How does the 7-day refund policy work?',
       a: `Contact us within 7 days of a charge — email ${APP_CONFIG.SUPPORT_EMAIL} or use in-app support — and we will refund it in full to your original payment method. A refund also cancels your subscription and ends access immediately.`,
     },
     {

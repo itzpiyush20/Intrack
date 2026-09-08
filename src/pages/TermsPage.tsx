@@ -41,7 +41,7 @@ export default function TermsPage() {
         {section("1. The Service", `
           Intrack is a personal financial intelligence platform designed to parse bank transactions, help users monitor expenses, maintain budgets, and receive financial forecasts.
 
-          The Service is provided "as is" and "as available". We do not guarantee that the Service will always be uninterrupted, timely, secure, or free from error.
+          The Service is provided "as is" and "as available". We do not warrant that the Service will always be uninterrupted, timely, secure, or free from error.
         `)}
 
         {section("2. Account Creation & Verification", `

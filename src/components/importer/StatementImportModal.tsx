@@ -326,11 +326,11 @@ export default function StatementImportModal({
               </div>
             )}
 
-            {/* Privacy Guarantee Banner */}
+            {/* Privacy Protection Banner */}
             <div className="flex items-start gap-3 p-4 rounded-xl border border-brand-500/20 bg-brand-500/5 text-xs text-sb-ink-secondary">
               <Shield className="h-4 w-4 shrink-0 text-brand-600 mt-0.5" />
               <div>
-                <span className="font-bold text-sb-ink block">100% Client-Side Privacy Guarantee</span>
+                <span className="font-bold text-sb-ink block">100% Client-Side Privacy</span>
                 Parsing happens entirely inside your browser. No files or banking data are ever uploaded to any server.
               </div>
             </div>

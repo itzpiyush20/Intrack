@@ -680,15 +680,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </Link>
                 </div>
 
-                {/* Desktop Header: Page Title + Live Telemetry */}
+                {/* Desktop Header: Page Title */}
                 <div className="hidden lg:flex items-center gap-3.5 min-w-0">
                   <h1 className="text-base font-bold text-sb-ink tracking-tight flex items-center gap-2 m-0">
                     {getCurrentPageTitle(location.pathname)}
                   </h1>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-                    Live Ledger
-                  </span>
                 </div>
               </>
             ) : (
@@ -734,22 +730,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3 sm:gap-4 shrink-0">
 
 
-              {/* Compact Add Transaction CTA — app routes only */}
-              {user && isAppRoute && (
-                <button
-                  type="button"
-                  onClick={() => setNewTxModalOpen(true)}
-                  className={cn(
-                    "hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer",
-                    "bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:bg-[var(--btn-primary-bg-active)] active:scale-97 text-[var(--btn-primary-fg)] shadow-xs",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                  )}
-                  aria-label="Add Transaction"
-                >
-                  <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                  <span>Add Transaction</span>
-                </button>
-              )}
 
               {/* Notification Bell */}
               {user && (

@@ -1,6 +1,6 @@
 // ============================================
 // ExecutiveSubscriptionCard — Authenticated User Command Center
-// Displays real-time plan status, expiry telemetry, cancel-anytime guarantee,
+// Displays real-time plan status, expiry telemetry, cancel-anytime policy,
 // and one-click upgrades, extensions, or self-serve cancellation.
 // ============================================
 

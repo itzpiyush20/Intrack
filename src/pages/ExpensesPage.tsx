@@ -228,13 +228,6 @@ export default function ExpensesPage() {
               <p className="text-sm font-medium text-sb-ink-secondary">
                 Every rupee in and out, for the range you pick.
               </p>
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-700 shadow-xs">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
-                </span>
-                <span>Real-time Ledger</span>
-              </div>
             </div>
           </div>
 
