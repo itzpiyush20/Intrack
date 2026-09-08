@@ -65,7 +65,7 @@ function getCurrentPageTitle(pathname: string): string {
   if (pathname === ROUTES.SUBSCRIPTIONS) return 'Planned Payments'
   if (pathname === ROUTES.SETTINGS) return 'Settings'
   if (pathname === ROUTES.PROFILE) return 'Profile'
-  if (pathname === ROUTES.PRICING || pathname === '/pricing') return 'Subscription & Billing'
+  if (pathname === ROUTES.PRICING || pathname === '/pricing') return 'Pricing'
   if (pathname === '/admin' || pathname.startsWith('/admin')) return 'Admin Console'
   if (pathname === '/payment-success') return 'Payment Successful'
   return 'Command Center'
@@ -586,7 +586,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     )}
                   >
                     <Crown className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Subscription & Billing</span>
+                    <span>Pricing</span>
                   </Link>
 
                   <button
@@ -928,7 +928,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                               : "text-sb-ink hover:bg-sb-canvas-soft"
                           )}
                         >
-                          <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Subscription & Billing
+                          <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Pricing
                         </Link>
                         <button
                           onClick={() => {
@@ -1060,7 +1060,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       : 'text-sb-ink hover:bg-sb-canvas-soft'
                   )}
                 >
-                  <Crown className="h-4 w-4 mr-2 text-amber-500 shrink-0" /> Subscription & Billing
+                  <Crown className="h-4 w-4 mr-2 text-amber-500 shrink-0" /> Pricing
                 </Link>
 
                 <button
