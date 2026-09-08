@@ -6,6 +6,12 @@ import {
   ChevronDown,
   RotateCcw,
   Zap,
+  Sparkles,
+  Mail,
+  Tags,
+  Calendar,
+  FileSpreadsheet,
+  DownloadCloud,
 } from 'lucide-react'
 import { cn } from '@/utils'
 import { APP_CONFIG, PRICING } from '@/constants'
@@ -51,6 +57,116 @@ export function PricingAmbientBackground() {
 }
 
 /**
+ * Core product capabilities & benefits highlighting value before pricing cards.
+ */
+export const PRODUCT_FEATURES = [
+  {
+    icon: Mail,
+    title: 'Autonomous Bank Alert Sync',
+    desc: 'Seamlessly reads transaction emails from 50+ Indian banks & UPI apps (HDFC, ICICI, SBI, Axis, Cred, Google Pay, Paytm). Zero manual entry.',
+    tag: 'Read-only OAuth',
+    highlight: '50+ Indian Banks & UPI',
+  },
+  {
+    icon: Tags,
+    title: 'Intelligent Auto-Categorization',
+    desc: 'Sorts every expense into dining, groceries, utilities, and travel. Automatically cleans messy merchant strings and remembers your corrections.',
+    tag: 'Learning Engine',
+    highlight: 'Auto Merchant Cleanup',
+  },
+  {
+    icon: Calendar,
+    title: 'Subscription & Renewal Radar',
+    desc: 'Detects upcoming recurring charges, subscriptions, and EMIs well in advance so you avoid unexpected debits and forgotten renewals.',
+    tag: 'Proactive Alerts',
+    highlight: 'Zero Surprise Debits',
+  },
+  {
+    icon: FileSpreadsheet,
+    title: 'Client-Side Statement Import',
+    desc: 'Import HDFC, ICICI, SBI, and Axis CSV statements directly. Parsing runs 100% locally in your browser — your files never touch external servers.',
+    tag: '100% Private',
+    highlight: 'Zero Server Storage',
+  },
+  {
+    icon: DownloadCloud,
+    title: 'Instant Data Export & Zero Lock-in',
+    desc: 'Download your entire financial ledger anytime as CSV or JSON. Cancel anytime in one click without retention calls or roadblocks.',
+    tag: 'Full Ownership',
+    highlight: 'One-Click CSV / JSON',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Bank-Grade Privacy Architecture',
+    desc: 'Restricted read-only Google OAuth scope. We never request or store bank account passwords, debit/credit cards, PINs, or OTPs.',
+    tag: 'Safe & Secure',
+    highlight: 'Google-Verified Scope',
+  },
+]
+
+export function PricingFeatureGrid({
+  title = 'Everything you need for effortless finances',
+  subtitle = 'Bank-grade intelligence built specifically for the Indian financial ecosystem. Included on every plan.',
+}: {
+  title?: string
+  subtitle?: string
+}) {
+  const reduce = useReducedMotion()
+
+  return (
+    <section className="space-y-6" data-reveal>
+      <div className="text-center max-w-2xl mx-auto">
+        <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-600 mb-1.5 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 font-mono">
+          <Sparkles className="w-3.5 h-3.5 text-brand-500" />
+          <span>Platform Capabilities</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display text-sb-ink">
+          {title}
+        </h2>
+        <p className="text-xs sm:text-sm text-sb-ink-secondary mt-1.5 leading-relaxed">
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        {PRODUCT_FEATURES.map((feat) => {
+          const Icon = feat.icon
+          return (
+            <motion.div
+              key={feat.title}
+              whileHover={reduce ? undefined : { y: -3, transition: { duration: 0.2 } }}
+              className="p-5 sm:p-6 rounded-2xl border border-sb-hairline bg-surface-1 shadow-xs hover:border-brand-500/35 hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/15 to-brand-500/5 text-brand-600 flex items-center justify-center border border-brand-500/20 group-hover:scale-105 group-hover:border-brand-500/40 transition-all">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-600 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 font-mono">
+                    {feat.tag}
+                  </span>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-sb-ink mb-1.5 tracking-tight group-hover:text-brand-600 transition-colors">
+                  {feat.title}
+                </h3>
+                <p className="text-xs text-sb-ink-secondary leading-relaxed mb-4">
+                  {feat.desc}
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-sb-hairline/60 flex items-center justify-between text-[11px] font-mono text-sb-ink-muted">
+                <span className="text-brand-600 font-semibold">{feat.highlight}</span>
+                <span className="opacity-40 font-sans">100% Unlocked</span>
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+/**
  * Compact trust indicator pills for below the pricing cards.
  * Uses CSS scroll-reveal (data-reveal) for entrance animation.
  */
@@ -68,7 +184,7 @@ export function PricingTrustPills() {
         return (
           <div
             key={item.text}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-sb-hairline bg-surface-1 shadow-xs text-xs font-medium text-sb-ink-secondary"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-sb-hairline bg-surface-1 shadow-xs text-xs font-medium text-sb-ink-secondary"
           >
             <Icon className="w-3.5 h-3.5 text-brand-600 shrink-0" />
             <span>{item.text}</span>
