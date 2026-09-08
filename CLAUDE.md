@@ -57,7 +57,7 @@ change are still honoured, which is why the refresh path in
 
 - Commits: `fix:` / `feat:` / `docs:` prefixes.
 - Multi-phase work gets a plan document in `plans/` first, executed phase by phase.
-- Supabase migrations are numbered sequentially in `supabase/` (next is `042_`).
+- Supabase migrations are numbered sequentially in `supabase/` (next is `046_`).
 - `schema.sql` is only run when a database is created. Anything added to it later
   reaches production **only** if a numbered migration also delivers it — twice now
   (`razorpay_subscription_id`, `is_admin`) a column existed in `schema.sql` and not in
