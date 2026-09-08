@@ -46,6 +46,7 @@ import {
   CheckCircle2,
   Circle,
   ArrowRight,
+  Plus,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { getTransactions, fetchAllTransactions, getMonthlySummary, getSummary, getLoggingStreak } from '@/services/transactions'
@@ -1307,7 +1308,7 @@ export default function DashboardPage() {
                       title="Nothing spent in this period"
                       description={
                         isCurrentMonth
-                          ? 'Add an expense below, or scan your inbox, and your categories appear here ranked by size.'
+                          ? 'Add a transaction above, or scan your inbox, and your categories appear here ranked by size.'
                           : `No expenses fall in ${periodLabel}. Pick another period to see its breakdown.`
                       }
                       action={
@@ -1423,9 +1424,12 @@ export default function DashboardPage() {
                         title="No transactions yet"
                         description="Every transaction you add or approve shows up here, newest first — so you can check at a glance that nothing is missing."
                         action={
-                          <Link to="/expenses">
-                            <Button className="font-semibold">Add a transaction</Button>
-                          </Link>
+                          <Button
+                            onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                            className="gap-1.5 font-semibold shadow-xs"
+                          >
+                            <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
+                          </Button>
                         }
                       />
                     </div>
@@ -1518,6 +1522,17 @@ export default function DashboardPage() {
                 icon={<DollarSign className="h-8 w-8 text-sb-ink-muted" />}
                 title="Nothing recorded yet"
                 description="Add a transaction, or scan your inbox from Pending, and it will appear here."
+                action={
+                  <Button
+                    onClick={() => {
+                      setShowAllRecentModal(false)
+                      window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))
+                    }}
+                    className="gap-1.5 font-semibold shadow-xs"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
+                  </Button>
+                }
               />
             ) : (
               <ul className="divide-y divide-sb-hairline">

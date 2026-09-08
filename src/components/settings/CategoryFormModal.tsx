@@ -144,14 +144,14 @@ export default function CategoryFormModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={isEditing ? 'Edit Category' : 'New Category'}
+      title={isEditing ? 'Edit Category' : 'Add Category'}
       footer={
         <>
           <Button variant="secondary" size="md" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" form="category-form-modal" size="md" loading={loading}>
-            {isEditing ? 'Save Changes' : 'Create Category'}
+          <Button type="submit" form="category-form-modal" size="md" loading={loading} className="font-semibold">
+            {isEditing ? 'Save Changes' : 'Add Category'}
           </Button>
         </>
       }

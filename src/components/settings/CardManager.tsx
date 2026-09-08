@@ -373,8 +373,8 @@ export default function CardManager() {
           <CreditCard className="h-5 w-5 text-brand-600 shrink-0" />
           <span>Credit Cards</span>
         </h2>
-        <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5 shrink-0 shadow-xs">
-          <Plus className="h-3.5 w-3.5" /> Add card
+        <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5 shrink-0 shadow-xs font-semibold">
+          <Plus className="h-3.5 w-3.5" /> Add Card
         </Button>
       </div>
       <p className="text-xs text-sb-ink-muted mb-5 leading-relaxed">
@@ -391,8 +391,8 @@ export default function CardManager() {
           title="No cards yet"
           description="Add a card to keep a running balance of what it owes."
           action={
-            <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Add card
+            <Button size="sm" onClick={() => setFormTarget('new')} className="gap-1.5 font-semibold shadow-xs">
+              <Plus className="h-3.5 w-3.5" /> Add Card
             </Button>
           }
         />

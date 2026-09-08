@@ -495,8 +495,8 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
         {/* Actions. Primary first on desktop; both full width on a phone so
             neither is a small target at the bottom of a sheet. */}
         <div className="flex flex-col gap-2 border-t border-border-subtle pt-5 sm:flex-row-reverse sm:justify-start">
-          <Button type="submit" loading={loading} className="w-full justify-center sm:w-auto">
-            {isEditing ? 'Save changes' : 'Add transaction'}
+          <Button type="submit" loading={loading} className="w-full justify-center sm:w-auto font-semibold">
+            {isEditing ? 'Save changes' : 'Add Transaction'}
           </Button>
           {onCancel && (
             <Button

@@ -94,6 +94,12 @@ export default function ExpensesPage() {
   }, [fetchTransactions])
 
   useEffect(() => {
+    const handleTxAdded = () => fetchTransactions()
+    window.addEventListener('intrack:transaction-added', handleTxAdded)
+    return () => window.removeEventListener('intrack:transaction-added', handleTxAdded)
+  }, [fetchTransactions])
+
+  useEffect(() => {
     if ((location.state as any)?.tag) {
       setFilterTag((location.state as any).tag)
     }
@@ -245,7 +251,7 @@ export default function ExpensesPage() {
               onClick={() => setShowForm(true)}
               className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
             >
-              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add transaction
+              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
             </Button>
           </div>
         </div>
@@ -385,7 +391,7 @@ export default function ExpensesPage() {
         <Modal
           isOpen={showForm}
           onClose={handleCancel}
-          title={editingTransaction ? 'Edit transaction' : 'Add transaction'}
+          title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
           sheet
         >
           <ExpenseForm
@@ -438,7 +444,7 @@ export default function ExpensesPage() {
             isFiltered={isFiltered}
             emptyAction={
               <Button onClick={() => setShowForm(true)} className="h-11 justify-center gap-1.5 font-semibold shadow-xs">
-                <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add transaction
+                <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
               </Button>
             }
           />

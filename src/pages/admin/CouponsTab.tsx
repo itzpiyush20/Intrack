@@ -216,8 +216,8 @@ export default function CouponsTab() {
         )}
 
         <div className="mt-4">
-          <Button onClick={create} loading={saving} disabled={saving || !code.trim()} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Create coupon
+          <Button onClick={create} loading={saving} disabled={saving || !code.trim()} className="gap-1.5 font-semibold shadow-xs">
+            <Plus className="h-4 w-4" /> Create Coupon
           </Button>
         </div>
       </Card>

@@ -317,8 +317,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Feedback Modal States
   const [feedbackOpen, setFeedbackOpen] = useState(false)
-  // New Transaction Modal
+  // Add Transaction Modal
   const [newTxModalOpen, setNewTxModalOpen] = useState(false)
+
+  useEffect(() => {
+    const handleOpenAdd = () => setNewTxModalOpen(true)
+    window.addEventListener('intrack:open-add-transaction', handleOpenAdd)
+    return () => window.removeEventListener('intrack:open-add-transaction', handleOpenAdd)
+  }, [])
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature_request' | 'ui_ux' | 'other'>('ui_ux')
   const [feedbackRating, setFeedbackRating] = useState<number>(5)
   const [feedbackMessage, setFeedbackMessage] = useState('')
@@ -728,20 +734,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3 sm:gap-4 shrink-0">
 
 
-              {/* Compact New Transaction CTA — app routes only */}
+              {/* Compact Add Transaction CTA — app routes only */}
               {user && isAppRoute && (
                 <button
                   type="button"
                   onClick={() => setNewTxModalOpen(true)}
                   className={cn(
                     "hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer",
-                    "bg-brand-600 hover:bg-brand-700 active:scale-97 text-white shadow-xs",
+                    "bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:bg-[var(--btn-primary-bg-active)] active:scale-97 text-[var(--btn-primary-fg)] shadow-xs",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                   )}
-                  aria-label="Add a new transaction"
+                  aria-label="Add Transaction"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                  <span>New Transaction</span>
+                  <span>Add Transaction</span>
                 </button>
               )}
 
@@ -987,18 +993,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             {user && isAppRoute ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    setNewTxModalOpen(true)
-                  }}
-                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold mb-2 bg-brand-600 hover:bg-brand-700 text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                  aria-label="Add a new transaction"
-                >
-                  <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                  <span>New Transaction</span>
-                </button>
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path
                   const Icon = item.icon
@@ -1427,17 +1421,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )
             })}
 
-            {/* Quick Add — opens the New Transaction modal */}
+            {/* Add Transaction FAB — opens the Add Transaction modal */}
             <div className="flex-1 flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => setNewTxModalOpen(true)}
                 className={cn(
                   'flex h-12 w-12 items-center justify-center rounded-2xl shadow-md shadow-brand-500/25 transition-all active:scale-95 cursor-pointer',
-                  'bg-brand-600 hover:bg-brand-700 text-white',
+                  'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:bg-[var(--btn-primary-bg-active)] text-[var(--btn-primary-fg)]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
                 )}
-                aria-label="Add a transaction"
+                aria-label="Add Transaction"
+                title="Add Transaction"
               >
                 <Plus className="h-6 w-6" strokeWidth={2.5} aria-hidden="true" />
               </button>

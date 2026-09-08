@@ -137,8 +137,8 @@ export default function CategoryManager() {
           <Layers className="h-5 w-5 text-brand-600 shrink-0" />
           <span>Manage Categories</span>
         </h2>
-        <Button size="sm" onClick={openCreate} className="gap-1.5 shrink-0 shadow-xs">
-          <Plus className="h-3.5 w-3.5" /> New Category
+        <Button size="sm" onClick={openCreate} className="gap-1.5 shrink-0 shadow-xs font-semibold">
+          <Plus className="h-3.5 w-3.5" /> Add Category
         </Button>
       </div>
       <p className="text-sm text-sb-ink-muted mb-5 leading-relaxed">

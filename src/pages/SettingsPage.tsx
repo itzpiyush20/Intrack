@@ -894,8 +894,8 @@ export default function SettingsPage() {
                   <option value="income">🟢 Income</option>
                 </Select>
                 <div className="flex items-end">
-                  <Button type="submit" block className="gap-1.5 shadow-xs">
-                    <Plus className="h-4 w-4" /> Add rule
+                  <Button type="submit" block className="gap-1.5 shadow-xs font-semibold">
+                    <Plus className="h-4 w-4" /> Add Rule
                   </Button>
                 </div>
               </form>

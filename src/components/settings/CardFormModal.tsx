@@ -135,7 +135,7 @@ export default function CardFormModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={isEditing ? 'Edit card' : confirming ? 'Check the details' : 'Add a card'}
+      title={isEditing ? 'Edit Card' : confirming ? 'Check the details' : 'Add Card'}
       sheet
       footer={
         confirming ? (
@@ -143,8 +143,8 @@ export default function CardFormModal({
             <Button variant="secondary" size="md" onClick={() => setConfirming(false)} disabled={loading}>
               Back
             </Button>
-            <Button size="md" onClick={save} loading={loading}>
-              Add card
+            <Button size="md" onClick={save} loading={loading} className="font-semibold">
+              Add Card
             </Button>
           </>
         ) : (
@@ -152,8 +152,8 @@ export default function CardFormModal({
             <Button variant="secondary" size="md" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" form="card-form-modal" size="md" loading={loading}>
-              {isEditing ? 'Save changes' : 'Continue'}
+            <Button type="submit" form="card-form-modal" size="md" loading={loading} className="font-semibold">
+              {isEditing ? 'Save Changes' : 'Continue'}
             </Button>
           </>
         )

@@ -309,15 +309,16 @@ export default function SubscriptionsPage() {
             )}
 
             <Button
+              size="sm"
               onClick={() => {
                 setFormModalItem(null)
                 setPrefilledCategory(undefined)
                 setIsFormModalOpen(true)
               }}
-              className="!h-9 text-xs shadow-xs"
+              className="gap-1.5 font-semibold shadow-xs"
             >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Planned Payment
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Planned Payment</span>
             </Button>
           </div>
         </div>
@@ -406,15 +407,16 @@ export default function SubscriptionsPage() {
 
             <div className="mt-6 flex justify-center">
               <Button
+                size="sm"
                 onClick={() => {
                   setFormModalItem(null)
                   setPrefilledCategory(undefined)
                   setIsFormModalOpen(true)
                 }}
-                className="!h-10 text-xs shadow-xs"
+                className="gap-1.5 font-semibold shadow-xs"
               >
-                <Plus className="h-4 w-4 mr-1.5" />
-                Add Planned Payment
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Planned Payment</span>
               </Button>
             </div>
           </Card>

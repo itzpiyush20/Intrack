@@ -456,8 +456,17 @@ export default function DebtsManager() {
             title="No loan records found"
             description={
               filterSource === 'all'
-                ? 'You have not recorded any borrowings or loan repayments yet. Click "Record Borrowing / Repayment" above to log one.'
+                ? 'You have not recorded any borrowings or loan repayments yet.'
                 : `No transactions found under ${LOAN_SOURCE_LABELS[filterSource]}.`
+            }
+            action={
+              <Button
+                onClick={() => handleOpenModal(undefined, 'credit')}
+                className="gap-1.5 shadow-xs font-semibold"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span>Record Borrowing / Repayment</span>
+              </Button>
             }
           />
         ) : (

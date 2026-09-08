@@ -1105,9 +1105,13 @@ export default function InsightsPage() {
                   <Link to="/pending" className={LINK_BUTTON_PRIMARY}>
                     Scan my inbox
                   </Link>
-                  <Link to="/expenses" className={LINK_BUTTON_SECONDARY}>
-                    Add a transaction
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                    className={LINK_BUTTON_SECONDARY}
+                  >
+                    Add Transaction
+                  </button>
                 </div>
               }
             />
