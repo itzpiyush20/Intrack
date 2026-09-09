@@ -18,7 +18,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import {
-  Card, Button, Input, Select, ConfirmDialog, DateFilterPicker,
+  Card, Button, Input, Select, ConfirmDialog, DateFilterPicker, PageHeader, PageHeaderChip,
   SECTION_LABEL, staggerParent, staggerChild,
 } from '@/components/ui'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -249,28 +249,12 @@ export default function BudgetsPage() {
       />
 
       <div className="relative z-10 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">Budgets</h1>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-              <p className="max-w-2xl text-sm font-medium leading-relaxed text-sb-ink-secondary">
-                Set a monthly limit per category and Intrack warns you before you pass it.
-              </p>
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-700 shadow-xs">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
-                </span>
-                <span>Pace Forecast Active</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="md:shrink-0">
-            <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
-          </div>
-        </div>
+        <PageHeader
+          title="Budgets"
+          eyebrow={<PageHeaderChip>Pace Forecast Active</PageHeaderChip>}
+          subtitle="Set a monthly limit per category and Intrack warns you before you pass it."
+          actions={<DateFilterPicker value={dateFilter} onChange={setDateFilter} />}
+        />
 
         {error && (
           <div

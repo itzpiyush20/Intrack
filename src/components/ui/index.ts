@@ -14,6 +14,9 @@ export { default as SiteFooter } from './SiteFooter'
 export { default as MarketingHeader } from './MarketingHeader'
 export { default as BrandMark } from './BrandMark'
 export { default as Skeleton, PageSkeleton } from './Skeleton'
+export { default as AnimatedNumber } from './AnimatedNumber'
+export { default as AnimatedBar } from './AnimatedBar'
+export { default as PageHeader, PageHeaderChip } from './PageHeader'
 export { ACTION_BUTTON, ACTION_BUTTON_DANGER, ROW_TILE, SECTION_LABEL } from './styles'
 export {
   EASE_OUT, DURATION, INDICATOR_SPRING, transition,

@@ -10,7 +10,7 @@ import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
 import {
   Card, Button, Input, Select, Badge, EmptyState, Modal, TransactionIdentity,
-  Skeleton, SECTION_LABEL, transition, rowVariants,
+  Skeleton, PageHeader, PageHeaderChip, SECTION_LABEL, transition, rowVariants,
 } from '@/components/ui'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
@@ -1109,54 +1109,45 @@ export default function PendingPage() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                Bank Alert Engine Active
-              </span>
+        <PageHeader
+          title="Pending Alerts"
+          eyebrow={<PageHeaderChip>Bank Alert Engine Active</PageHeaderChip>}
+          subtitle="Bank alerts scanned from email notifications. Review, correct category, and approve them."
+          actions={
+            <div className="flex flex-col items-start gap-1.5 md:items-end">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="shrink-0 gap-1.5 justify-center"
+                  aria-label="Import Bank Statement CSV"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-brand-600" /> Import Statement
+                </Button>
+                <Button
+                  onClick={() => handleScan()}
+                  loading={scanning}
+                  disabled={scanning || !!scanCooldownMessage}
+                  className="shrink-0 gap-1.5 shadow-md justify-center"
+                  aria-label="Scan Gmail Inbox for new bank alerts"
+                >
+                  <Sparkles className="h-4 w-4 text-white" /> Scan Bank Alerts
+                </Button>
+              </div>
+              {scanning && (scanProgress || scanTakingLong) ? (
+                <span role="status" className="text-xs text-sb-ink-muted">
+                  {scanProgress ?? 'Still scanning your inbox — large inboxes can take up to a minute…'}
+                </span>
+              ) : nextScanAt ? (
+                <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Calendar className="h-3 w-3 text-brand-600 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
+                </span>
+              ) : (
+                <span className="text-xs text-sb-ink-muted">Ready to scan</span>
+              )}
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Pending Alerts</h1>
-            <p className="mt-1 text-sm text-sb-ink-muted">
-              Bank alerts scanned from email notifications. Review, correct category, and approve them.
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setIsImportModalOpen(true)}
-                className="shrink-0 gap-1.5 justify-center"
-                aria-label="Import Bank Statement CSV"
-              >
-                <FileSpreadsheet className="h-4 w-4 text-brand-600" /> Import Statement
-              </Button>
-              <Button
-                onClick={() => handleScan()}
-                loading={scanning}
-                disabled={scanning || !!scanCooldownMessage}
-                className="shrink-0 gap-1.5 shadow-md justify-center"
-                aria-label="Scan Gmail Inbox for new bank alerts"
-              >
-                <Sparkles className="h-4 w-4 text-white" /> Scan Bank Alerts
-              </Button>
-            </div>
-            {scanning && (scanProgress || scanTakingLong) ? (
-              <span role="status" className="text-xs text-sb-ink-muted">
-                {scanProgress ?? 'Still scanning your inbox — large inboxes can take up to a minute…'}
-              </span>
-            ) : nextScanAt ? (
-              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-brand-600 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
-              </span>
-            ) : (
-              <span className="text-xs text-sb-ink-muted">Ready to scan</span>
-            )}
-          </div>
-        </div>
+          }
+        />
 
         {/* ── Scan Dashboard ───────────────────────────────── */}
         {lastScanLog && (

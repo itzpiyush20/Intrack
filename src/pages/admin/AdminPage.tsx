@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import { APP_CONFIG } from '@/constants'
 import { AppLayout } from '@/layouts'
+import { PageHeader, PageHeaderChip } from '@/components/ui'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { cn } from '@/utils'
 import {
@@ -54,19 +55,12 @@ export default function AdminPage() {
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
         </div>
 
-        <header className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-              Operations & Root Telemetry
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Admin Control Center</h1>
-          <p className="mt-1.5 text-sm text-sb-ink-secondary max-w-2xl leading-relaxed">
-            Overview, Scanner, and AI are read-only telemetry. Users and Coupons manage active subscriptions;
-            Feedback and Support route resolution flows.
-          </p>
-        </header>
+        <PageHeader
+          className="mb-6"
+          title="Admin Control Center"
+          eyebrow={<PageHeaderChip>Operations &amp; Root Telemetry</PageHeaderChip>}
+          subtitle="Overview, Scanner, and AI are read-only telemetry. Users and Coupons manage active subscriptions; Feedback and Support route resolution flows."
+        />
 
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
           <nav

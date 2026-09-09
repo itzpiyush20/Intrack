@@ -20,7 +20,7 @@ import { APP_CONFIG } from '@/constants'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AppLayout } from '@/layouts'
 import {
-  Card, Button, Modal, Input, Select, DateFilterPicker,
+  Card, Button, Modal, Input, Select, DateFilterPicker, PageHeader,
   SECTION_LABEL, staggerParent, staggerChild,
 } from '@/components/ui'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -220,34 +220,28 @@ export default function ExpensesPage() {
       />
 
       <div className="relative z-10 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">Transactions</h1>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-              <p className="text-sm font-medium text-sb-ink-secondary">
-                Every rupee in and out, for the range you pick.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center md:shrink-0">
-            <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
-            <Button
-              variant="secondary"
-              onClick={() => setIsImportModalOpen(true)}
-              className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
-            >
-              <FileSpreadsheet className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" /> Import Statement
-            </Button>
-            <Button
-              onClick={() => setShowForm(true)}
-              className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
-            >
-              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Transactions"
+          subtitle="Every rupee in and out, for the range you pick."
+          actions={
+            <>
+              <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+              <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" /> Import Statement
+              </Button>
+              <Button
+                onClick={() => setShowForm(true)}
+                className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
+              >
+                <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
+              </Button>
+            </>
+          }
+        />
 
         {error && (
           <div

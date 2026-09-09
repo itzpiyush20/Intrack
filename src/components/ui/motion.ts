@@ -22,8 +22,14 @@ import type { Transition, Variants } from 'framer-motion'
  */
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const
 
-/** 180ms for anything the user is waiting on; 240ms for larger surfaces. */
-export const DURATION = { fast: 0.14, base: 0.18, slow: 0.24 } as const
+/**
+ * 180ms for anything the user is waiting on; 240ms for larger surfaces.
+ *
+ * `data` is the outlier and deliberately so: a figure counting up or a bar
+ * growing is not interface feedback the user is blocked on, it is the value
+ * itself being reported, and it needs long enough to be read as arriving.
+ */
+export const DURATION = { fast: 0.14, base: 0.18, slow: 0.24, data: 0.65 } as const
 
 /** The spring a travelling indicator uses (an active tab marker, a toggle). */
 export const INDICATOR_SPRING: Transition = { type: 'spring', stiffness: 420, damping: 36 }

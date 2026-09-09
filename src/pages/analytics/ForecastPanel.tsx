@@ -1,4 +1,4 @@
-import { Card, Badge } from '@/components/ui'
+import { AnimatedBar, Card, Badge } from '@/components/ui'
 import { formatCurrency } from '@/utils'
 import { Calendar } from 'lucide-react'
 
@@ -60,9 +60,9 @@ export function ForecastPanel({ forecast }: ForecastPanelProps) {
             </div>
             {/* Mini confidence bar */}
             <div className="mt-3 h-1 bg-surface-2 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand-500 rounded-full transition-all"
-                style={{ width: `${f.confidence}%` }}
+              <AnimatedBar
+                percent={f.confidence}
+                className="block h-full bg-brand-500 rounded-full"
               />
             </div>
           </div>

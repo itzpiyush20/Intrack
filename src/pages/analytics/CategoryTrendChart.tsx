@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { DURATION, EASE_OUT } from '@/components/ui'
 import { Card, EmptyState, Skeleton } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact, cn } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
@@ -41,6 +43,7 @@ const OTHER_KEY = '__other__'
 export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentClick }: CategoryTrendChartProps) {
   const { getStyle } = useCategories()
   const [tappedIndex, setTappedIndex] = useState<number | null>(null)
+  const reduce = useReducedMotion()
   const maxTotal = data.length ? Math.max(...data.map((m) => m.total)) : 0
 
   // Legend covers the union of categories that actually appear across the
@@ -144,9 +147,15 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
                           ))}
                         </div>
 
-                        <div
+                        <motion.div
                           className="flex w-full max-w-[40px] flex-col-reverse overflow-hidden rounded-t-sm"
-                          style={{ height: `${m.total > 0 && maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}
+                          initial={reduce ? false : { height: '0%' }}
+                          animate={{ height: `${m.total > 0 && maxTotal > 0 ? Math.max(3, (m.total / maxTotal) * 100) : 0}%` }}
+                          transition={
+                            reduce
+                              ? { duration: 0 }
+                              : { duration: DURATION.data, delay: Math.min(index * 0.03, 0.24), ease: EASE_OUT }
+                          }
                           onClick={() => setTappedIndex(open ? null : index)}
                         >
                           {visible.map((s) => {
@@ -170,7 +179,7 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
                               <div key={s.category} className="w-full" style={style} />
                             )
                           })}
-                        </div>
+                        </motion.div>
                       </div>
                     )
                   })}

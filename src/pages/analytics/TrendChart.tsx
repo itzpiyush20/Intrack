@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { AnimatedBar, Card, EmptyState, Skeleton } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact, cn } from '@/utils'
 import type { RangeType } from './PeriodSelector'
 import { BarChart3 } from 'lucide-react'
@@ -200,13 +200,19 @@ export function TrendChart({
                         </div>
 
                         <div className="flex h-full w-full max-w-[64px] items-end justify-center gap-1 px-1 sm:gap-2">
-                          <div
-                            className="w-2.5 rounded-t-sm transition-[height] duration-500 ease-out sm:w-4"
-                            style={{ height: `${incHeight}%`, backgroundColor: SERIES.income.color }}
+                          <AnimatedBar
+                            percent={incHeight}
+                            orientation="vertical"
+                            delay={Math.min(index * 0.03, 0.24)}
+                            className="w-2.5 rounded-t-sm sm:w-4"
+                            style={{ backgroundColor: SERIES.income.color }}
                           />
-                          <div
-                            className="w-2.5 rounded-t-sm transition-[height] duration-500 ease-out sm:w-4"
-                            style={{ height: `${expHeight}%`, backgroundColor: SERIES.expense.color }}
+                          <AnimatedBar
+                            percent={expHeight}
+                            orientation="vertical"
+                            delay={Math.min(index * 0.03, 0.24)}
+                            className="w-2.5 rounded-t-sm sm:w-4"
+                            style={{ backgroundColor: SERIES.expense.color }}
                           />
                         </div>
                       </button>

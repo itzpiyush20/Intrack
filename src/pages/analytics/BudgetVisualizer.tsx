@@ -1,4 +1,4 @@
-import { Card, Badge } from '@/components/ui'
+import { AnimatedBar, Card, Badge } from '@/components/ui'
 import { formatCurrency } from '@/utils'
 import { Package, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react'
 
@@ -47,9 +47,9 @@ export function BudgetVisualizer({
               </span>
             </div>
             <div className="h-2.5 w-full bg-surface-2 border border-sb-hairline/60 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[var(--status-info-text)] rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, needsPct)}%` }}
+              <AnimatedBar
+                percent={needsPct}
+                className="block h-full bg-[var(--status-info-text)] rounded-full"
               />
             </div>
           </div>
@@ -71,9 +71,9 @@ export function BudgetVisualizer({
               </span>
             </div>
             <div className="h-2.5 w-full bg-surface-2 border border-sb-hairline/60 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[var(--status-warning-text)] rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, wantsPct)}%` }}
+              <AnimatedBar
+                percent={wantsPct}
+                className="block h-full bg-[var(--status-warning-text)] rounded-full"
               />
             </div>
           </div>
@@ -95,9 +95,9 @@ export function BudgetVisualizer({
               </span>
             </div>
             <div className="h-2.5 w-full bg-surface-2 border border-sb-hairline/60 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[var(--status-positive-text)] rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, finalSavingsPct)}%` }}
+              <AnimatedBar
+                percent={finalSavingsPct}
+                className="block h-full bg-[var(--status-positive-text)] rounded-full"
               />
             </div>
           </div>

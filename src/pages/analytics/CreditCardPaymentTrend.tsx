@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { AnimatedBar, Card, EmptyState, Skeleton } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact, cn } from '@/utils'
 import { CreditCard } from 'lucide-react'
 import {
@@ -113,9 +113,12 @@ export function CreditCardPaymentTrend({ data, loading, onMonthClick }: CreditCa
                       </div>
 
                       <div className="flex h-full w-full max-w-[64px] items-end justify-center px-1">
-                        <div
-                          className="w-4 rounded-t-sm transition-[height] duration-500 ease-out sm:w-6"
-                          style={{ height: `${height}%`, backgroundColor: NEUTRAL_MARK }}
+                        <AnimatedBar
+                          percent={height}
+                          orientation="vertical"
+                          delay={Math.min(index * 0.03, 0.24)}
+                          className="w-4 rounded-t-sm sm:w-6"
+                          style={{ backgroundColor: NEUTRAL_MARK }}
                         />
                       </div>
                     </button>

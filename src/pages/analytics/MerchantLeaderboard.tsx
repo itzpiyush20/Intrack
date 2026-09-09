@@ -1,4 +1,4 @@
-import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { AnimatedBar, Card, EmptyState, Skeleton } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { Store } from 'lucide-react'
 import { SERIES, CARD_TITLE, CARD_SUBTITLE } from './chartTokens'
@@ -69,9 +69,10 @@ export function MerchantLeaderboard({ data, loading, onMerchantClick }: Merchant
                   </span>
                   <span className="mt-1.5 flex items-center gap-2 pl-7">
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
-                      <span
-                        className="block h-full rounded-full transition-[width] duration-500"
-                        style={{ width: `${width}%`, backgroundColor: SERIES.expense.color }}
+                      <AnimatedBar
+                        percent={width}
+                        className="block h-full rounded-full"
+                        style={{ backgroundColor: SERIES.expense.color }}
                       />
                     </span>
                     <span className="shrink-0 text-xs text-sb-ink-muted tnum font-medium">

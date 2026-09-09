@@ -1,4 +1,5 @@
-import { Card, EmptyState, Skeleton } from '@/components/ui'
+import { motion, useReducedMotion } from 'framer-motion'
+import { AnimatedNumber, Card, EmptyState, Skeleton, DURATION, EASE_OUT } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import { PieChart } from 'lucide-react'
@@ -34,6 +35,7 @@ export function ExpenseBreakdown({
   onCategoryClick,
 }: ExpenseBreakdownProps) {
   const { getStyle } = useCategories()
+  const reduce = useReducedMotion()
   // Conic Gradient for doughnut
   const getConicGradientString = () => {
     if (!summary || summary.category_breakdown.length === 0) {
@@ -94,13 +96,32 @@ export function ExpenseBreakdown({
             <div
               aria-hidden="true"
               className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full sm:h-40 sm:w-40"
-              style={{ backgroundImage: getConicGradientString() }}
             >
-              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-surface-1 shadow-inner sm:h-28 sm:w-28">
+              {/* The ring is its own layer so the sweep that draws it does not
+                  also wipe in the total sitting in the middle. A conic mask
+                  opened from 0deg to 360deg reads as the chart being drawn. */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  backgroundImage: getConicGradientString(),
+                  // The 360deg fallback matters: if the custom property is
+                  // never applied, the mask must resolve to a fully drawn ring
+                  // rather than an invalid value that hides the chart.
+                  WebkitMaskImage: 'conic-gradient(from 0deg, #000 var(--donut-sweep, 360deg), transparent 0)',
+                  maskImage: 'conic-gradient(from 0deg, #000 var(--donut-sweep, 360deg), transparent 0)',
+                }}
+                initial={reduce ? { '--donut-sweep': '360deg' } : { '--donut-sweep': '0deg' }}
+                animate={{ '--donut-sweep': '360deg' }}
+                transition={reduce ? { duration: 0 } : { duration: 0.9, ease: EASE_OUT }}
+              />
+              <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full bg-surface-1 shadow-inner sm:h-28 sm:w-28">
                 <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Total out</p>
-                <p className="mt-0.5 text-base font-bold text-sb-ink tnum">
-                  {formatCurrencyCompact(summary.total_expenses)}
-                </p>
+                <AnimatedNumber
+                  value={summary.total_expenses}
+                  format={formatCurrencyCompact}
+                  duration={DURATION.data}
+                  className="mt-0.5 block text-base font-bold text-sb-ink tnum"
+                />
               </div>
             </div>
 

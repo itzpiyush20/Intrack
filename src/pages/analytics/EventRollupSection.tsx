@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, Badge, Button, Select, Skeleton } from '@/components/ui'
+import { AnimatedBar, Card, Badge, Button, Select, Skeleton } from '@/components/ui'
 import { useCategories } from '@/context/CategoriesContext'
 import { useDrillDown } from '@/context/DrillDownContext'
 import { formatCurrency, formatDate, cn } from '@/utils'
@@ -303,9 +303,9 @@ export default function EventRollupSection({
           </span>
         </div>
         <div className="relative h-3 w-full overflow-hidden rounded-full bg-surface-3">
-          <div
-            className="h-full bg-brand-500 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(0, eventMetrics.pctOfTotal))}%` }}
+          <AnimatedBar
+            percent={eventMetrics.pctOfTotal}
+            className="block h-full bg-brand-500 rounded-full"
           />
         </div>
         <p className="text-[11px] text-sb-ink-muted">
@@ -362,9 +362,9 @@ export default function EventRollupSection({
 
                   {/* Progress bar */}
                   <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full bg-brand-500/80 rounded-full transition-all duration-300 group-hover:bg-brand-500"
-                      style={{ width: `${Math.min(100, Math.max(2, cat.percentage))}%` }}
+                    <AnimatedBar
+                      percent={Math.max(2, cat.percentage)}
+                      className="block h-full bg-brand-500/80 rounded-full transition-colors duration-300 group-hover:bg-brand-500"
                     />
                   </div>
                 </div>

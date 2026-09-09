@@ -13,6 +13,8 @@ import {
   Badge,
   Input,
   Skeleton,
+  PageHeader,
+  PageHeaderChip,
   rowVariants,
   transition,
 } from '@/components/ui'
@@ -255,26 +257,12 @@ export default function SubscriptionsPage() {
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-72 w-[38rem] max-w-[95vw] rounded-full bg-radial from-brand-500/10 via-brand-500/3 to-transparent blur-3xl" />
         </div>
 
-        {/* Page Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-brand-50 border border-brand-200/80 text-brand-700 shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
-                Command Center
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-sb-ink sm:text-3xl">
-              Planned Payments
-            </h1>
-            <p className="mt-1 text-sm text-sb-ink-muted max-w-2xl">
-              Fixed and recurring commitments like Rent, Utilities, EMIs, and Subscriptions.
-              Payments clear automatically when logged in your transactions.
-            </p>
-          </div>
-
-          {/* Month Navigation and New Payment Button */}
-          <div className="flex flex-wrap items-center gap-2">
+        <PageHeader
+          title="Planned Payments"
+          eyebrow={<PageHeaderChip>Command Center</PageHeaderChip>}
+          subtitle="Fixed and recurring commitments like Rent, Utilities, EMIs, and Subscriptions. Payments clear automatically when logged in your transactions."
+          actions={
+            <>
             <div className="inline-flex items-center rounded-xl bg-surface-1 border border-sb-hairline p-1 shadow-xs">
               <button
                 type="button"
@@ -320,8 +308,9 @@ export default function SubscriptionsPage() {
               <Plus className="h-3.5 w-3.5" />
               <span>Add Planned Payment</span>
             </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {loading && evaluation.totalCount === 0 ? (
           <div className="mt-6 flex flex-col gap-6">

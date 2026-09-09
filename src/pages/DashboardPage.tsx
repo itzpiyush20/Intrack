@@ -22,7 +22,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
 import {
-  Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity, Skeleton,
+  Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity, Skeleton, PageHeader,
+  AnimatedNumber, AnimatedBar,
   staggerParent, staggerChild, rowVariants, transition, SECTION_LABEL, ROW_TILE,
 } from '@/components/ui'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
@@ -761,42 +762,45 @@ export default function DashboardPage() {
         className="relative z-10 space-y-6 md:space-y-8"
       >
         {/* ── Greeting and period controls ─────────────────────────────── */}
-        <motion.header variants={staggerChild(reduce)} className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-sb-ink md:text-3xl">
-              Hello, {getFirstName()}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
-              <p className="text-sm font-medium text-sb-ink-secondary">
+        <motion.div variants={staggerChild(reduce)}>
+          <PageHeader
+            title={`Hello, ${getFirstName()}`}
+            /* The greeting is personal; the sticky bar keeps the tab's name. */
+            stickyTitle="Home"
+            subtitle={
+              <>
                 What your money did{dateFilter.mode === 'month' ? ' in ' : ', '}
                 <span className="font-semibold text-sb-ink">{periodLabel}</span>.
-              </p>
-              {streakInfo.streak > 1 && (
+              </>
+            }
+            aside={
+              streakInfo.streak > 1 ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-800 shadow-xs">
                   <Flame className="h-3.5 w-3.5 shrink-0 text-amber-600 animate-pulse" aria-hidden="true" />
                   <span className="tnum">{streakInfo.streak}</span> day streak
                 </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
-            <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
-            <Button
-              variant="secondary"
-              onClick={() => setShowConfigModal(true)}
-              className="h-11 gap-1.5 rounded-xl font-semibold shadow-xs"
-            >
-              <Settings className="h-4 w-4 shrink-0" aria-hidden="true" /> Customise
-            </Button>
-            <Button
-              onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
-              className="h-11 gap-1.5 font-semibold shadow-xs rounded-xl whitespace-nowrap"
-            >
-              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
-            </Button>
-          </div>
-        </motion.header>
+              ) : null
+            }
+            actions={
+              <>
+                <DateFilterPicker value={dateFilter} onChange={setDateFilter} />
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowConfigModal(true)}
+                  className="h-11 gap-1.5 rounded-xl font-semibold shadow-xs"
+                >
+                  <Settings className="h-4 w-4 shrink-0" aria-hidden="true" /> Customise
+                </Button>
+                <Button
+                  onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                  className="h-11 gap-1.5 font-semibold shadow-xs rounded-xl whitespace-nowrap"
+                >
+                  <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
+                </Button>
+              </>
+            }
+          />
+        </motion.div>
 
         {/* ── Notices ────────────────────────────────────────────────── */}
         {error && (
@@ -1047,9 +1051,11 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">Inflow</span>
                     </div>
-                    <p className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-[var(--status-positive-text)]">
-                      {formatCurrency(summary?.total_income || 0)}
-                    </p>
+                    <AnimatedNumber
+                      value={summary?.total_income || 0}
+                      format={formatCurrency}
+                      className="mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-[var(--status-positive-text)]"
+                    />
                     <p className="mt-2 text-xs font-medium text-sb-ink-muted">Received in {periodLabel}</p>
                   </Card>
 
@@ -1067,9 +1073,11 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-sb-ink-muted">Outflow</span>
                     </div>
-                    <p className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-sb-ink">
-                      {formatCurrency(summary?.total_expenses || 0)}
-                    </p>
+                    <AnimatedNumber
+                      value={summary?.total_expenses || 0}
+                      format={formatCurrency}
+                      className="mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-sb-ink"
+                    />
                     <p className="mt-2 text-xs font-medium text-sb-ink-muted">Spent in {periodLabel}</p>
                   </Card>
 
@@ -1090,15 +1098,15 @@ export default function DashboardPage() {
                         {(summary?.savings || 0) >= 0 ? 'Surplus' : 'Deficit'}
                       </span>
                     </div>
-                    <p
-                      className={`mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight tnum ${
+                    <AnimatedNumber
+                      value={summary?.savings || 0}
+                      format={formatCurrency}
+                      className={`mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum ${
                         (summary?.savings || 0) >= 0
                           ? 'text-[var(--status-positive-text)]'
                           : 'text-[var(--status-danger-text)]'
                       }`}
-                    >
-                      {formatCurrency(summary?.savings || 0)}
-                    </p>
+                    />
                     <div className="mt-3">
                       <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
                         <span className="font-medium text-sb-ink-muted">
@@ -1122,11 +1130,13 @@ export default function DashboardPage() {
                         aria-label="Share of income kept"
                         className="h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
                       >
-                        <div
-                          className={`h-full rounded-full ${
-                            reduce ? '' : 'transition-[width] duration-700 ease-out'
-                          } ${(summary?.savings || 0) >= 0 ? 'bg-gradient-to-r from-brand-600 to-emerald-500' : 'bg-[var(--status-danger-text)]'}`}
-                          style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
+                        <AnimatedBar
+                          percent={savingsRate}
+                          className={`block h-full rounded-full ${
+                            (summary?.savings || 0) >= 0
+                              ? 'bg-gradient-to-r from-brand-600 to-emerald-500'
+                              : 'bg-[var(--status-danger-text)]'
+                          }`}
                         />
                       </div>
                     </div>
@@ -1372,9 +1382,10 @@ export default function DashboardPage() {
                                 aria-label={`${cat.label} share of spending`}
                                 className="block h-2 w-full overflow-hidden rounded-full bg-surface-2 shadow-inner"
                               >
-                                <span
-                                  className={`block h-full rounded-full ${reduce ? '' : 'transition-[width] duration-500 ease-out'}`}
-                                  style={{ width: `${item.percentage}%`, backgroundColor: cat.color }}
+                                <AnimatedBar
+                                  percent={item.percentage}
+                                  className="block h-full rounded-full"
+                                  style={{ backgroundColor: cat.color }}
                                 />
                               </span>
                             </button>

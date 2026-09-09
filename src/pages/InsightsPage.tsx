@@ -15,6 +15,9 @@ import {
   EmptyState,
   Skeleton,
   DateFilterPicker,
+  AnimatedNumber,
+  PageHeader,
+  PageHeaderChip,
   panelVariants,
   staggerParent,
   staggerChild,
@@ -245,13 +248,13 @@ function PeriodSummary({
                 <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" style={{ color: tile.color }} />
                 {tile.label}
               </p>
-              <p
-                className="mt-2 truncate text-xl font-extrabold tracking-tight tnum sm:text-2xl lg:text-3xl"
+              <AnimatedNumber
+                value={tile.value}
+                format={formatCurrency}
+                className="mt-2 block truncate text-xl font-extrabold tracking-tight tnum sm:text-2xl lg:text-3xl"
                 style={{ color: tile.color }}
                 title={formatCurrency(tile.value)}
-              >
-                {formatCurrency(tile.value)}
-              </p>
+              />
               <p className="mt-2 text-sm leading-relaxed text-sb-ink-muted">{tile.note}</p>
             </motion.div>
           )
@@ -1056,23 +1059,12 @@ export default function InsightsPage() {
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
         </div>
 
-        {/* Header */}
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-2 flex items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                Wealth Analytics Engine Active
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Insights</h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-sb-ink-muted">
-              Where your money actually went, and whether the split between
-              essentials, extras and savings is one you would choose.
-            </p>
-          </div>
-          {rangeControl}
-        </header>
+        <PageHeader
+          title="Insights"
+          eyebrow={<PageHeaderChip>Wealth Analytics Engine Active</PageHeaderChip>}
+          subtitle="Where your money actually went, and whether the split between essentials, extras and savings is one you would choose."
+          actions={rangeControl}
+        />
 
         {error && (
           <div

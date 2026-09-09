@@ -7,8 +7,8 @@ import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
-import { useState, useEffect, useCallback } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { transition } from '@/components/ui'
 import { useAuth, useToast } from '@/context'
 import Button from '@/components/ui/Button'
@@ -42,6 +42,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { canAccessAdmin } from '@/services/adminAccess'
+import { PageHeaderContext, type PageHero } from './PageHeaderContext'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -56,13 +57,15 @@ const navItems = [
   { label: 'Planned Payments', path: ROUTES.SUBSCRIPTIONS, icon: Calendar },
 ]
 
+/**
+ * Fallback title for the sticky bar. A page that renders <PageHeader> reports
+ * its own heading and that wins (see PageHeaderContext), so this is only used
+ * before that first report and on routes with no PageHeader. Nav routes read
+ * their label straight off navItems, so renaming a tab renames this with it.
+ */
 function getCurrentPageTitle(pathname: string): string {
-  if (pathname === ROUTES.DASHBOARD) return 'Home'
-  if (pathname === ROUTES.EXPENSES) return 'Transactions'
-  if (pathname === ROUTES.BUDGETS) return 'Budgets'
-  if (pathname === ROUTES.PENDING) return 'Pending Alerts'
-  if (pathname === ROUTES.INSIGHTS) return 'Financial Insights'
-  if (pathname === ROUTES.SUBSCRIPTIONS) return 'Planned Payments'
+  const navMatch = navItems.find((item) => item.path === pathname)
+  if (navMatch) return navMatch.label
   if (pathname === ROUTES.SETTINGS) return 'Settings'
   if (pathname === ROUTES.PROFILE) return 'Profile'
   if (pathname === ROUTES.PRICING || pathname === '/pricing') return 'Pricing'
@@ -139,6 +142,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Motion reports state: the mobile menu opening, the install banner
   // arriving. Both collapse to nothing under a reduced-motion preference.
   const reduceMotion = useReducedMotion()
+
+  // The page name is shown once, never twice. A page that renders a
+  // <PageHeader> reports whether its own <h1> is still on screen; the compact
+  // title below appears only after that heading has scrolled under this bar.
+  // 'none' means the route has no page hero, so the top bar owns the title.
+  const [hero, setHero] = useState<PageHero>({ state: 'none' })
+  const pageHeaderContext = useMemo(() => ({ setHero }), [])
+  const showHeaderTitle = hero.state !== 'visible'
+  // The page's own heading wins, so renaming a page renames this too.
+  const headerTitle = hero.title ?? getCurrentPageTitle(location.pathname)
   type NotificationItem = { key: string; message: string; type: 'danger' | 'warning' | 'info'; href: string }
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false)
@@ -680,11 +693,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </Link>
                 </div>
 
-                {/* Desktop Header: Page Title */}
+                {/* Desktop Header: page title, shown only once the page's own
+                    heading has scrolled out of view (see PageHeaderContext). */}
                 <div className="hidden lg:flex items-center gap-3.5 min-w-0">
-                  <h1 className="text-base font-bold text-sb-ink tracking-tight flex items-center gap-2 m-0">
-                    {getCurrentPageTitle(location.pathname)}
-                  </h1>
+                  <AnimatePresence initial={false}>
+                    {showHeaderTitle && (
+                      <motion.p
+                        key={headerTitle}
+                        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                        transition={transition(reduceMotion, 0.18)}
+                        className="text-base font-bold text-sb-ink tracking-tight flex items-center gap-2 m-0 truncate"
+                      >
+                        {headerTitle}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
               </>
             ) : (
@@ -1175,7 +1200,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </Button>
           </div>
         )}
-        {children}
+        <PageHeaderContext.Provider value={pageHeaderContext}>
+          {children}
+        </PageHeaderContext.Provider>
       </main>
 
       {/* Footer Nav and Legal compliance links */}

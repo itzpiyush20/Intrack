@@ -3,10 +3,11 @@
 // 3-Column Plan Cards, Animated Selections, Dual Auth Views
 // ============================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import AppLayout from '@/layouts/AppLayout'
+import { usePageHeroHandoff } from '@/layouts/PageHeaderContext'
 import { useAuth, useToast } from '@/context'
 import { formatDate, cn } from '@/utils'
 import { useScrollReveal } from '@/hooks'
@@ -67,6 +68,11 @@ export default function PricingPage() {
 
   // Scroll-reveal for CSS-animated sections
   useScrollReveal()
+
+  // Signed in, /pricing is an app route with the sticky top bar, so the
+  // centred hero below hands the title over on scroll like every other page.
+  const pricingTitleRef = useRef<HTMLHeadingElement>(null)
+  usePageHeroHandoff(pricingTitleRef, 'Pricing')
 
   // ── Profile subscription status ────────────────────────────────
   const status = profile?.subscription_status
@@ -305,7 +311,10 @@ export default function PricingPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
               <span>Intrack Expense Intelligence · Built for India</span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-display text-sb-ink">
+            <h1
+              ref={pricingTitleRef}
+              className="text-3xl sm:text-5xl font-extrabold tracking-tight font-display text-sb-ink"
+            >
               Pricing
             </h1>
             <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-lg mx-auto">

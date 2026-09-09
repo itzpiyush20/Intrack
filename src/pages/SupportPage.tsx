@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
+import { PageHeader, PageHeaderChip } from '@/components/ui'
 import { APP_CONFIG, FAQ_ITEMS, ROUTES } from '@/constants'
 import { submitSupportTicket } from '@/services/support'
 import { useAuth } from '@/context/AuthContext'
@@ -128,19 +129,11 @@ export default function SupportPage() {
           <div className="absolute -top-28 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
         </div>
 
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-              Client Support & Security Active
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Support Center</h1>
-          <p className="text-sm text-sb-ink-secondary">
-            Review security compliance documents, browse FAQs, contact support, and explore technical details.
-          </p>
-        </div>
+        <PageHeader
+          title="Support Center"
+          eyebrow={<PageHeaderChip>Client Support &amp; Security Active</PageHeaderChip>}
+          subtitle="Review security compliance documents, browse FAQs, contact support, and explore technical details."
+        />
 
         {/* Outer Grid layout */}
         <div className="grid gap-6 md:grid-cols-12">

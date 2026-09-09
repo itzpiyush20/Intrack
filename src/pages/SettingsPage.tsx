@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Card, Button, Input, Select, Modal, EmptyState, ACTION_BUTTON_DANGER } from '@/components/ui'
+import { Card, Button, Input, Select, Modal, EmptyState, PageHeader, PageHeaderChip, ACTION_BUTTON_DANGER } from '@/components/ui'
 import {
   getMerchantRules,
   deleteMerchantRule,
@@ -630,19 +630,11 @@ export default function SettingsPage() {
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-[42rem] max-w-[95vw] rounded-full bg-radial from-brand-500/12 via-brand-500/4 to-transparent blur-3xl" />
         </div>
 
-        {/* Header */}
-        <div>
-          <div className="mb-2 flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-              Sync & Rules Active
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Settings</h1>
-          <p className="mt-1.5 text-sm text-sb-ink-muted max-w-2xl">
-            Your categories and cards, how your inbox is read, and what happens to your data.
-          </p>
-        </div>
+        <PageHeader
+          title="Settings"
+          eyebrow={<PageHeaderChip>Sync &amp; Rules Active</PageHeaderChip>}
+          subtitle="Your categories and cards, how your inbox is read, and what happens to your data."
+        />
 
         {/* Nav and panel sit side by side from md up */}
         <div className="mt-6 flex flex-col gap-6 md:mt-8 md:flex-row md:items-start md:gap-8">

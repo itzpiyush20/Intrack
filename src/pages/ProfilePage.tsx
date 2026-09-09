@@ -20,7 +20,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { AlertCircle, CheckCircle2, KeyRound, ChevronDown, TriangleAlert, Trash2, UserRound } from 'lucide-react'
 import { AppLayout } from '@/layouts'
-import { Card, Button, Input, ConfirmDialog, panelVariants, transition } from '@/components/ui'
+import { Card, Button, Input, ConfirmDialog, PageHeader, PageHeaderChip, panelVariants, transition } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import {
@@ -245,19 +245,11 @@ export default function ProfilePage() {
         </div>
 
         {/* Header */}
-        <div>
-          <div className="mb-2 flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-brand-50 border border-brand-200/70 text-brand-700 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-              Account Security Active
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-sb-ink md:text-3xl">Profile</h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-sb-ink-muted">
-            Your name and picture, your password, and the two ways to clear out what Intrack
-            holds for you.
-          </p>
-        </div>
+        <PageHeader
+          title="Profile"
+          eyebrow={<PageHeaderChip>Account Security Active</PageHeaderChip>}
+          subtitle="Your name and picture, your password, and the two ways to clear out what Intrack holds for you."
+        />
 
         {error && (
           <div
