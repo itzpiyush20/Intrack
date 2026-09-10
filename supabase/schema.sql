@@ -882,14 +882,38 @@ CREATE INDEX IF NOT EXISTS idx_transactions_settled_by
 CREATE INDEX IF NOT EXISTS idx_signin_logs_user_id        ON public.signin_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_insurance_policies_user_id ON public.insurance_policies(user_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_user_id           ON public.feedback(user_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id    ON public.support_tickets(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_feedback_handled_by
   ON public.feedback(handled_by) WHERE handled_by IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_support_tickets_handled_by
-  ON public.support_tickets(handled_by) WHERE handled_by IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_payments_refund_reviewed_by
-  ON public.payments(refund_reviewed_by) WHERE refund_reviewed_by IS NOT NULL;
+
+-- support_tickets and payments are guarded because THIS FILE DOES NOT CREATE
+-- THEM. schema.sql defines 13 tables; production has 19. The six it omits are
+-- categories, payments, promo_codes, promo_redemptions, support_tickets and
+-- subscription_charges — see TRANSFER_GUIDE.md §3 Option B.
+--
+-- Unguarded, these three statements abort the whole script on a fresh database,
+-- which is a regression this block introduced. `CREATE INDEX IF NOT EXISTS`
+-- does not help: the IF NOT EXISTS refers to the INDEX, not the table, so a
+-- missing table is still a hard error.
+--
+-- The guard is a stopgap, not a fix. The real repair is adding the six missing
+-- tables, without which a database built from this file breaks on first signup
+-- anyway — seed_default_categories is defined here and inserts into
+-- `categories`, which is one of the six.
+DO $$
+BEGIN
+  IF to_regclass('public.support_tickets') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id
+      ON public.support_tickets(user_id);
+    CREATE INDEX IF NOT EXISTS idx_support_tickets_handled_by
+      ON public.support_tickets(handled_by) WHERE handled_by IS NOT NULL;
+  END IF;
+
+  IF to_regclass('public.payments') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_payments_refund_reviewed_by
+      ON public.payments(refund_reviewed_by) WHERE refund_reviewed_by IS NOT NULL;
+  END IF;
+END $$;
 
 -- Untrusted-role revokes.
 --
