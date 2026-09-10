@@ -20,9 +20,9 @@ charge into access, cancellation, and the pricing UI that sells it.
   ship with or before this change**: all three documents currently promise
   "nothing renews, no mandate is placed on your card", which this plan makes
   false.
-- Receipts and billing history — `plans/receipts-and-billing-history.md`.
-  Razorpay now delivers per-cycle invoices to customers, so that plan's
-  customer-facing half shrinks; the in-app history does not.
+- Receipts and billing history — not built in-app. Razorpay delivers per-cycle
+  invoices to customers and holds the billing history in its own dashboard; see
+  `plans/remove-what-razorpay-handles.md`.
 - The `/payment-success` defects — `plans/payment-success-audit.md`.
 
 ## Key decisions

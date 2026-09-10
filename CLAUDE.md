@@ -7,6 +7,12 @@ packaged for mobile with Capacitor.
 Commands: `npm run dev`, `npm test` (vitest), `npm run lint`, `npm run build`
 (`tsc -b && vite build`). Type-check alone with `npx tsc -b`.
 
+**`ARCHITECTURE.md` is the map of what this repo contains** — every serverless
+handler, service module, route and database table, how the scanner runs, and
+where email data goes. Read it before assuming anything about the codebase, and
+update it in the same commit as any change that makes it stale. `AGENTS.md` is a
+stub that points here; do not turn it back into a second copy of this file.
+
 ## Email scanner — read before touching
 
 The Gmail email scanner is the app's crucial feature. It scans the user's inbox for

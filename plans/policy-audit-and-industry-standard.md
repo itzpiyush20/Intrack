@@ -109,9 +109,9 @@ So the tooling can do something the contract promises will never happen, and
 the one behaviour the Terms explicitly prohibit is one they give no power to
 punish. Ban a trial abuser and you breach your own refund policy.
 
-This is also the clause that blocks the refund design in
-`plans/receipts-and-billing-history.md`: a refund that revokes the access it
-paid for is, by the current wording, forbidden.
+This is also the clause that blocks any refund that revokes the access it paid
+for: by the current wording, that is forbidden. (Refunds are now issued from the
+Razorpay dashboard — see `plans/remove-what-razorpay-handles.md`.)
 
 ### P2 — HIGH · the Refund Policy promises things no mechanism delivers
 
@@ -224,7 +224,7 @@ Worth recording, because these are the parts most products get wrong:
 11. **Correct the server location** to the actual region.
 12. **Fix the "renewal reminders" wording.**
 
-### Code (from `plans/receipts-and-billing-history.md`)
+### Code (refund handling)
 
 13. Refunds must revoke access. Automatic refund for `queue_extended`. Receipts
     and billing history, so a refund claim can reference a real payment.

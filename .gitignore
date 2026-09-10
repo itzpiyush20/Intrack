@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -47,6 +48,10 @@ temp_chrome_profile/
 # Scratch directories
 scratch/
 .env*
+!.env.example
+
+# Session scratch notes — never an identity file
+progress.md
 
 # AI Assistant local configs
 .gemini/

@@ -14,9 +14,12 @@ interface must be reassuring, not intimidating.
 
 ## Product Purpose
 
-Intrack automatically tracks expenses by parsing bank-alert SMS/email
-**locally on the device** (no bank login, no data sold), then organises them into
-budgets, subscriptions, and insights. Success = the user trusts it with their
+Intrack tracks expenses by reading the user's bank-alert and receipt **email**
+with a read-only Gmail scope — no bank login, no SMS access, no data sold — and
+organises what it finds into budgets, subscriptions, and insights. Classification
+runs through a server-side Gemini proxy; no email body, subject or sender is ever
+stored, only the extracted transaction. Every scan is started by the user and
+every result waits for approval. Success = the user trusts it with their
 money picture and checks in regularly with zero manual entry. It ships as a web
 app and a Capacitor mobile app; payments via Razorpay (INR).
 
@@ -46,11 +49,12 @@ restraint and legibility, not decoration.
    every screen; familiar affordances; no invented controls.
 4. **Privacy is the product.** Visual language should reinforce "your data stays
    here" — solid, contained, no flashy spectacle.
-5. **Both light and dark are first-class**, system-aware, with an explicit toggle.
+5. **Light only** (owner decision, 2026-08-25). Dark mode and the theme toggle
+   were removed; `.light` is applied before first paint. See `DESIGN.md`.
 
 ## Accessibility & Inclusion
 
-WCAG 2.1 AA across light and dark. Body text ≥4.5:1, large/bold ≥3:1, placeholders
+WCAG 2.1 AA in the shipped light theme. Body text ≥4.5:1, large/bold ≥3:1, placeholders
 ≥4.5:1. Visible focus rings. `prefers-reduced-motion` honoured (motion is minimal
 by design). `prefers-contrast: more` strengthens borders. Status never encoded by
 colour alone (icons/labels accompany positive/negative/warning).

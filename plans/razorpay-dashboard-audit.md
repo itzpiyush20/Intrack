@@ -18,8 +18,9 @@ Fixes and step-by-step guidance come after every screen has been seen.
 
 Implications noted:
 - The app uses Standard Checkout, not Payment Links, so **no receipt currently
-  reaches customers**. The customer-facing half of
-  `plans/receipts-and-billing-history.md` is therefore not redundant.
+  reaches customers** on that path. Razorpay Subscriptions delivers per-cycle
+  invoices, which is how this closes — see
+  `plans/razorpay-subscriptions-migration.md`.
 - The business name is customer-visible on receipts and typically on the card or
   bank statement line. `options.name` in `PricingPage.tsx` overrides only the
   checkout sheet, not this.

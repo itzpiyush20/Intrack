@@ -28,7 +28,7 @@ stays. The second never gets built.
 
 | Thing | Status | Why |
 |---|---|---|
-| `plans/receipts-and-billing-history.md` | **Superseded** | Its whole premise was building receipts in-app. Retained only for the competitor and policy research the policy audit cites. |
+| In-app receipts plan (`plans/receipts-and-billing-history.md`) | **Deleted 2026-09-10** | Its whole premise was building receipts in-app, which Razorpay does. The competitor and policy research it held is preserved in `plans/policy-audit-and-industry-standard.md`. |
 | In-app receipt with amount and payment reference | Never build | Razorpay's job |
 | In-app billing history | Never build | Razorpay's dashboard and its customer emails hold this |
 | `api/refund.ts`, refund-request UI, pro-rata calculator | Never build | Refunds are issued in the Razorpay dashboard |

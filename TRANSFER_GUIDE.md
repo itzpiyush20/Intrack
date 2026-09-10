@@ -13,7 +13,7 @@ This document covers everything a new owner needs to take full control of the In
 | Supabase project | Invite buyer, rotate keys | See Section 3 |
 | Google Cloud project | Transfer OAuth consent screen ownership | See Section 4 |
 | Razorpay account | Buyer sets up their own account | See Section 5 |
-| PostHog project | Invite member or transfer | Settings → Members |
+| Sentry projects | Invite buyer or transfer | Two projects: browser (`VITE_SENTRY_DSN`) and serverless (`SENTRY_DSN`) |
 | Domain (if any) | Transfer at your registrar | Update DNS / Vercel domain settings |
 
 ---
@@ -31,11 +31,13 @@ After transfer, the buyer must update these in Vercel (Settings → Environment 
 | `RAZORPAY_KEY_SECRET` | Replace with buyer's Razorpay secret |
 | `RAZORPAY_WEBHOOK_SECRET` | Set a new strong secret in Razorpay dashboard |
 | `VITE_RAZORPAY_KEY_ID` | Same as `RAZORPAY_KEY_ID` (used client-side) |
-| `VITE_GOOGLE_CLIENT_ID` | Replace with buyer's Google Cloud OAuth client ID |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Replace with buyer's Google Cloud OAuth credentials. Used server-side by `api/refresh-google-token.ts`. The client id for *sign-in* is configured in the Supabase dashboard (Auth → Providers → Google), not in an env var |
+| `RAZORPAY_PLAN_MONTHLY` / `RAZORPAY_PLAN_ANNUAL` | Razorpay subscription plan ids, created in the buyer's Razorpay account |
+| `CRON_SECRET` | New secret; guards `/api/cleanup-scan-rejections` |
 | `GEMINI_API_KEY` | Replace with buyer's Gemini API key (server-side only, consumed by `api/gemini-proxy.ts` — do NOT use a `VITE_`-prefixed name, that would expose it in the client bundle) |
 | `ALLOWED_ORIGIN` | Set to buyer's production domain |
 | `VITE_OWNER_EMAILS` | Set to buyer's admin email(s) |
-| `VITE_PROMO_CODES` | Update or remove |
+| ~~`VITE_PROMO_CODES`~~ | **Retired.** Promo codes live in the `promo_codes` table; `api/redeem-promo.ts` checks them server-side |
 | `VITE_SENTRY_DSN` | Optional. Browser error reporting. **Read at BUILD time**, so adding it needs a redeploy to take effect, and leaving it unset removes the Sentry SDK from the bundle entirely (~29 kB gzip) rather than shipping it inert |
 | `SENTRY_DSN` | Optional. Serverless error reporting, read at runtime by `api/_lib/monitoring.ts`. Keep it a **separate Sentry project** from `VITE_SENTRY_DSN` so a server fault is never mistaken for a user's browser crash |
 
@@ -57,7 +59,8 @@ Also update in source code:
 
 ### Option B — Fresh Supabase project (for a clean start)
 1. Buyer creates a new Supabase project
-2. Run `supabase/schema.sql` in the SQL editor (this is the single, complete, up-to-date schema — no other migration files need to be run)
+2. Run `supabase/schema.sql` in the SQL editor, then apply the numbered migrations in `supabase/` in order.
+   ⚠️ `schema.sql` is currently **incomplete** — it is missing six tables that exist in production (`categories`, `payments`, `promo_codes`, `promo_redemptions`, `support_tickets`, `subscription_charges`). See `ARCHITECTURE.md` §6. Fix this before any handover.
 3. Update all `VITE_SUPABASE_URL` and key env vars in Vercel
 4. Note: existing user data will NOT transfer — only suitable for pre-launch sale
 
@@ -81,7 +84,7 @@ The Gmail read-only scope requires Google OAuth App Verification. The existing v
    - User Support Email → buyer's email
    - Developer contact → buyer's email
 4. Credentials → OAuth 2.0 Client IDs → note the client ID
-5. Update `VITE_GOOGLE_CLIENT_ID` in Vercel to the new/existing client ID
+5. Put the client ID and secret into the Supabase dashboard (Auth → Providers → Google) for sign-in, and into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in Vercel for token refresh
 6. Add the new production domain to Authorized JavaScript Origins and Redirect URIs
 
 **Re-verification:** If the buyer uses a different domain or Google Cloud project, they must re-submit for OAuth verification. See `GOOGLE_VERIFICATION_GUIDE.md` for the full process. This typically takes 1–4 weeks.
