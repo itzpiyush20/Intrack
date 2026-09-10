@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Razorpay from 'razorpay'
+import { captureError } from './_lib/monitoring.js'
 import { createClient } from '@supabase/supabase-js'
 
 const razorpayKeyId = [process.env.RAZORPAY_KEY_ID, process.env.VITE_RAZORPAY_KEY_ID]
@@ -77,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ cancelled: true, atCycleEnd: true })
   } catch (error: unknown) {
     console.error(`Error cancelling Razorpay subscription ${subscriptionId}:`, error)
+    await captureError(error, { route: 'cancel-subscription' })
     const message = error instanceof Error ? error.message : String(error)
     return res.status(500).json({ error: message || 'Failed to cancel subscription' })
   }

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Razorpay from 'razorpay'
+import { captureError } from './_lib/monitoring.js'
 import { createClient } from '@supabase/supabase-js'
 import { planIdFor, scheduledStartFor, type PlanType } from './_lib/subscriptionPlans.js'
 
@@ -132,6 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error: unknown) {
     console.error('Error creating Razorpay subscription:', error)
+    await captureError(error, { route: 'create-subscription' })
     const statusCode = (error as { statusCode?: number })?.statusCode
     const message = error instanceof Error ? error.message : String(error)
     const isAuthError = statusCode === 401 || /auth|key/i.test(message || '')

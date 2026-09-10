@@ -36,6 +36,8 @@ After transfer, the buyer must update these in Vercel (Settings → Environment 
 | `ALLOWED_ORIGIN` | Set to buyer's production domain |
 | `VITE_OWNER_EMAILS` | Set to buyer's admin email(s) |
 | `VITE_PROMO_CODES` | Update or remove |
+| `VITE_SENTRY_DSN` | Optional. Browser error reporting. **Read at BUILD time**, so adding it needs a redeploy to take effect, and leaving it unset removes the Sentry SDK from the bundle entirely (~29 kB gzip) rather than shipping it inert |
+| `SENTRY_DSN` | Optional. Serverless error reporting, read at runtime by `api/_lib/monitoring.ts`. Keep it a **separate Sentry project** from `VITE_SENTRY_DSN` so a server fault is never mistaken for a user's browser crash |
 
 Also update in source code:
 - `src/constants/index.ts` → `APP_CONFIG.SUPPORT_EMAIL`, `SUPPORT_NAME`, `SUPPORT_ADDRESS`

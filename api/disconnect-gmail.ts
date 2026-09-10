@@ -14,6 +14,7 @@
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { captureError } from './_lib/monitoring.js'
 import { createClient } from '@supabase/supabase-js'
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
@@ -91,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (deleteError) {
     console.error('disconnect-gmail: failed to delete token row', deleteError)
+    await captureError(deleteError, { route: 'disconnect-gmail' })
     return res.status(500).json({ error: 'Failed to disconnect Gmail' })
   }
 

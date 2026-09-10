@@ -4,6 +4,7 @@
 // ============================================
 
 import { Component, type ReactNode } from 'react'
+import { captureError } from '../lib/monitoring'
 
 interface Props {
   children: ReactNode
@@ -26,8 +27,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
-    // Log to console in dev; send to Sentry in production
     console.error('[Intrack] Unhandled render error:', error, info.componentStack)
+    // Reported before the stale-chunk branch below, because that branch can
+    // reload the page — anything left until after it would never be sent.
+    captureError(error, { componentStack: info.componentStack })
 
     // Stale chunk after a new deploy: React.lazy()'s dynamic import() rejects because the
     // old hashed chunk filename no longer exists on the server. A plain "Try Again" re-render

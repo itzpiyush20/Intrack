@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
 
@@ -68,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (tokenErr) {
     console.error('refresh-google-token: token lookup failed', tokenErr)
+    await captureError(tokenErr, { route: 'refresh-google-token' })
     return res.status(500).json({ error: 'Token lookup failed' })
   }
   // 410 = "this grant is gone" — the client clears local state and prompts a reconnect.

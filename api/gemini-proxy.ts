@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 import {
   callGeminiWithFallback,
   isModelNotFoundStatus,
@@ -204,6 +205,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Gemini proxy error:', error)
     await refundQuota()
     const isTimeout = error?.name === 'AbortError'
+    // Deliberately narrower than the other routes, for two reasons.
+    //
+    // NOT AWAITED. captureError flushes for up to 2s. A single scan makes many
+    // AI calls, so awaiting here would add that to EVERY failure — during a
+    // Gemini outage a 40-email scan would stall for over a minute before
+    // reaching the regex ladder it is supposed to fall back to quickly.
+    //
+    // TIMEOUTS EXCLUDED. A timeout is the expected degradation path, not a
+    // defect: the scanner is built to fall through to regex and the user never
+    // sees a failure (invariant 3). Reporting each one would bury the real
+    // errors and burn the quota. The 429/quota-rejection path returns above and
+    // never reaches this catch at all, for the same reason.
+    if (!isTimeout) void captureError(error, { route: 'gemini-proxy' })
     // The raw message is logged above, not returned: forwarding it verbatim
     // leaked server-side DNS/TLS/network detail to the client for no benefit.
     return res.status(isTimeout ? 504 : 500).json({ error: isTimeout ? 'Gemini API request timed out' : 'AI request failed' })

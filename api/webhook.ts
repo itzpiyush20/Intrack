@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 import { verifyHmacSignature, planDurationDays } from './_lib/razorpaySignature.js'
 import { planTypeForPlanId, durationDaysFor } from './_lib/subscriptionPlans.js'
 
@@ -219,6 +220,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ status: 'ok' })
   } catch (error: any) {
     console.error('Razorpay Webhook error:', error)
+    // A webhook that 500s is retried by Razorpay, so this is not necessarily
+    // lost money — but it is the highest-stakes failure in the app and the one
+    // most worth knowing about without waiting for a customer to complain.
+    await captureError(error, { route: 'webhook' })
     return res.status(500).json({ error: error.message || 'Internal Server Error' })
   }
 }

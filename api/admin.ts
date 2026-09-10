@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 import {
   normalisePromoCode,
   validateNewPromoCode,
@@ -315,6 +316,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Unknown action.' })
   } catch (error) {
     console.error('Admin operation failed:', error)
+    await captureError(error, { route: 'admin' })
     return res.status(500).json({ error: 'Operation failed. Please try again.' })
   }
 }

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 import {
   normalisePromoCode,
   checkRedeemable,
@@ -254,6 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     console.error('Promo redemption failed for code', code, error)
+    await captureError(error, { route: 'redeem-promo' })
     return res.status(500).json({ error: 'Could not redeem this coupon. Please try again.' })
   }
 }

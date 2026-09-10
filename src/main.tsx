@@ -2,6 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { initMonitoring } from './lib/monitoring'
+
+// First thing, before any other module gets a chance to throw. No-ops unless
+// VITE_SENTRY_DSN is set — see src/lib/monitoring.ts for what is and is not
+// sent.
+initMonitoring()
 
 // Capture Google OAuth provider token directly from URL hash before Supabase client clears it
 try {

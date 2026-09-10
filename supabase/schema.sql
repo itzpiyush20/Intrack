@@ -245,13 +245,16 @@ CREATE INDEX IF NOT EXISTS idx_email_scan_logs_user ON public.email_scan_logs(us
 -- ==========================================
 -- 6. AUTO-UPDATE updated_at TRIGGER
 -- ==========================================
+-- search_path is pinned (migration 046). 033 pinned every SECURITY DEFINER
+-- function and missed this one because it is a plain trigger function, but it
+-- fires BEFORE UPDATE on six tables and Supabase's linter flags it regardless.
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 DROP TRIGGER IF EXISTS set_updated_at_profiles ON public.profiles;
 CREATE TRIGGER set_updated_at_profiles
@@ -283,12 +286,12 @@ ALTER TABLE public.email_scan_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
-  USING (auth.uid() = id OR public.is_admin());
+  USING ((select auth.uid()) = id OR (select public.is_admin()));
 
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+  USING ((select auth.uid()) = id)
+  WITH CHECK ((select auth.uid()) = id);
 
 -- RLS policies can't restrict which COLUMNS an UPDATE touches, only which
 -- ROWS — so the policy above, on its own, lets a signed-in user set their
@@ -327,72 +330,76 @@ CREATE TRIGGER protect_server_only_profile_columns
 -- TRANSACTIONS policies
 CREATE POLICY "Users can view own transactions"
   ON public.transactions FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create own transactions"
   ON public.transactions FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update own transactions"
   ON public.transactions FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete own transactions"
   ON public.transactions FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- BUDGETS policies
 CREATE POLICY "Users can view own budgets"
   ON public.budgets FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create own budgets"
   ON public.budgets FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update own budgets"
   ON public.budgets FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete own budgets"
   ON public.budgets FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- INSURANCE_POLICIES policies
 ALTER TABLE public.insurance_policies ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own insurance policies"
   ON public.insurance_policies FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create own insurance policies"
   ON public.insurance_policies FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update own insurance policies"
   ON public.insurance_policies FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete own insurance policies"
   ON public.insurance_policies FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- EMAIL_SCAN_LOGS policies
 CREATE POLICY "Users can view own scan logs"
   ON public.email_scan_logs FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can create own scan logs"
+-- Named to match production. A later migration had added a second, identical
+-- INSERT policy called "Users can insert own scan logs"; 047 dropped the
+-- duplicate and kept that name, so this one adopts it rather than leaving a
+-- fresh database with a policy name no migration can find.
+CREATE POLICY "Users can insert own scan logs"
   ON public.email_scan_logs FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- PROFILES delete policy
 CREATE POLICY "Users can delete own profile"
   ON public.profiles FOR DELETE
-  USING (auth.uid() = id);
+  USING ((select auth.uid()) = id);
 
 -- ==========================================
 -- 8. SECURE USER DELETION RPC
@@ -433,10 +440,12 @@ ALTER TABLE public.merchant_rules ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage own merchant rules"
   ON public.merchant_rules FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
-CREATE INDEX IF NOT EXISTS idx_merchant_rules_user_key ON public.merchant_rules(user_id, merchant_key);
+-- No index is created here on (user_id, merchant_key): the UNIQUE constraint in
+-- the table definition above already builds one, and a second copy is pure
+-- write overhead. Production carried two such copies until 047 dropped them.
 
 -- ==========================================
 -- 10. TESTER FEEDBACK TABLE
@@ -462,13 +471,13 @@ ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can submit own feedback"
   ON public.feedback FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Allow users to view their own submitted feedback, and creators to view all feedback
 DROP POLICY IF EXISTS "Users can view own feedback" ON public.feedback;
 CREATE POLICY "Users can view own feedback"
   ON public.feedback FOR SELECT
-  USING (auth.uid() = user_id OR public.is_admin());
+  USING ((select auth.uid()) = user_id OR (select public.is_admin()));
 
 -- ==========================================
 -- 10. SIGNIN_LOGS TABLE
@@ -492,7 +501,7 @@ ALTER TABLE public.signin_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can log own signin"
   ON public.signin_logs FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Allow creators to view all signin logs.
 --
@@ -506,7 +515,7 @@ CREATE POLICY "Users can log own signin"
 CREATE POLICY "Creators can view all signin logs"
   ON public.signin_logs FOR SELECT
   TO authenticated
-  USING (public.is_admin());
+  USING ((select public.is_admin()));
 
 -- ==========================================
 -- 11. CARDS, BALANCE PERIODS AND CARD PERIODS
@@ -538,8 +547,8 @@ ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own cards" ON public.cards;
 CREATE POLICY "Users can manage own cards"
   ON public.cards FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS set_updated_at_cards ON public.cards;
 CREATE TRIGGER set_updated_at_cards
@@ -568,8 +577,8 @@ ALTER TABLE public.balance_periods ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own balance periods" ON public.balance_periods;
 CREATE POLICY "Users can manage own balance periods"
   ON public.balance_periods FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS set_updated_at_balance_periods ON public.balance_periods;
 CREATE TRIGGER set_updated_at_balance_periods
@@ -596,8 +605,8 @@ ALTER TABLE public.card_periods ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own card periods" ON public.card_periods;
 CREATE POLICY "Users can manage own card periods"
   ON public.card_periods FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS set_updated_at_card_periods ON public.card_periods;
 CREATE TRIGGER set_updated_at_card_periods
@@ -656,12 +665,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'email_scan_rejections' AND policyname = 'Users can view own scan rejections') THEN
     CREATE POLICY "Users can view own scan rejections"
       ON public.email_scan_rejections FOR SELECT
-      USING (auth.uid() = user_id);
+      USING ((select auth.uid()) = user_id);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'email_scan_rejections' AND policyname = 'Users can insert own scan rejections') THEN
     CREATE POLICY "Users can insert own scan rejections"
       ON public.email_scan_rejections FOR INSERT
-      WITH CHECK (auth.uid() = user_id);
+      WITH CHECK ((select auth.uid()) = user_id);
   END IF;
 END$$;
 
@@ -838,3 +847,70 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 --                              profiles column or safety-net entry is needed
 --                              here.
 -- ==========================================
+
+-- ==========================================
+-- 20. FOREIGN-KEY COVERING INDEXES AND UNTRUSTED-ROLE REVOKES
+--
+-- Delivered to production by 046 and 047 (2026-09-10). Repeated here so a
+-- database created from this file starts in the same state rather than
+-- re-acquiring the problems those migrations fixed.
+--
+-- Every foreign key below had no covering index. The two on transactions are
+-- the ones that bite in ordinary use: both are ON DELETE SET NULL and
+-- self-referential, so without an index, deleting a single expense scans the
+-- whole transactions table twice to clear references to it. The rest are the
+-- account-deletion path — delete_user() drops the auth.users row and lets the
+-- cascade run, and the BEFORE DELETE trigger from 036 UPDATEs feedback and
+-- support_tickets filtered on user_id.
+--
+-- Partial where the column is almost always NULL. A partial index still serves
+-- the `col = $1` probe that FK maintenance issues, at a fraction of the size.
+-- ==========================================
+
+-- Named _fk rather than the obvious idx_transactions_possible_duplicate_of,
+-- which is already taken by a composite on (user_id, possible_duplicate_of).
+-- CREATE INDEX IF NOT EXISTS against an existing name is a silent no-op, which
+-- is exactly how this one was missed on the first pass.
+CREATE INDEX IF NOT EXISTS idx_transactions_possible_dup_fk
+  ON public.transactions(possible_duplicate_of)
+  WHERE possible_duplicate_of IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_settled_by
+  ON public.transactions(settled_by_transaction_id)
+  WHERE settled_by_transaction_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_signin_logs_user_id        ON public.signin_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_insurance_policies_user_id ON public.insurance_policies(user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id           ON public.feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id    ON public.support_tickets(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_handled_by
+  ON public.feedback(handled_by) WHERE handled_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_support_tickets_handled_by
+  ON public.support_tickets(handled_by) WHERE handled_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_payments_refund_reviewed_by
+  ON public.payments(refund_reviewed_by) WHERE refund_reviewed_by IS NOT NULL;
+
+-- Untrusted-role revokes.
+--
+-- Supabase ships ALTER DEFAULT PRIVILEGES granting EXECUTE on every new
+-- function to anon and authenticated DIRECTLY, so REVOKE ... FROM PUBLIC alone
+-- does not remove it — see 037 for the full write-up. Both forms are issued.
+--
+-- seed_default_categories is SECURITY DEFINER and takes the target account as a
+-- parameter rather than reading auth.uid(), so an anon caller could seed
+-- categories into somebody else's new account. Its only legitimate caller is
+-- the handle_new_profile_categories trigger, which runs as its owner and so
+-- keeps EXECUTE regardless.
+REVOKE ALL ON FUNCTION public.seed_default_categories(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.seed_default_categories(uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.seed_default_categories(uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.seed_default_categories(uuid) TO service_role;
+
+-- is_admin keeps EXECUTE for authenticated because the RLS policies above call
+-- it and a policy expression is evaluated as the querying role. anon has no
+-- policy that reaches it any more (047 scoped those to authenticated), so anon
+-- loses it — it was an admin-membership oracle for any uuid the caller held.
+REVOKE ALL ON FUNCTION public.is_admin(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_admin(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated, service_role;

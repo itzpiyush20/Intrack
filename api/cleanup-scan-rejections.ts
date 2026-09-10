@@ -5,6 +5,7 @@
 // record, so it doesn't need to accumulate indefinitely.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { captureError } from './_lib/monitoring.js'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseAdmin = createClient(
@@ -27,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (error) {
     console.error('cleanup-scan-rejections: delete failed', error)
+    await captureError(error, { route: 'cleanup-scan-rejections' })
     return res.status(500).json({ error: error.message })
   }
 

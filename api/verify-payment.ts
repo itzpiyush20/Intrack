@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { captureError } from './_lib/monitoring.js'
 import Razorpay from 'razorpay'
 import { verifyHmacSignature, planDurationDays } from './_lib/razorpaySignature.js'
 
@@ -153,6 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   } catch (error: any) {
     console.error('Error fetching Razorpay order for verification:', error)
+    await captureError(error, { route: 'verify-payment', stage: 'fetch-order' })
     return res.status(400).json({ error: 'Could not verify order ownership.' })
   }
 
@@ -251,6 +253,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error: any) {
     console.error('Error updating profile in Supabase:', error)
+    // The customer has paid at this point and the entitlement did not land.
+    // This is the report that must never be missed.
+    await captureError(error, { route: 'verify-payment', stage: 'apply-entitlement' })
     return res.status(500).json({ error: error.message || 'Database update failed' })
   }
 }

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Razorpay from 'razorpay'
+import { captureError } from './_lib/monitoring.js'
 import { createClient } from '@supabase/supabase-js'
 import { isPurchaseBlocked } from './_lib/pendingPlan.js'
 import { PLAN_AMOUNTS_PAISE, isPurchasablePlan } from './_lib/pricing.js'
@@ -126,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error: any) {
     console.error('Error creating Razorpay order:', error)
+    await captureError(error, { route: 'create-order' })
     const isAuthError = error.statusCode === 401 || /auth|key/i.test(error.message || '')
     return res.status(isAuthError ? 401 : 500).json({ error: error.message || 'Failed to create Razorpay order' })
   }
