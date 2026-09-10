@@ -103,7 +103,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
             </h1>
             <p className="text-xs sm:text-sm text-sb-ink-secondary">
               {isActive
-                ? 'Your autonomous bookkeeping and email scan suite is active and running.'
+                ? 'Your bookkeeping and email scan suite is active.'
                 : isTrial
                 ? 'You have full access to all features during your complimentary trial period.'
                 : isCancelled && daysLeft > 0
@@ -188,7 +188,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
             <p className="text-[11px] text-sb-ink-secondary">One click, no lock-in contract</p>
           </div>
 
-          {/* 4. Automated Scan Allowance */}
+          {/* 4. Scan Allowance — user-initiated scans, not scheduled ones */}
           <div className="p-4 rounded-2xl bg-surface-2/50 border border-sb-hairline space-y-1">
             <p className="text-[11px] font-bold text-sb-ink-muted uppercase tracking-wider">Scan Quota</p>
             <p className="text-base sm:text-lg font-extrabold text-sb-ink">2 Scans / Day</p>
@@ -266,7 +266,7 @@ export const ExecutiveSubscriptionCard: React.FC<ExecutiveSubscriptionCardProps>
                 Subscription Cancelled · Full Access Active Until {profile?.subscription_expires_at ? formatDate(profile.subscription_expires_at) : 'Expiry'}
               </p>
               <p className="text-[11px] sm:text-xs text-sb-ink-secondary leading-relaxed">
-                You will not be charged again. Your automated scans, Gemini AI categorization, and budget alerts remain 100% active until your prepaid period ends. You can resume at any time.
+                You will not be charged again. Your inbox scans, Gemini AI categorization, and budget alerts remain 100% active until your prepaid period ends. You can resume at any time.
               </p>
             </div>
           </div>

@@ -205,10 +205,31 @@ export async function deleteAccount(): Promise<{ error: Error | null; success: b
 }
 
 /**
- * Cancel an active or trial subscription.
- * Note: Intrack uses one-time payments without recurring auto-debit mandates.
- * Cancelling sets subscription_status to 'cancelled', stops renewal notifications,
- * while preserving full access until the prepaid subscription_expires_at date.
+ * Cancel an active or trial subscription, as far as the CLIENT can.
+ *
+ * The note that used to sit here said Intrack uses one-time payments with no
+ * recurring mandates. That stopped being true when the app moved to Razorpay
+ * Subscriptions (migrations 044/045) and was simply never updated — a comment
+ * describing the billing model it replaced.
+ *
+ * What this function does and does not do matters, because the difference is a
+ * live auto-debit mandate:
+ *
+ *   - It flips subscription_status to 'cancelled' and stops renewal prompts.
+ *   - Access is deliberately preserved until subscription_expires_at. The
+ *     customer paid for that period; cancelling is not a refund.
+ *   - It does NOT cancel the mandate at Razorpay. Only the server can do that,
+ *     via api/cancel-subscription.ts, which holds the key secret. A profile row
+ *     saying 'cancelled' while a mandate still stands at Razorpay means the
+ *     customer keeps getting charged, so this must never be treated as the
+ *     whole cancellation on its own.
+ *
+ * This is the LEGACY path, for the one-time buyers who predate the move to
+ * Subscriptions — PricingPage imports it under the name
+ * `cancelLegacySubscription` for exactly that reason. A customer on a mandate
+ * is cancelled through `cancelSubscription` in services/subscriptionBilling.ts,
+ * which posts to /api/cancel-subscription. Do not reach for this one when
+ * adding cancellation anywhere new.
  */
 export async function cancelSubscription(reason?: string, feedback?: string) {
   const { data: { user } } = await supabase.auth.getUser()

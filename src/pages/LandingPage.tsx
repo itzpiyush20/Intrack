@@ -445,7 +445,7 @@ export default function LandingPage() {
 
             {/* Bento Grid Layout with Live Graphics */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Feature 1: Large Span - Autonomous Alert Recognition */}
+              {/* Feature 1: Large Span - Bank Alert Recognition */}
               <div data-reveal className="sm:col-span-2 sb-card-light p-6 sm:p-8 bg-surface-1 border border-sb-hairline flex flex-col justify-between">
                 <div>
                   <div className="w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 mb-5">

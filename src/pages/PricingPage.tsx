@@ -319,7 +319,7 @@ export default function PricingPage() {
             </h1>
             <p className="text-sm sm:text-base text-sb-ink-secondary leading-relaxed max-w-lg mx-auto">
               {!user
-                ? 'Autonomous bank alert scans, intelligent categorization, and subscription radar. Start free, cancel anytime.'
+                ? 'One-tap bank alert scans, intelligent categorization, and subscription radar. Start free, cancel anytime.'
                 : 'Review your active subscription, daily scan telemetry, or change your billing plan.'}
             </p>
           </motion.div>
@@ -594,7 +594,7 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                    <span>2 automated scans / day</span>
+                    <span>2 inbox scans / day</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
@@ -653,7 +653,7 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                    <span>2 automated scans / day</span>
+                    <span>2 inbox scans / day</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
@@ -711,7 +711,7 @@ export default function PricingPage() {
                   ≈ ₹{ANNUAL_PER_DAY} / day
                 </span>
                 <p className="text-xs text-sb-ink-secondary leading-relaxed mb-4">
-                  Maximum savings. Uninterrupted autonomous tracking all year.
+                  Maximum savings. Uninterrupted tracking all year.
                 </p>
 
                 {/* Plan Checklist Details */}
@@ -726,7 +726,7 @@ export default function PricingPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                    <span>2 automated scans / day</span>
+                    <span>2 inbox scans / day</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-sb-ink-muted">
                     <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />
@@ -761,7 +761,7 @@ export default function PricingPage() {
                         ? '7 days complimentary access with full email scanning and auto-categorization. No credit card required.'
                         : selectedPlan === 'monthly'
                         ? `₹${PRICING.MONTHLY_AMOUNT} billed monthly. Flexible cadence, pause or cancel anytime in one click.`
-                        : `₹${PRICING.ANNUAL_AMOUNT} billed once a year (≈ ₹${ANNUAL_PER_DAY} / day). Maximum savings, uninterrupted autonomous tracking.`}
+                        : `₹${PRICING.ANNUAL_AMOUNT} billed once a year (≈ ₹${ANNUAL_PER_DAY} / day). Maximum savings, uninterrupted tracking.`}
                     </p>
                   </div>
 

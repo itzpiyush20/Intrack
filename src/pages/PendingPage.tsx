@@ -1,6 +1,7 @@
 // ============================================
 // PendingPage — UPI Transaction Approval Flow
-// Auto-scans bank alerts and reviews pending txns
+// Scans bank alerts on request and reviews pending txns
+// (nothing scans on its own — automatic scanning was removed 2026-08-27)
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
@@ -1096,7 +1097,7 @@ export default function PendingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-sm mt-2">
               {[
-                { icon: <Zap className="h-5 w-5 text-brand-600" />, label: 'Auto-scan inbox' },
+                { icon: <Zap className="h-5 w-5 text-brand-600" />, label: 'One-tap inbox scan' },
                 { icon: <Brain className="h-5 w-5 text-brand-600" />, label: 'AI categorization' },
                 { icon: <BarChart3 className="h-5 w-5 text-brand-600" />, label: 'Full insights' },
               ].map((f) => (

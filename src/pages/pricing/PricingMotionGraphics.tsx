@@ -62,7 +62,10 @@ export function PricingAmbientBackground() {
 export const PRODUCT_FEATURES = [
   {
     icon: Mail,
-    title: 'Autonomous Bank Alert Sync',
+    // "Autonomous" was wrong: automatic scanning was removed on 2026-08-27 and
+    // every scan is user-initiated. The product reads and categorises for you —
+    // it does not run on its own — so the copy says one-tap, not autonomous.
+    title: 'One-Tap Bank Alert Sync',
     desc: 'Seamlessly reads transaction emails from 50+ Indian banks & UPI apps (HDFC, ICICI, SBI, Axis, Cred, Google Pay, Paytm). Zero manual entry.',
     tag: 'Read-only OAuth',
     highlight: '50+ Indian Banks & UPI',
