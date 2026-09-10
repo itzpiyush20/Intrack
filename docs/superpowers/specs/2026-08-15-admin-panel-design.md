@@ -19,7 +19,7 @@ later phases plug into.
 The owner may sell this app. Nothing here is wired to a specific person: admin status
 is a database flag, not an email address in code, so a buyer grants it to themselves
 without touching the source. Every query is written to work at 50,000 users, not just
-at today's handful. Setup is documented in `TRANSFER_GUIDE.md`, not held in the
+at today's handful. Setup is documented in `ARCHITECTURE.md` §7, not held in the
 owner's memory.
 
 The panel is also written to answer an investor's questions, not only an operator's:

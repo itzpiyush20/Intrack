@@ -32,7 +32,7 @@ process** of any kind except one daily cleanup cron (below).
 
 ## 2. Serverless functions (`api/`)
 
-Twelve deployed handlers. Files ending `.test.ts` are Vitest suites, not
+Ten deployed handlers. Files ending `.test.ts` are Vitest suites, not
 endpoints — `.vercelignore` excludes them, because Vercel otherwise deploys every
 top-level `api/*.ts` as its own function and they were eating the function cap.
 Shared helpers live in `api/_lib/` and are not routable.
@@ -49,18 +49,20 @@ Shared helpers live in `api/_lib/` and are not routable.
 | `save-google-refresh-token.ts` | Persists a refresh token into `google_oauth_tokens` (service-role only). |
 | `disconnect-gmail.ts` | Real disconnect: revokes the grant at Google **and** deletes the stored refresh token. Clearing `localStorage` alone would leave both standing. |
 | `cleanup-scan-rejections.ts` | Daily cron (`0 3 * * *`, declared in `vercel.json`). Deletes `email_scan_rejections` rows older than 30 days. **The only scheduled job in the system.** |
-| `create-order.ts` | Legacy one-time-purchase order creation. **No client code calls it** since billing moved to Razorpay Subscriptions. |
-| `verify-payment.ts` | Legacy one-time-payment verification. **No client code calls it**; `webhook.ts` still references its behaviour in comments. |
 
-`api/_lib/`: `pricing.ts` (plan amounts in paise — mirrored from
-`src/constants/pricing.ts` and guarded by `pricing.test.ts`), `subscriptionPlans.ts`,
-`pendingPlan.ts`, `promo.ts`, `razorpaySignature.ts`, `geminiModel.ts`,
+`api/_lib/`: `pricing.ts` (plan durations and paise amounts — mirrored from
+`src/constants/pricing.ts` and guarded by `pricing.test.ts`; reached in
+production through `razorpaySignature.ts`, which `webhook.ts` imports),
+`subscriptionPlans.ts`, `promo.ts`, `razorpaySignature.ts`, `geminiModel.ts`,
 `monitoring.ts` (server-side Sentry).
 
+`webhook.ts` still handles `order.paid` from the retired one-time flow. Nothing
+in the app can create such an order any more; the branch is kept because an
+order that already exists must still be honoured.
+
 > Vercel's Hobby plan caps a project at 12 serverless functions. This repo
-> deploys exactly 12 — **the cap is full**, so adding an endpoint breaks the
-> deploy until one is removed or the project moves to Pro. Hobby also forbids
-> commercial use, which is its own reason to move before charging.
+> deploys 10, leaving two free. Hobby also forbids commercial use, so the project
+> has to move to Pro before charging customers regardless.
 
 ---
 
@@ -204,6 +206,13 @@ Google access tokens live in the browser; refresh tokens — for grants issued
 before offline access was dropped — are stored server-side in
 `google_oauth_tokens`, readable only by the service role, and refreshed through
 `/api/refresh-google-token`.
+
+Admin access is per-account, held in `profiles.is_admin` and checked through the
+`public.is_admin()` SQL function — never by email domain. Grant it with:
+
+```sql
+UPDATE public.profiles SET is_admin = true WHERE email = 'someone@example.com';
+```
 
 Entitlement is decided in one place, `src/services/subscription.ts`
 (`isPremiumProfile`). There is a 7-day trial and **no free tier**: when the trial
