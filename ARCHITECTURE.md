@@ -32,8 +32,10 @@ process** of any kind except one daily cleanup cron (below).
 
 ## 2. Serverless functions (`api/`)
 
-Thirteen deployed handlers. Files ending `.test.ts` are Vitest suites, not
-endpoints. Shared helpers live in `api/_lib/` and are not routable.
+Twelve deployed handlers. Files ending `.test.ts` are Vitest suites, not
+endpoints — `.vercelignore` excludes them, because Vercel otherwise deploys every
+top-level `api/*.ts` as its own function and they were eating the function cap.
+Shared helpers live in `api/_lib/` and are not routable.
 
 | Handler | Purpose |
 |---|---|
@@ -56,8 +58,9 @@ endpoints. Shared helpers live in `api/_lib/` and are not routable.
 `monitoring.ts` (server-side Sentry).
 
 > Vercel's Hobby plan caps a project at 12 serverless functions. This repo
-> deploys 13, and Hobby also forbids commercial use — see
-> `plans/remove-what-razorpay-handles.md` and the billing plans.
+> deploys exactly 12 — **the cap is full**, so adding an endpoint breaks the
+> deploy until one is removed or the project moves to Pro. Hobby also forbids
+> commercial use, which is its own reason to move before charging.
 
 ---
 

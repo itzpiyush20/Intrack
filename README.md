@@ -44,7 +44,7 @@ always-on permission it does not use.
 | Frontend | React 19 + TypeScript + Vite 8 |
 | Styling | Tailwind CSS v4 (tokens in `src/index.css`) |
 | Backend / Auth / DB | Supabase (PostgreSQL + RLS + Auth) |
-| Serverless API | Vercel Functions (13 handlers under `api/`) |
+| Serverless API | Vercel Functions (12 handlers under `api/`) |
 | Payments | Razorpay Subscriptions |
 | AI classification | Google Gemini, server-side via `api/gemini-proxy.ts` |
 | Email access | Gmail API, `gmail.readonly` scope |
@@ -60,11 +60,11 @@ No product-analytics SDK is bundled.
 ```
 src/
   pages/          18 route pages + admin/, analytics/, landing/, pricing/ sections
-  services/       27 modules — every Supabase call lives here, pages never query directly
+  services/       26 modules — every Supabase call lives here, pages never query directly
   components/     Shared UI; components/ui/ holds the design-system primitives
   context/        AuthContext, ToastContext
   constants/      APP_CONFIG, CATEGORIES, ROUTES, PRICING
-api/              13 serverless handlers + _lib/ helpers (see ARCHITECTURE.md)
+api/              12 serverless handlers + _lib/ helpers (see ARCHITECTURE.md)
 supabase/         schema.sql and numbered migrations (047_ is the highest)
 plans/            Current owner-facing specs and audits
 docs/superpowers/ Historical plan/spec pairs for shipped features
