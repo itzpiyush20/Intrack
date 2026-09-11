@@ -33,32 +33,40 @@ In the [Google Cloud Console](https://console.cloud.google.com/), go to **APIs &
 When adding scopes to the OAuth Consent Screen:
 1. Select the `.../auth/gmail.readonly` scope.
 2. Provide the following written justification to Google's compliance reviewers when requested:
-   > "Intrack is a personal finance tool that automates expense tracking. Every scan is started by the user from within the app; nothing runs in the background.
+   > Intrack is an expense tracker for Indian users. It turns the alerts and receipts their banks, UPI apps and merchants send into expense entries the user reviews and approves.
    >
-   > We use gmail.readonly to run one Gmail search per scan: messages from the last 7 days matching finance keywords such as debited, credited, UPI, NEFT, receipt, invoice, refund or order. Spam and Trash are never searched. Matching messages are filtered in the browser, and only those that still look like a transaction are sent to a server-side proxy we control and on to Google Gemini, which extracts amount, merchant, date and category.
+   > Every scan is user-initiated; nothing runs in the background. We search the last 7 days for finance keywords such as debited, credited, UPI and receipt, so some non-transaction mail is returned and discarded. Subject and body are read in the browser; at most 1500 characters reach our server and Google's Gemini API, which extracts merchant, amount and date in real time. Text is not retained. No narrower scope works: gmail.metadata returns headers only, and the amount and merchant appear solely in the body. Gmail cannot limit a scope by sender or query.
    >
-   > Email content is never stored, logged or retained after parsing; only the extracted fields are saved. For a message we reject, we keep the sender domain, subject and a 200-character extract for 30 days so the user can see why it was skipped. Every transaction needs the user's approval before it is recorded. We do not sell user data, show ads, or share profiling data."
+   > We store the extracted transaction only, never bodies, plus, for a rejected message, sender domain, subject and a 200-character extract, deleted after 30 days so a missing one can be traced. We never sell Google data, use it for ads, or train AI models on it.
 
-   (963 characters — the console field caps at 1000.)
+   (993 characters. The console field caps at 1000 and silently accepts a
+   truncated paste, so check the counter after pasting.)
 
-   **Why this text and not something narrower.** An earlier version of this
-   justification claimed the scan was limited to "whitelisted domains like
-   HDFC, ICICI, SBI". No sender allowlist exists in the code and none ever
-   did. `scanRealGmailInbox` builds a KEYWORD query — see `EMAIL_KEYWORDS` in
-   `src/services/emailScanner.ts` — matching roughly 45 terms across the whole
-   mailbox from any sender, Spam and Trash excluded. Several of those terms
-   (`order`, `total`, `trip`, `subscription`, `card`) are ordinary English, so
-   the query legitimately reaches mail that has nothing to do with a bank.
+   **This is the text that is actually in the console**, pasted 2026-09-11 and
+   verified at 993/1000. Keep the two in sync: they had drifted apart before,
+   and the drift was discovered only by opening the console and reading the
+   live field, which is not a thing anyone does routinely.
 
-   That breadth is defensible: non-financial mail is rejected by the gates
-   before it costs an AI call, nothing but extracted fields is retained, and
-   the user approves every transaction. What is NOT defensible is describing
-   it as an allowlist, because a reviewer tests the claim — an email reading
-   "your order total" from any address enters the pipeline — and because a
-   rejected message leaves a 30-day diagnostics record (domain, subject,
-   200-character extract) that the allowlist story would have implied could
-   only ever concern a bank. Describe the real mechanism. It survives testing;
-   the narrower sentence does not.
+   **Why it is worded this way.** Two earlier versions were wrong in the same
+   direction - they described the scan as narrower than it is.
+
+   - A repo-only draft claimed "whitelisted domains like HDFC, ICICI, SBI".
+     There is no sender allowlist and there never was.
+   - The live console text said "we search the inbox for bank-alert mail".
+     That omits merchant receipts, which `RECEIPT_KEYWORDS` covers on purpose
+     and which are half the product.
+   - Both said the app reads "the subject and start of the body". It reads the
+     WHOLE body: `extractEmailBody` in `src/services/emailScanner.ts` is
+     explicitly untruncated, because the bulk-marketing gate needs all of it.
+     What is truncated is the transfer - `AI_BODY_CHAR_LIMIT` in
+     `src/services/aiService.ts` caps Gemini's copy at 1500 characters.
+
+   Understating the scan is tempting and is the wrong instinct. A reviewer
+   tests the claim: an email reading "your order total", from any sender,
+   enters the pipeline. Stating the real mechanism also states the real data
+   minimisation - full body local, 1500 characters onward - which is the
+   stronger argument anyway, and the narrower wording was giving it away for
+   nothing.
 
    Note: this justification must stay accurate to the actual data flow. If you change how email content is processed (e.g. add a new third-party AI provider, or start persisting raw content anywhere), update this text — and the Privacy Policy — to match before re-submitting, since reviewers test the app against what you've claimed.
 
