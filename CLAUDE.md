@@ -13,6 +13,29 @@ where email data goes. Read it before assuming anything about the codebase, and
 update it in the same commit as any change that makes it stale. `AGENTS.md` is a
 stub that points here; do not turn it back into a second copy of this file.
 
+### Identity files are updated with the change, never after it
+
+Owner's standing instruction (2026-09-11). The identity files — `CLAUDE.md`,
+`ARCHITECTURE.md`, `README.md`, the `AGENTS.md` stub — must describe the app
+that exists **at every commit**. When a feature change makes one of them wrong,
+fix it in the same commit. Not a follow-up, not a TODO.
+
+Every session starts cold and believes these files, so a stale one is not
+merely misleading, it gets acted on. Three instances have already cost work:
+
+- This file said the next migration was `046_` when `046` and `047` had shipped.
+- `TRANSFER_GUIDE.md` quoted ₹31/mo and ₹365/yr plus a lifetime plan that does
+  not exist, and named webhook events the code does not handle. A buyer
+  following it would have built a broken integration.
+- The pricing page advertised "2 automated scans / day" for a fortnight after
+  automatic scanning was deleted — the constant behind that number is literally
+  `PREMIUM_MANUAL_SCANS_PER_DAY`.
+
+**User-facing copy counts as an identity surface.** A pricing page promising a
+removed feature is the same defect as a stale README, and worse, because
+customers pay against it. When a feature goes, sweep the repo for every claim
+about it rather than fixing the one instance in front of you.
+
 ## Email scanner — read before touching
 
 The Gmail email scanner is the app's crucial feature. It scans the user's inbox for
