@@ -56,6 +56,25 @@ production through `razorpaySignature.ts`, which `webhook.ts` imports),
 `subscriptionPlans.ts`, `promo.ts`, `razorpaySignature.ts`, `geminiModel.ts`,
 `monitoring.ts` (server-side Sentry).
 
+**The Gemini model id lives in exactly one place: `api/_lib/geminiModel.ts`.**
+The default is `gemini-3.5-flash-lite`, and the **`GEMINI_MODEL` environment
+variable overrides it without a code change** — that is the whole point of the
+file. Google retires model ids on a scale of months, a retired id answers 404,
+and every layer below the proxy is built to shrug off a missing AI verdict, so
+a stale id disables classification in complete silence (it did, for ~10 weeks,
+after `gemini-2.0-flash` shut down on 1 June 2026). When that happens again the
+fix is to set `GEMINI_MODEL` in the Vercel dashboard, not to ship a patch.
+`GEMINI_MODEL_FALLBACKS` in the same file is a safety net that walks past a 404
+to the next candidate and logs the working id; it is not a substitute for
+setting the variable.
+
+An upstream **429** from Gemini means the Google project's own quota or rate
+limit is exhausted — distinct from the per-user daily quota, which is enforced
+in Postgres and never reaches Google. It is reported to Sentry as a warning
+(throttled to one per warm instance per 5 minutes) because it is otherwise
+invisible: users still see a successful scan, silently classified by regex
+alone.
+
 `webhook.ts` still handles `order.paid` from the retired one-time flow. Nothing
 in the app can create such an order any more; the branch is kept because an
 order that already exists must still be honoured.

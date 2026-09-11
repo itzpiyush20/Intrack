@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const { mockRpc, mockGetUser, mockGeminiFetch } = vi.hoisted(() => {
+const { mockRpc, mockGetUser, mockGeminiFetch, mockCaptureWarning } = vi.hoisted(() => {
   process.env.GEMINI_API_KEY = 'fake-key'
   process.env.VITE_SUPABASE_URL = 'https://example.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake-service-role'
@@ -9,8 +9,14 @@ const { mockRpc, mockGetUser, mockGeminiFetch } = vi.hoisted(() => {
     mockRpc: vi.fn(),
     mockGetUser: vi.fn(),
     mockGeminiFetch: vi.fn(),
+    mockCaptureWarning: vi.fn<(message: string, context?: Record<string, unknown>) => Promise<void>>(),
   }
 })
+
+vi.mock('./_lib/monitoring.js', () => ({
+  captureError: vi.fn(async () => {}),
+  captureWarning: mockCaptureWarning,
+}))
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
@@ -24,7 +30,7 @@ vi.mock('@supabase/supabase-js', () => ({
 
 vi.stubGlobal('fetch', mockGeminiFetch)
 
-import handler from './gemini-proxy'
+import handler, { resetUpstream429Throttle } from './gemini-proxy'
 
 function makeReqRes(body: any) {
   const req = {
@@ -151,5 +157,85 @@ describe('api/gemini-proxy — purpose-aware quota split', () => {
 
     expect(getStatus()).toBe(502)
     expect(getJson()).toMatchObject({ error: 'Gemini API error: 503' })
+  })
+})
+
+
+// ============================================================
+// Upstream 429 reporting.
+//
+// This is the only Gemini failure with no visible symptom anywhere: it does
+// not throw (so the catch block's captureError never sees it), it is not a
+// 404 (so the loud MODEL_NOT_FOUND path does not fire), and the client
+// degrades to the regex ladder while telling the user the scan succeeded.
+// Without this warning the operator's first signal would be noticing, months
+// later, that categorisation got worse — which is exactly how the
+// gemini-2.0-flash shutdown hid for ten weeks.
+// ============================================================
+describe('api/gemini-proxy — upstream 429 warning', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    resetUpstream429Throttle()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockRpc.mockResolvedValue({ data: true, error: null })
+    mockCaptureWarning.mockResolvedValue(undefined)
+  })
+
+  it('reports an upstream 429 as a warning naming GEMINI_API_KEY', async () => {
+    mockGeminiFetch.mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' })
+
+    const { req, res, getStatus } = makeReqRes({ contents: [{ parts: [{ text: 'x' }] }], purpose: 'scan' })
+    await handler(req, res)
+
+    expect(getStatus()).toBe(429)
+    expect(mockCaptureWarning).toHaveBeenCalledTimes(1)
+    expect(mockCaptureWarning.mock.calls[0][0]).toContain('GEMINI_API_KEY')
+    expect(mockCaptureWarning.mock.calls[0][1]).toMatchObject({ route: 'gemini-proxy', purpose: 'scan' })
+  })
+
+  it('still refunds the quota unit and still returns 429 to the caller', async () => {
+    mockGeminiFetch.mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' })
+
+    const { req, res, getStatus, getJson } = makeReqRes({ contents: [{ parts: [{ text: 'x' }] }], purpose: 'scan' })
+    await handler(req, res)
+
+    expect(getStatus()).toBe(429)
+    expect(getJson()).toMatchObject({ error: 'Gemini API error: 429' })
+    expect(refunds()).toHaveLength(1)
+  })
+
+  // The throttle is the whole reason this can be awaited. Every call 429s
+  // during a quota outage and captureWarning flushes for up to 2s; one report
+  // per call would stall a 40-email scan for over a minute.
+  it('reports once per window, not once per call, during a sustained outage', async () => {
+    mockGeminiFetch.mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' })
+
+    for (let i = 0; i < 5; i++) {
+      const { req, res } = makeReqRes({ contents: [{ parts: [{ text: 'x' }] }], purpose: 'scan' })
+      await handler(req, res)
+    }
+
+    expect(mockCaptureWarning).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not report the per-user daily quota rejection — that one is normal and never reaches Google', async () => {
+    mockRpc.mockResolvedValue({ data: false, error: null })
+
+    const { req, res, getStatus } = makeReqRes({ contents: [{ parts: [{ text: 'x' }] }], purpose: 'scan' })
+    await handler(req, res)
+
+    expect(getStatus()).toBe(429)
+    expect(mockCaptureWarning).not.toHaveBeenCalled()
+    expect(mockGeminiFetch).not.toHaveBeenCalled()
+  })
+
+  it('does not report a non-429 upstream failure through this path', async () => {
+    mockGeminiFetch.mockResolvedValue({ ok: false, status: 503, text: async () => 'upstream down' })
+
+    const { req, res, getStatus } = makeReqRes({ contents: [{ parts: [{ text: 'x' }] }], purpose: 'scan' })
+    await handler(req, res)
+
+    expect(getStatus()).toBe(502)
+    expect(mockCaptureWarning).not.toHaveBeenCalled()
   })
 })

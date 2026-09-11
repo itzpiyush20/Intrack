@@ -67,3 +67,37 @@ export async function captureError(
     // Swallowed deliberately. Reporting is best-effort.
   }
 }
+
+/**
+ * Report a condition that is not an exception but that an operator needs to
+ * see — the upstream Gemini 429 being the motivating case.
+ *
+ * Why this is not `captureError`: nothing threw. The request was handled
+ * correctly and the user got a correct, gracefully degraded result. There is
+ * no stack trace worth keeping and no bug to fix in this repo. What there IS,
+ * is a fact about the outside world (an exhausted API quota) that is
+ * invisible everywhere else, because every layer below is built to shrug a
+ * missing AI verdict off.
+ *
+ * Flushes like captureError, and for the same reason — the platform may freeze
+ * this instance the moment the handler returns. Callers on a hot path must
+ * throttle rather than skip the await; see `shouldReportUpstream429` in
+ * gemini-proxy.
+ *
+ * Never throws.
+ */
+export async function captureWarning(
+  message: string,
+  context?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    if (!ensureInit()) return
+    Sentry.captureMessage(message, {
+      level: 'warning',
+      ...(context ? { extra: context } : {}),
+    })
+    await Sentry.flush(2000)
+  } catch {
+    // Swallowed deliberately. Reporting is best-effort.
+  }
+}

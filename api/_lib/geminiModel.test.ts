@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   DEFAULT_GEMINI_MODEL,
+  GEMINI_MODEL_FALLBACKS,
   geminiEndpoint,
   isModelNotFoundStatus,
   modelNotFoundMessage,
@@ -170,5 +171,40 @@ describe('geminiModelCandidates', () => {
     const list = geminiModelCandidates({ GEMINI_MODEL: 'gemini-3.6-flash' } as NodeJS.ProcessEnv)
     expect(list[0]).toBe('gemini-3.6-flash')
     expect(new Set(list).size).toBe(list.length)
+  })
+})
+
+
+// ============================================================
+// The shape of the fallback chain.
+//
+// The tail of this list is what rescues a whole-generation retirement, so its
+// ORDER carries meaning and a careless edit would quietly undo it.
+// ============================================================
+describe('GEMINI_MODEL_FALLBACKS', () => {
+  it('starts with the default, so the cheap model is always tried first', () => {
+    expect(GEMINI_MODEL_FALLBACKS[0]).toBe(DEFAULT_GEMINI_MODEL)
+  })
+
+  it('contains no duplicates', () => {
+    expect(new Set(GEMINI_MODEL_FALLBACKS).size).toBe(GEMINI_MODEL_FALLBACKS.length)
+  })
+
+  // Reaching the tail means every cheaper id 404'd — i.e. the generation is
+  // gone. An older model is the worst possible last resort at that point,
+  // because it is likelier to have been retired in the same sweep.
+  it('puts newer generations ahead of the oldest candidate', () => {
+    const oldest = GEMINI_MODEL_FALLBACKS.indexOf('gemini-2.5-flash')
+    expect(oldest).toBe(GEMINI_MODEL_FALLBACKS.length - 1)
+    for (const newer of ['gemini-3.7-flash', 'gemini-3.8-flash']) {
+      expect(GEMINI_MODEL_FALLBACKS.indexOf(newer)).toBeGreaterThan(-1)
+      expect(GEMINI_MODEL_FALLBACKS.indexOf(newer)).toBeLessThan(oldest)
+    }
+  })
+
+  it('lists no model from a generation Google has already retired', () => {
+    for (const model of GEMINI_MODEL_FALLBACKS) {
+      expect(model).not.toMatch(/^gemini-(1\.|2\.0)/)
+    }
   })
 })

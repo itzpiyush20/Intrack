@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { captureError } from './_lib/monitoring.js'
+import { captureError, captureWarning } from './_lib/monitoring.js'
 import {
   callGeminiWithFallback,
   isModelNotFoundStatus,
@@ -52,6 +52,33 @@ function isRateLimited(ip: string): boolean {
   if (entry.count >= 60) return true
   entry.count++
   return false
+}
+
+/**
+ * Throttle for the upstream-429 warning below. One report per warm instance
+ * per window, not one per request.
+ *
+ * Necessary because the failure this reports is all-or-nothing: when the
+ * Google project's quota is exhausted, EVERY call 429s, and a scan makes
+ * dozens. Reporting each one would both bury the signal and — since
+ * captureWarning flushes for up to 2s — add that flush to every single call
+ * of a scan, which is exactly the stall the un-awaited captureError in the
+ * catch block below exists to avoid. Throttled, the await costs at most one
+ * 2s pause per instance per window, so it can be awaited honestly rather than
+ * fired into a function the platform may freeze on return.
+ */
+const UPSTREAM_429_REPORT_INTERVAL_MS = 5 * 60_000
+let lastUpstream429ReportAt = 0
+
+/** Test seam — resets the throttle. */
+export function resetUpstream429Throttle(): void {
+  lastUpstream429ReportAt = 0
+}
+
+function shouldReportUpstream429(now: number = Date.now()): boolean {
+  if (now - lastUpstream429ReportAt < UPSTREAM_429_REPORT_INTERVAL_MS) return false
+  lastUpstream429ReportAt = now
+  return true
 }
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://www.intrack.co.in'
@@ -194,6 +221,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Google is indistinguishable, in the Vercel request log, from this
       // route not existing at all.
       const status = geminiRes.status === 429 ? 429 : 502
+
+      // An upstream 429 is the ONE failure here that is invisible everywhere
+      // else. It is not an exception, so it never reaches the catch block's
+      // captureError; it is not a 404, so the loud MODEL_NOT_FOUND path above
+      // does not fire; and the client deliberately degrades to the regex
+      // ladder without telling the user anything. That combination is how a
+      // dead classifier hid for ten weeks once already.
+      //
+      // It also means something specific and actionable: the Google project
+      // behind GEMINI_API_KEY has hit ITS OWN rate or daily limit. That is an
+      // operator problem (free tier, or a quota that needs raising), not a
+      // user problem — the per-user daily quota is enforced in Postgres above
+      // and returns long before reaching Gemini at all.
+      if (status === 429 && shouldReportUpstream429()) {
+        await captureWarning(
+          'Gemini upstream 429 — the Google project quota or rate limit is exhausted. ' +
+            'AI classification is silently degrading to the regex ladder. ' +
+            'Check billing and limits for the project behind GEMINI_API_KEY.',
+          { route: 'gemini-proxy', model, purpose }
+        )
+      }
+
       await refundQuota()
       return res.status(status).json({ error: `Gemini API error: ${geminiRes.status}`, model })
     }

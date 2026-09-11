@@ -52,10 +52,27 @@ export function resolveGeminiModel(env: NodeJS.ProcessEnv = process.env): string
  * once the working id is known — the fallback costs one extra round trip per
  * cold start whenever the first choice is dead.
  */
+/**
+ * Ordering rule, so a future edit does not shuffle these arbitrarily:
+ * cheapest-current first, then newer generations, oldest last.
+ *
+ * The chain only runs when everything before it has 404'd, so the tail is
+ * what rescues a whole-generation retirement. An older id makes a poor tail —
+ * if the 3.5/3.6 line ever goes, `gemini-2.5-flash` (released June 2025) is
+ * far likelier to be gone with it than `gemini-3.8-flash` is. The newer,
+ * pricier ids therefore sit AHEAD of 2.5, not behind it: reaching them at all
+ * means the cheap options no longer exist, and a working expensive model
+ * beats a correct-looking scan with no AI in it.
+ *
+ * Verified against https://ai.google.dev/gemini-api/docs/deprecations on
+ * 2026-09-11: every id below is live with no announced shutdown date.
+ */
 export const GEMINI_MODEL_FALLBACKS = [
   'gemini-3.5-flash-lite',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash',
   'gemini-2.5-flash',
 ]
 
