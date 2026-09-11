@@ -100,7 +100,7 @@ export default function PrivacyPage() {
           Intrack's use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements.
 
           Specifically:
-          • We access your Gmail inbox only to read transaction alert emails from banking institutions.
+          • We access your Gmail inbox only to find your transaction emails. We do this with a keyword search restricted to the last 7 days, and we never search Spam or Trash. Because the search matches on words rather than on a fixed list of senders, it also returns some mail that is not a transaction — receipts, newsletters and promotions — and anything that is not a transaction is discarded, as described in section 2.
           • We do not store the body of your emails. Transaction emails are parsed using a combination of client-side pattern matching and Google's own Gemini AI (called via a server-side proxy we control solely to keep API credentials secure) — email text passes through this proxy in real time to extract transaction details and is never logged or retained afterward. The one exception is the scan diagnostics described in section 2: for an email the scanner REJECTED, we keep the sender domain, the subject line and an extract of up to 200 characters, deleted automatically after 30 days, so that a transaction you report as missing can be traced.
           • We do not share, transfer, or sell your Google user data to third-party databases, marketing platforms, or ad networks.
           • We do not use your Google user data to train machine learning or artificial intelligence models.
