@@ -64,17 +64,25 @@ When adding scopes to the OAuth Consent Screen:
 
 ---
 
-## 4. Google OAuth Demonstration Video (Crucial)
-Google reviewers **mandatorily require** a YouTube video demonstrating how the app uses Google OAuth scopes. Keep the video unlisted and paste the link in your verification submission.
+## 4. Google OAuth Demonstration Video
 
-Your video must show the following steps clearly:
-1. **The Consent Flow Start**: Show the user clicking "Continue with Google" on the Intrack signup screen.
-2. **The URL Client ID Check**: Pause or zoom in on the Google login window showing the URL. Reviewers must be able to see your Google Cloud project's `client_id` parameter clearly in the URL bar of the Google login popup.
-3. **The Warning Screen**: (If currently unverified) Show clicking "Advanced → Go to Intrack (unsafe)".
-4. **The Gmail Scope Checkbox**: Show the Google OAuth permissions check window where the user ticks the box authorizing Intrack to **"Read emails from your Gmail account"**.
-5. **The Functionality**: Show the browser dashboard successfully scanning banking emails, parsing the transaction alerts client-side, and displaying them as transaction rows on the expenses sheet.
+Google requires an unlisted YouTube video demonstrating the OAuth flow and the
+app actually using the scope. It is a hard requirement for restricted-scope
+verification, and it is the last submission item outstanding.
 
----
+**The step-by-step shot list that used to live here was deleted on 2026-09-11,
+deliberately.** It described a single signup flow in which the Gmail consent
+screen appears as part of registration. The app has not worked that way since
+sign-in was narrowed to basic scopes: `gmail.readonly` is now requested
+separately and in context, from the Pending page. Filming to that script would
+have produced a video that never shows the restricted scope being granted —
+the one thing the video exists to prove — and cost a submission cycle to find
+out.
+
+A stale script is worse than none, so there is none. Write the shot list
+against the flow as it exists on the day of filming, not against notes of what
+it used to be. Start by walking the consent flow yourself and recording what
+actually happens, in order.
 
 ## 5. Verification Checklist & Razorpay Alignment
 * [x] **Privacy Policy URL** is published and fully public.
