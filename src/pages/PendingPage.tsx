@@ -1078,7 +1078,7 @@ export default function PendingPage() {
             <div>
               <h2 className="text-lg font-bold text-sb-ink">Email Scanning is a Premium Feature</h2>
               <p className="text-sm text-sb-ink-muted mt-1.5 max-w-md">
-                Automatically capture transactions from your Gmail inbox. Upgrade to Premium to scan your bank alerts and let Intrack do the work.
+                Capture transactions from your Gmail inbox in one tap. Upgrade to Premium to scan your bank alerts and skip the manual entry.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 mt-2">

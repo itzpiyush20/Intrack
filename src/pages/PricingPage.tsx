@@ -497,7 +497,7 @@ export default function PricingPage() {
                         Subscription cancelled · Full access active until {renewalDateStr}
                       </p>
                       <p className="text-sb-ink-secondary leading-relaxed">
-                        You will not be charged again. Your automated inbox scans, categorization, and alerts remain fully active until your paid period ends.
+                        You will not be charged again. Inbox scanning, categorization, and alerts remain fully active until your paid period ends.
                       </p>
                     </div>
                   </div>

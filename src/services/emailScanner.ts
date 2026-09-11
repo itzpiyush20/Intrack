@@ -1741,11 +1741,17 @@ async function runGmailScan(opts?: ScanGmailOptions) {
     // produce a duplicate row even if two scans race.
     //
     // TRADE-OFF, chosen deliberately by the owner over stretching the window
-    // to cover detected gaps: any interruption longer than 7 days — cron
-    // outage, expired or revoked Gmail token, lapsed subscription — puts the
-    // mail in that gap permanently beyond reach, because the Gmail query will
-    // never request it again and dedup cannot recover what was never fetched.
-    // Free users are most exposed, having no automatic scan at all.
+    // to cover detected gaps: any gap longer than 7 days — a week without
+    // opening the app, an expired or revoked Gmail token, a lapsed
+    // subscription — puts the mail in that gap permanently beyond reach,
+    // because the Gmail query will never request it again and dedup cannot
+    // recover what was never fetched.
+    //
+    // Since automatic scanning was removed (2026-08-27) this rests entirely on
+    // the user: nothing scans on their behalf, so a quiet week is a lost week.
+    // The earlier note here blamed "cron outage" and said free users were most
+    // exposed for lacking an automatic scan — there is no cron and nobody has
+    // an automatic scan.
     const SCAN_WINDOW_MS = opts?.scanWindowMs ?? (7 * 24 * 60 * 60 * 1000)
     const startLimitTime = Date.now() - SCAN_WINDOW_MS
     let q = ''

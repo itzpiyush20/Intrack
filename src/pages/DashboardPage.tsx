@@ -839,12 +839,20 @@ export default function DashboardPage() {
                 ) : undefined
               }
             >
+              {/* `autoApproved` is deliberately NOT shown. It counts rows with
+                  approval_status 'approved', and nothing in the scanner ever
+                  writes that — every transaction lands in Pending for explicit
+                  user approval (invariant 1). So the count is structurally
+                  always zero, and this line used to read "0 filed
+                  automatically" after every single scan: advertising a feature
+                  that does not exist, and contradicting the review-everything
+                  promise the product is built on. The value stays in the
+                  summary because `pendingReview` is derived from it. */}
               {syncSummary.total > 0 && (
                 <p className="text-sm text-[var(--status-positive-text)] opacity-90 leading-relaxed">
-                  <span className="tnum">{syncSummary.autoApproved}</span> filed automatically
                   {syncSummary.pendingReview > 0 && (
                     <>
-                      , <span className="tnum">{syncSummary.pendingReview}</span> waiting for you in Pending
+                      <span className="tnum">{syncSummary.pendingReview}</span> waiting for you in Pending
                     </>
                   )}
                   {syncSummary.topCategory && (

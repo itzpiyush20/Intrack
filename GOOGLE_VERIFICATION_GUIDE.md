@@ -1,6 +1,6 @@
 # Google OAuth Verification Guide: Intrack
 
-Since Intrack utilizes the **restricted scope** `https://www.googleapis.com/auth/gmail.readonly` to automatically scan transaction alerts in the user's Gmail inbox, you must submit the application for Google OAuth App Verification. 
+Since Intrack utilizes the **restricted scope** `https://www.googleapis.com/auth/gmail.readonly` to scan transaction alerts in the user's Gmail inbox when the user asks it to, you must submit the application for Google OAuth App Verification. 
 
 Without verification, users will see a red "unverified app" warning, and a hard limit of 100 logins will block your launch.
 
