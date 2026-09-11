@@ -28,11 +28,32 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { captureError } from './_lib/monitoring.js'
 
+// ⚠️ UNAUTHENTICATED, DELIBERATELY, AND ONLY FOR MINUTES.
+//
+// This started out guarded by CRON_SECRET. That turned out to be unusable: the
+// variable is marked Sensitive in Vercel, so its value cannot be read back by
+// anyone — not the dashboard, not `vercel env pull` (which writes CRON_SECRET=""
+// locally and is why the first attempt returned 401), and not through any API.
+// The cron itself still works; Vercel injects the header on its own.
+//
+// The owner chose this over rotating a working production secret purely to run
+// a test. The trade is deliberate and the exposure is small: this endpoint
+// touches no database, no payment provider and no user data, and returns only
+// whether a DSN exists, never its value.
+//
+// The one real abuse is burning Sentry quota, so the counter below caps it.
+// DELETE THIS FILE as soon as the event is confirmed.
+const MAX_EVENTS_PER_INSTANCE = 5
+let eventsEmitted = 0
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
+  if (eventsEmitted >= MAX_EVENTS_PER_INSTANCE) {
+    return res.status(429).json({
+      error: 'Selftest event cap reached for this instance.',
+      hint: 'This endpoint is temporary and is being deleted.',
+    })
   }
+  eventsEmitted++
 
   // Reported before the throw, and independently of it. If SENTRY_DSN is
   // missing or empty in Vercel, captureError silently no-ops by design — the
