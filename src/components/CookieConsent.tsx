@@ -37,10 +37,14 @@ export default function CookieConsent() {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:max-w-md z-modal animate-slide-up">
-      <div className="relative overflow-hidden bg-surface-1/95 border border-sb-hairline backdrop-blur-xl rounded-2xl p-5 shadow-card-lg flex flex-col gap-4 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/35 before:to-transparent">
+    // Sits at the bottom edge. It is lifted above the signed-in mobile bottom nav
+    // only while AppLayout marks <html> with `has-bottom-nav`: the lift used to be
+    // unconditional, which parked the notice over the landing page's hero buttons
+    // on a first mobile visit and swallowed taps meant for them.
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 sm:left-4 sm:right-4 md:bottom-6 md:left-auto md:right-6 md:max-w-md max-lg:[.has-bottom-nav_&]:bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] z-modal animate-slide-up">
+      <div className="relative overflow-hidden bg-surface-1/95 border border-sb-hairline backdrop-blur-xl rounded-2xl p-3.5 sm:p-5 shadow-card-lg flex flex-col gap-2.5 sm:gap-4 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-brand-500/35 before:to-transparent">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200/60 flex items-center justify-center text-base shrink-0 mt-0.5 shadow-xs" aria-hidden="true">
+          <div className="hidden sm:flex w-8 h-8 rounded-xl bg-brand-50 border border-brand-200/60 items-center justify-center text-base shrink-0 mt-0.5 shadow-xs" aria-hidden="true">
             🍪
           </div>
           <div>
@@ -51,9 +55,9 @@ export default function CookieConsent() {
                 signed in, which is strictly necessary and needs no permission.
                 So this notifies rather than asks, and the button dismisses
                 rather than grants. */}
-            <p className="text-xs text-sb-ink-secondary mt-1.5 leading-relaxed">
+            <p className="text-xs text-sb-ink-secondary mt-1 sm:mt-1.5 leading-relaxed">
               We store only what is strictly necessary to keep you signed in — no advertising cookies,
-              no third-party analytics, and nothing that tracks you across other sites. Read our{' '}
+              no third-party analytics<span className="hidden sm:inline">, and nothing that tracks you across other sites</span>. Read our{' '}
               <Link to={ROUTES.PRIVACY} className="font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
                 Privacy Policy
               </Link>{' '}
@@ -65,10 +69,12 @@ export default function CookieConsent() {
           </div>
         </div>
         
-        <div className="flex justify-end gap-2.5 shrink-0 border-t border-sb-hairline pt-3">
+        <div className="flex justify-end gap-2.5 shrink-0 sm:border-t border-sb-hairline sm:pt-3">
+          {/* The Privacy Policy is already linked in the text; on a phone the
+              duplicate button only added height over the page. */}
           <Link
             to={ROUTES.PRIVACY}
-            className="min-h-10 px-3.5 flex items-center justify-center rounded-xl border border-sb-hairline text-xs font-semibold text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2 transition-all cursor-pointer"
+            className="hidden sm:flex min-h-10 px-3.5 items-center justify-center rounded-xl border border-sb-hairline text-xs font-semibold text-sb-ink-secondary hover:text-sb-ink hover:bg-surface-2 transition-all cursor-pointer"
           >
             Learn More
           </Link>

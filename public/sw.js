@@ -1,4 +1,7 @@
-const CACHE_NAME = 'intrack-cache-v1';
+// v2: v1 stored a fresh copy of index.html for every AutoUpdateChecker poll
+// (`/index.html?t=<now>`), growing without bound. Bumping the name makes
+// `activate` delete that cache.
+const CACHE_NAME = 'intrack-cache-v2';
 const APP_SHELL = [
   '/',
   '/manifest.json',
@@ -33,6 +36,11 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(req.url);
 
+  // The update poll asks for the network's answer and nothing else. Caching it
+  // is pointless (the next poll ignores it) and, with a unique `?t=` each time,
+  // filled Cache Storage on phones.
+  if (url.pathname === '/index.html' || req.cache === 'no-store') return;
+
   // Hashed build assets are immutable — cache-first, refresh cache in background.
   if (url.pathname.startsWith('/assets/')) {
     e.respondWith(
@@ -47,7 +55,14 @@ self.addEventListener('fetch', (e) => {
             // by the time it ran, res.bodyUsed was often already true, and
             // clone() throws "Response body is already used" instead of
             // caching anything — this fired on nearly every asset load.
-            const resClone = res.ok ? res.clone() : null;
+            //
+            // Never cache an HTML answer to an asset request. A Wi-Fi captive
+            // portal, a carrier interstitial, or any SPA fallback can reply
+            // `200 text/html` for a missing .js file. Stored here, cache-first
+            // would serve that HTML as the chunk forever, and the route would
+            // stay broken through every reload.
+            const isHtml = (res.headers.get('content-type') || '').includes('text/html');
+            const resClone = res.ok && !isHtml ? res.clone() : null;
             if (resClone) caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
             return res;
           })
@@ -64,8 +79,11 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          const resClone = res.clone(); // see the /assets/ branch above for why this must be synchronous
-          caches.open(CACHE_NAME).then((cache) => cache.put('/', resClone));
+          // Only a real page becomes the offline shell. Without this a 404 or a
+          // 5xx error page could be stored as '/' and served to every offline open.
+          const isPage = res.ok && (res.headers.get('content-type') || '').includes('text/html');
+          const resClone = isPage ? res.clone() : null; // see the /assets/ branch above for why this must be synchronous
+          if (resClone) caches.open(CACHE_NAME).then((cache) => cache.put('/', resClone));
           return res;
         })
         .catch(() => caches.match('/'))

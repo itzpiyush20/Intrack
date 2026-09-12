@@ -99,6 +99,19 @@ Anything unmatched redirects to `/`.
 18 page components in `src/pages/`, with sub-folders for `admin/`, `analytics/`,
 `landing/` and `pricing/` sections.
 
+**Loading and updates (the app shell).** Every page except the landing, support
+and forgot-password pages is a lazy chunk, declared once in `pageImports` in
+`App.tsx`. A failed chunk download is retried (`lazyWithRetry` in
+`src/utils/chunkLoad.ts`), and then `ErrorBoundary` reloads once. The download
+starts when a finger lands on a link (`prefetchOnIntent`). `AutoUpdateChecker`
+polls `index.html` for a new build and applies it only on the next route change,
+never on focus. `public/sw.js` is network-first for pages, cache-first for
+hashed `/assets/` (never storing an HTML answer to an asset request), and does
+not cache the update poll. `vercel.json` serves
+`/assets/*` as `immutable`. `vite.config.ts` splits vendor libraries into
+`vendor-*` chunks so their hashes survive deploys. Background:
+`plans/mobile-link-reliability.md`.
+
 ---
 
 ## 4. Services (`src/services/`)

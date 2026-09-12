@@ -328,6 +328,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [notificationDropdownOpen, profileDropdownOpen, mobileMenuOpen, sidebarUserDropdownOpen])
 
+  // The mobile bottom nav below renders whenever someone is signed in. The
+  // cookie notice lifts itself above it only while this class is present;
+  // without the bottom nav it used to float mid-screen over the hero CTAs.
+  useEffect(() => {
+    if (!user) return
+    const root = document.documentElement
+    root.classList.add('has-bottom-nav')
+    return () => root.classList.remove('has-bottom-nav')
+  }, [user])
+
   // Feedback Modal States
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   // Add Transaction Modal

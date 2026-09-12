@@ -5,6 +5,7 @@
 
 import { Component, type ReactNode } from 'react'
 import { captureError } from '../lib/monitoring'
+import { isChunkLoadError, reloadOnceForChunkError } from '../utils/chunkLoad'
 
 interface Props {
   children: ReactNode
@@ -32,26 +33,10 @@ export class ErrorBoundary extends Component<Props, State> {
     // reload the page — anything left until after it would never be sent.
     captureError(error, { componentStack: info.componentStack })
 
-    // Stale chunk after a new deploy: React.lazy()'s dynamic import() rejects because the
-    // old hashed chunk filename no longer exists on the server. A plain "Try Again" re-render
-    // reuses the same rejected import promise and fails again, so force a hard reload instead
-    // (guarded against loops, same pattern as AutoUpdateChecker's asset-error handler).
-    const isStaleChunkError =
-      /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed/i.test(
-        error.message
-      )
-    if (isStaleChunkError) {
-      try {
-        const now = Date.now()
-        const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
-        if (!lastReload || now - Number(lastReload) > 15000) {
-          sessionStorage.setItem('intrack_last_auto_reload', String(now))
-          window.location.reload()
-        }
-      } catch {
-        // sessionStorage unavailable — safe to skip the loop guard
-      }
-    }
+    // A route chunk that would not download even after lazyWithRetry's retries
+    // (stale deploy, or the network is down). React.lazy caches the rejected
+    // promise, so a re-render fails again; only a reload fetches fresh HTML.
+    if (isChunkLoadError(error)) reloadOnceForChunkError()
   }
 
   handleReset = () => {
@@ -87,10 +72,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => {
-                  const isStale = /failed to fetch dynamically imported module|error loading dynamically imported module/i.test(
-                    this.state.error?.message || ''
-                  )
-                  if (isStale) {
+                  // Reached when the automatic reload was suppressed by its loop
+                  // guard. This is a deliberate tap, so reload without the guard.
+                  // The old check here missed Safari's wording, so on an iPhone
+                  // "Try Again" re-rendered the same failure.
+                  if (isChunkLoadError(this.state.error)) {
                     window.location.reload()
                   } else {
                     this.setState({ hasError: false, error: null })

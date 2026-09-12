@@ -3,7 +3,7 @@
 // Code-split via React.lazy for performance
 // ============================================
 
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { AuthProvider, ToastProvider, CategoriesProvider, useAuth } from '@/context'
@@ -18,6 +18,8 @@ import ScrollProgressBar from '@/components/ui/ScrollProgressBar'
 import { PageSkeleton } from '@/components/ui'
 import { applyLightTheme, clearStoredTheme } from '@/utils/theme'
 import { setCanonical } from '@/utils/seo'
+import { lazyWithRetry, prefetchOnIntent } from '@/utils/chunkLoad'
+import ScrollToTop from '@/components/ScrollToTop'
 
 // Marketing/legal routes only — app routes don't need a reading-progress chrome element.
 const MARKETING_ROUTES = new Set(['/', '/support', '/privacy', '/about', '/terms', '/pricing', '/refund-policy'])
@@ -55,93 +57,43 @@ function MarketingScrollProgress() {
   return <ScrollProgressBar />
 }
 
-function ScrollToTop() {
-  const { pathname, search, hash } = useLocation()
-
-  useEffect(() => {
-    // Check if the change is just an auth modal query param opening/closing
-    const params = new URLSearchParams(search)
-    // If it has 'auth' and nothing else, ignore. If it has 'auth' and others, or no 'auth', we scroll to top.
-    const isOnlyAuthChange = params.has('auth') && Array.from(params.keys()).length === 1
-    if (isOnlyAuthChange) return
-
-    // A hash means "take me to that section", which is the opposite of scrolling
-    // to the top. Cross-page links like /#features used to be plain <a> tags so
-    // the browser handled this with a full page reload; now that they route
-    // client-side, the scroll is ours to perform.
-    if (hash) {
-      // decodeURIComponent THROWS on a lone '%'. This code path runs on every
-      // Google OAuth callback, whose hash carries provider tokens and, on
-      // failure, an `error_description` of arbitrary text — so an undecodable
-      // hash must degrade to the raw string, never take down the sign-in
-      // redirect with a URIError.
-      let id: string
-      try {
-        id = decodeURIComponent(hash.slice(1))
-      } catch {
-        id = hash.slice(1)
-      }
-      // The target belongs to the route being navigated TO, which has not
-      // mounted yet: AnimatedRoutes runs a 300ms exit animation first. So poll
-      // rather than checking once.
-      //
-      // setTimeout, NOT requestAnimationFrame. rAF is paused outright in a
-      // backgrounded or non-compositing tab — the same hazard documented on
-      // AnimatedRoutes below — which would leave the scroll silently undone.
-      // A hash carrying key=value pairs is an auth callback payload, not an
-      // anchor name. Bail immediately rather than spending 1.2s polling for an
-      // element that cannot exist — this runs on every Google sign-in.
-      if (!id || id.includes('=') || id.includes('&')) {
-        window.scrollTo(0, 0)
-        return
-      }
-
-      let cancelled = false
-      const deadline = Date.now() + 1200
-      const tryScroll = () => {
-        if (cancelled) return
-        const el = document.getElementById(id)
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          return
-        }
-        if (Date.now() < deadline) {
-          setTimeout(tryScroll, 60)
-          return
-        }
-        // Gave up. Normal for a hash that was never an anchor — above all
-        // Supabase's OAuth `#access_token=…` callback.
-        window.scrollTo(0, 0)
-      }
-      tryScroll()
-      return () => { cancelled = true }
-    }
-
-    window.scrollTo(0, 0)
-  }, [pathname, search, hash])
-
-  return null
+// ─── Lazy loaded (code split) ────────────────────────────
+// One import per route path, shared by lazyWithRetry (renders it, retrying a
+// failed download) and prefetchOnIntent (starts the download when a finger
+// lands on a link to it). See src/utils/chunkLoad.ts for why both exist.
+const pageImports = {
+  '/dashboard':      () => import('@/pages/DashboardPage'),
+  '/expenses':       () => import('@/pages/ExpensesPage'),
+  '/budgets':        () => import('@/pages/BudgetsPage'),
+  '/pending':        () => import('@/pages/PendingPage'),
+  '/insights':       () => import('@/pages/InsightsPage'),
+  '/settings':       () => import('@/pages/SettingsPage'),
+  '/profile':        () => import('@/pages/ProfilePage'),
+  '/subscriptions':  () => import('@/pages/SubscriptionsPage'),
+  '/privacy':        () => import('@/pages/PrivacyPage'),
+  '/about':          () => import('@/pages/AboutPage'),
+  '/terms':          () => import('@/pages/TermsPage'),
+  '/pricing':        () => import('@/pages/PricingPage'),
+  '/refund-policy':  () => import('@/pages/RefundPage'),
+  '/reset-password': () => import('@/pages/ResetPasswordPage'),
+  '/admin':          () => import('@/pages/admin/AdminPage'),
 }
 
-// ─── Lazy loaded (protected pages — code split) ─────────
-const DashboardPage    = lazy(() => import('@/pages/DashboardPage'))
-const ExpensesPage     = lazy(() => import('@/pages/ExpensesPage'))
-const BudgetsPage      = lazy(() => import('@/pages/BudgetsPage'))
-const PendingPage      = lazy(() => import('@/pages/PendingPage'))
-const InsightsPage     = lazy(() => import('@/pages/InsightsPage'))
-const SettingsPage     = lazy(() => import('@/pages/SettingsPage'))
-const ProfilePage      = lazy(() => import('@/pages/ProfilePage'))
-const SubscriptionsPage = lazy(() => import('@/pages/SubscriptionsPage'))
-const PrivacyPage      = lazy(() => import('@/pages/PrivacyPage'))
-const AboutPage        = lazy(() => import('@/pages/AboutPage'))
-const TermsPage        = lazy(() => import('@/pages/TermsPage'))
-const PricingPage      = lazy(() => import('@/pages/PricingPage'))
-const RefundPage       = lazy(() => import('@/pages/RefundPage'))
-const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
-
-const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'))
-
-const AdminPage = lazy(() => import('@/pages/admin/AdminPage'))
+const DashboardPage     = lazyWithRetry(pageImports['/dashboard'])
+const ExpensesPage      = lazyWithRetry(pageImports['/expenses'])
+const BudgetsPage       = lazyWithRetry(pageImports['/budgets'])
+const PendingPage       = lazyWithRetry(pageImports['/pending'])
+const InsightsPage      = lazyWithRetry(pageImports['/insights'])
+const SettingsPage      = lazyWithRetry(pageImports['/settings'])
+const ProfilePage       = lazyWithRetry(pageImports['/profile'])
+const SubscriptionsPage = lazyWithRetry(pageImports['/subscriptions'])
+const PrivacyPage       = lazyWithRetry(pageImports['/privacy'])
+const AboutPage         = lazyWithRetry(pageImports['/about'])
+const TermsPage         = lazyWithRetry(pageImports['/terms'])
+const PricingPage       = lazyWithRetry(pageImports['/pricing'])
+const RefundPage        = lazyWithRetry(pageImports['/refund-policy'])
+const ResetPasswordPage = lazyWithRetry(pageImports['/reset-password'])
+const AdminPage         = lazyWithRetry(pageImports['/admin'])
 
 // ─── Loading fallback ────────────────────────────────────
 /**
@@ -255,6 +207,8 @@ function App() {
     applyLightTheme()
     clearStoredTheme()
   }, [])
+
+  useEffect(() => prefetchOnIntent(pageImports), [])
 
   return (
     <BrowserRouter>

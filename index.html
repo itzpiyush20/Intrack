@@ -119,6 +119,12 @@
       window.addEventListener('error', function(e) {
         try {
           var target = e.target;
+          // A <link rel="modulepreload"> is Vite fetching a route chunk on
+          // navigation. That failure also rejects the import, which
+          // lazyWithRetry retries and ErrorBoundary reloads for if it must.
+          // Reloading here pre-empted the retry, so a one-second network blip
+          // on a phone cost a full page reload.
+          if (target && target.tagName === 'LINK' && target.rel === 'modulepreload') return;
           if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
             var src = target.src || target.href;
             if (src && (src.indexOf('/assets/') !== -1 || src.indexOf('index-') !== -1)) {

@@ -3,16 +3,27 @@ import { useLocation } from 'react-router-dom'
 
 /**
  * AutoUpdateChecker component
- * Periodically polls the root index.html to check for newly deployed script/style hashes.
- * If a new build is detected (asset hashes mismatch) or if asset load errors occur,
- * it automatically reloads the page to inject the latest update without forcing sign-out.
+ *
+ * Polls index.html for newly deployed script/style hashes and moves the tab
+ * onto the new build — but only at a route change.
+ *
+ * It used to reload the moment a new build was noticed, including when the tab
+ * regained focus. On a phone that is every return from another app, and the
+ * reload threw away whatever was open: a half-filled expense form, a scroll
+ * position in Pending. Now focus, visibility and the timer only DETECT an
+ * update; it is applied on the next navigation, when the page being left is
+ * being discarded anyway, by reloading straight into the destination.
+ *
+ * Asset load failures are handled by the inline listener in index.html and by
+ * lazyWithRetry + ErrorBoundary for route chunks.
  */
 export default function AutoUpdateChecker() {
-  const location = useLocation()
-  const checkRef = useRef<() => void>(undefined)
+  const { pathname } = useLocation()
+  const checkRef = useRef<() => Promise<boolean>>(undefined)
+  const updatePending = useRef(false)
+  const isFirstRoute = useRef(true)
 
   useEffect(() => {
-    // Only verify updates if running in browser environment
     if (typeof window === 'undefined') return
 
     // Extract current script/link hashes from DOM
@@ -31,96 +42,84 @@ export default function AutoUpdateChecker() {
       return
     }
 
-    const checkForUpdates = async () => {
+    const checkForUpdates = async (): Promise<boolean> => {
+      if (updatePending.current) return true
       try {
-        // Query the root index file with a cache-buster query parameter
+        // The service worker deliberately does not cache this request (see sw.js).
         const res = await fetch('/index.html?t=' + Date.now(), { cache: 'no-store' })
-        if (!res.ok) return
-        
-        const html = await res.text()
+        if (!res.ok) return false
 
-        // Extract script/style hashes from server's latest index.html
+        const html = await res.text()
         const fetchedJsHash = html.match(/assets\/index-([a-zA-Z0-9_-]+)\.js/)?.[1]
         const fetchedCssHash = html.match(/assets\/index-([a-zA-Z0-9_-]+)\.css/)?.[1]
 
-        let hasUpdate = false
-
-        if (fetchedJsHash && fetchedJsHash !== currentJsHash) {
-          hasUpdate = true
-        }
-        if (fetchedCssHash && fetchedCssHash !== currentCssHash) {
-          hasUpdate = true
-        }
-
+        const hasUpdate =
+          (!!fetchedJsHash && fetchedJsHash !== currentJsHash) ||
+          (!!fetchedCssHash && fetchedCssHash !== currentCssHash)
         if (hasUpdate) {
-          console.log('webapp: new update detected! Reloading page to apply updates...')
-          try {
-            const nowTime = Date.now()
-            const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
-            if (lastReload && nowTime - Number(lastReload) < 10000) {
-              console.warn('webapp: auto-reload loop detected & suppressed.')
-              return
-            }
-            sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
-          } catch { /* sessionStorage blocked; the reload loop-guard fails open. */ }
-          window.location.reload()
+          console.log('webapp: new update detected; it will apply on the next navigation.')
+          updatePending.current = true
         }
+        return hasUpdate
       } catch (err) {
         console.warn('webapp: failed to fetch auto-update logs', err)
+        return false
       }
     }
 
     checkRef.current = checkForUpdates
 
-    // Check every 30 seconds for fast update propagation
-    const interval = setInterval(checkForUpdates, 30000)
+    // A hidden tab has no one to update for; skip the fetch rather than spend a
+    // phone's data and battery on it.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') checkForUpdates()
+    }, 30000)
 
-    // Check immediately when user refocuses or returns to tab
     const handleTrigger = () => {
-      checkForUpdates()
+      if (document.visibilityState === 'visible') checkForUpdates()
     }
     window.addEventListener('focus', handleTrigger)
     document.addEventListener('visibilitychange', handleTrigger)
 
-    // Error event listener to catch any chunk dynamic loading failures
-    const handleAssetLoadError = (e: ErrorEvent) => {
-      const target = e.target as HTMLElement
-      if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
-        const src = (target as HTMLScriptElement).src || (target as HTMLLinkElement).href
-        if (src && (src.includes('/assets/') || src.includes('index-'))) {
-          console.warn('webapp: asset loading failed, checking for reload loop...', src)
-          try {
-            const nowTime = Date.now()
-            const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
-            if (lastReload && nowTime - Number(lastReload) < 15000) {
-              console.warn('webapp: auto-reload loop detected via error listener & suppressed.')
-              return
-            }
-            sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
-          } catch { /* sessionStorage blocked; the reload loop-guard fails open. */ }
-          window.location.reload()
-        }
-      }
-    }
-    window.addEventListener('error', handleAssetLoadError, true)
-
-    // Run initial check
     checkForUpdates()
 
     return () => {
       clearInterval(interval)
       window.removeEventListener('focus', handleTrigger)
       document.removeEventListener('visibilitychange', handleTrigger)
-      window.removeEventListener('error', handleAssetLoadError, true)
     }
   }, [])
 
-  // Trigger check on every routing change / tab switch
+  // A route change is the safe moment: the router has already moved to the new
+  // URL, nothing on the new page has been touched yet, and reloading loads the
+  // destination on the new build.
   useEffect(() => {
-    if (checkRef.current) {
-      checkRef.current()
+    if (isFirstRoute.current) {
+      isFirstRoute.current = false
+      return
     }
-  }, [location.pathname])
+    const apply = () => {
+      try {
+        const nowTime = Date.now()
+        const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
+        if (lastReload && nowTime - Number(lastReload) < 10000) {
+          console.warn('webapp: auto-reload loop detected & suppressed.')
+          return
+        }
+        sessionStorage.setItem('intrack_last_auto_reload', String(nowTime))
+      } catch { /* sessionStorage blocked; the reload loop-guard fails open. */ }
+      window.location.reload()
+    }
+    if (updatePending.current) {
+      apply()
+      return
+    }
+    let cancelled = false
+    checkRef.current?.().then((found) => {
+      if (found && !cancelled) apply()
+    })
+    return () => { cancelled = true }
+  }, [pathname])
 
   return null
 }
