@@ -59,6 +59,9 @@ import {
   X,
 } from 'lucide-react'
 import StatementImportModal from '@/components/importer/StatementImportModal'
+import MerchantPicker from '@/components/merchants/MerchantPicker'
+import { listMerchants } from '@/services/merchants'
+import { matchMerchant, type MerchantOption } from '@/utils/merchantKey'
 
 /**
  * How a confidence score is shown: an icon, a word and a colour.
@@ -90,6 +93,38 @@ type AutoReviewRow = Pick<
   TransactionRow,
   'id' | 'amount' | 'type' | 'category' | 'currency' | 'date' | 'merchant' | 'description' | 'possible_duplicate_of'
 >
+
+/** What a Pending card lets the user correct; exactly what approval writes. */
+type ReviewFields = { category: string; description: string; merchant: string; merchantId: string | null }
+
+/** The card's values before any edit, straight from the scanned row. */
+function defaultReviewFields(txn: TransactionRow): ReviewFields {
+  return { category: txn.category, description: txn.description || '', merchant: txn.merchant || '', merchantId: txn.merchant_id ?? null }
+}
+
+/**
+ * Pre-select a saved merchant on every card that is not yet linked and whose
+ * merchant text matches a saved name or alias. The user still sees the choice
+ * and can change or clear it; approval is what saves the link. Returns the
+ * same object when nothing changed so React skips the re-render.
+ */
+function preselectMerchants(
+  fields: Record<string, ReviewFields>,
+  saved: MerchantOption[]
+): Record<string, ReviewFields> {
+  if (saved.length === 0) return fields
+  let changed = false
+  const next = { ...fields }
+  for (const [id, f] of Object.entries(fields)) {
+    if (f.merchantId) continue
+    const hit = matchMerchant(f.merchant, saved)
+    if (hit) {
+      next[id] = { ...f, merchant: hit.name, merchantId: hit.id }
+      changed = true
+    }
+  }
+  return changed ? next : fields
+}
 
 function parseTransactionTime(txn: TransactionRow): string {
   // Prefer the dedicated transaction_time column (added in Phase 2)
@@ -225,9 +260,39 @@ export default function PendingPage() {
 
   const [showInactivityBanner, setShowInactivityBanner] = useState(false)
 
-  const [editingFields, setEditingFields] = useState<
-    Record<string, { category: string; description: string }>
-  >({})
+  const [editingFields, setEditingFields] = useState<Record<string, ReviewFields>>({})
+
+  // Saved merchants, loaded once and shared by every card's picker. Used to
+  // PRE-SELECT a merchant on each card; the user still sees it and can change
+  // or clear it. Approving is what saves the link — nothing is written here.
+  //
+  // Pre-selection runs at the two moments data arrives (this load, and the
+  // pending-list seeding in fetchPendingData, which reads the ref because it
+  // is a stable callback) instead of in an effect watching editingFields, so
+  // it never re-fires on a user's own edit and the approval snapshots read
+  // exactly what the card shows.
+  const [savedMerchants, setSavedMerchants] = useState<MerchantOption[]>([])
+  const savedMerchantsRef = useRef<MerchantOption[]>([])
+  useEffect(() => {
+    let alive = true
+    listMerchants()
+      .then(({ data }) => {
+        if (!alive) return
+        savedMerchantsRef.current = data
+        setSavedMerchants(data)
+        setEditingFields((prev) => preselectMerchants(prev, data))
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  const handleMerchantAdded = (m: MerchantOption) => {
+    const list = savedMerchantsRef.current
+    if (list.some((x) => x.id === m.id)) return
+    savedMerchantsRef.current = [...list, m]
+    setSavedMerchants(savedMerchantsRef.current)
+  }
 
   const { showToast } = useToast()
 
@@ -414,14 +479,16 @@ export default function PendingPage() {
         (allPending ?? []).reduce((acc, t) => acc + homeCurrencyAmount(t, 'credit'), 0)
       )
 
-      const fieldsMap: Record<string, { category: string; description: string }> = {}
+      const fieldsMap: Record<string, ReviewFields> = {}
       txns.forEach((t) => {
         fieldsMap[t.id] = {
           category: t.category,
           description: parseShortDescription(t.description || '', (t as any).notes || '', t.merchant || ''),
+          merchant: t.merchant || '',
+          merchantId: t.merchant_id ?? null,
         }
       })
-      setEditingFields(fieldsMap)
+      setEditingFields(preselectMerchants(fieldsMap, savedMerchantsRef.current))
     } catch (err: any) {
       console.error('Error loading pending transactions:', err)
       setError(err.message || 'Failed to load reviews.')
@@ -486,6 +553,10 @@ export default function PendingPage() {
     }))
   }
 
+  const handleMerchantChange = (id: string, merchant: string, merchantId: string | null) => {
+    setEditingFields((prev) => ({ ...prev, [id]: { ...prev[id], merchant, merchantId } }))
+  }
+
   // Checks whether this merchant is eligible for a "create a rule?" suggestion.
   // Does NOT save anything — rule creation is explicit-only now. Returns the
   // merchant name if eligible (caller decides whether/how to surface it), or
@@ -504,13 +575,16 @@ export default function PendingPage() {
 
   // Writes the actual approval to the database. Split from the tap handler
   // below so the write can be delayed a few seconds for the undo window.
-  const commitApproval = async (txn: TransactionRow, fields: { category: string; description: string }) => {
+  const commitApproval = async (txn: TransactionRow, fields: ReviewFields) => {
     try {
       // Approving/recategorizing this transaction only ever writes this one row —
       // it must never silently recategorize other same-merchant transactions.
       const { error } = await updateTransaction(txn.id, {
         category: fields.category,
         description: fields.description,
+        // A blank merchant is a deliberate clear by the user, so null is intended.
+        merchant: fields.merchant.trim() || null,
+        merchant_id: fields.merchantId,
         approval_status: 'approved',
         // Approving here IS the human review, so stamp the confirmation.
         // Migration 007's contract says anything approved via Pending Alerts
@@ -543,7 +617,7 @@ export default function PendingPage() {
   const pendingCommitTimers = pendingCommitTimersRef.current
 
   const handleApproveWithUndo = (txn: TransactionRow) => {
-    const fields = editingFields[txn.id] || { category: txn.category, description: txn.description || '' }
+    const fields = editingFields[txn.id] || defaultReviewFields(txn)
 
     setPendingTxns((prev) => prev.filter((t) => t.id !== txn.id))
     setTotalPendingCount((prev) => Math.max(0, prev - 1))
@@ -589,7 +663,7 @@ export default function PendingPage() {
 
     const snapshot = eligible.map((txn) => ({
       txn,
-      fields: editingFields[txn.id] || { category: txn.category, description: txn.description || '' },
+      fields: editingFields[txn.id] || defaultReviewFields(txn),
     }))
     // Bulk approve intentionally never offers a rule-creation suggestion —
     // showing one banner per merchant across many transactions would be spammy.
@@ -762,7 +836,7 @@ export default function PendingPage() {
       (txn) =>
         commitApproval(
           txn,
-          editingFields[txn.id] || { category: txn.category, description: txn.description || '' }
+          editingFields[txn.id] || defaultReviewFields(txn)
         ),
       (n) => `Approved ${n} transaction${n === 1 ? '' : 's'}.`
     )
@@ -788,10 +862,7 @@ export default function PendingPage() {
     setEditingFields((prev) => {
       const next = { ...prev }
       selectedTxns.forEach((txn) => {
-        next[txn.id] = {
-          category,
-          description: prev[txn.id]?.description ?? txn.description ?? '',
-        }
+        next[txn.id] = { ...(prev[txn.id] ?? defaultReviewFields(txn)), category }
       })
       return next
     })
@@ -882,6 +953,10 @@ export default function PendingPage() {
       setEditingFields((prev) => {
         const next = { ...prev }
         delete next[absorbed.id]
+        // A merchant the user already linked on the survivor is kept; otherwise
+        // the merged row's (possibly richer) merchant text is offered, pre-selected
+        // against saved merchants like any freshly loaded card.
+        const linked = prev[survivor.id]?.merchantId ? prev[survivor.id] : null
         next[survivor.id] = {
           category: prev[survivor.id]?.category ?? mergedRow.category,
           description: parseShortDescription(
@@ -889,8 +964,10 @@ export default function PendingPage() {
             mergedRow.notes || '',
             mergedRow.merchant || ''
           ),
+          merchant: linked ? linked.merchant : mergedRow.merchant || '',
+          merchantId: linked ? linked.merchantId : mergedRow.merchant_id ?? null,
         }
-        return next
+        return preselectMerchants(next, savedMerchantsRef.current)
       })
       showToast('Transactions merged.', 'success')
     } catch (err) {
@@ -1630,10 +1707,7 @@ export default function PendingPage() {
             <ul className="space-y-3">
             <AnimatePresence initial={false}>
             {pendingTxns.map((txn) => {
-              const localFields = editingFields[txn.id] || {
-                category: txn.category,
-                description: txn.description || '',
-              }
+              const localFields = editingFields[txn.id] || defaultReviewFields(txn)
               const isDebit = txn.type === 'debit'
               const cardDetails = formatCardDetails(txn)
 
@@ -1666,6 +1740,9 @@ export default function PendingPage() {
                   animate="animate"
                   exit="exit"
                   transition={transition(reduceMotion)}
+                  // layout gives each card its own stacking context; lift the card
+                  // holding a focused picker so its suggestion list is not covered.
+                  className="relative focus-within:z-20"
                 >
                 <Card
                   className={cn(
@@ -1792,7 +1869,25 @@ export default function PendingPage() {
 
                   {/* Corrections. Whatever is chosen here is what gets saved
                       when the row is approved — never before. */}
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label
+                        htmlFor={`merchant-${txn.id}`}
+                        className="block text-xs font-medium text-sb-ink-secondary mb-1.5"
+                      >
+                        Merchant
+                      </label>
+                      <MerchantPicker
+                        id={`merchant-${txn.id}`}
+                        placeholder="e.g. Swiggy"
+                        value={{ text: localFields.merchant, merchantId: localFields.merchantId }}
+                        merchants={savedMerchants}
+                        onMerchantAdded={handleMerchantAdded}
+                        // Category is not pre-filled here: the categoriser already chose one.
+                        onChange={({ text, merchantId }) => handleMerchantChange(txn.id, text, merchantId)}
+                      />
+                    </div>
+
                     <div>
                       <label
                         htmlFor={`cat-select-${txn.id}`}
