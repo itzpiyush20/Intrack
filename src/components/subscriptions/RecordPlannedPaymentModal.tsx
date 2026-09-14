@@ -11,6 +11,7 @@ import { toISODateLocal } from '@/utils/dateFilter'
 import { createTransaction, updateTransaction } from '@/services/transactions'
 import { useAuth } from '@/context/AuthContext'
 import { Plus, Link2, CheckCircle2, AlertCircle, Search } from 'lucide-react'
+import MerchantPicker from '@/components/merchants/MerchantPicker'
 
 interface CandidateTransaction {
   id: string
@@ -54,6 +55,7 @@ export default function RecordPlannedPaymentModal({
   const [date, setDate] = useState<string>(toISODateLocal(new Date()))
   const [description, setDescription] = useState<string>(`${displayName} Payment`)
   const [merchant, setMerchant] = useState<string>(displayName)
+  const [merchantId, setMerchantId] = useState<string | null>(null)
   const [paymentMode, setPaymentMode] = useState<string>('upi')
 
   // Match Existing Form State
@@ -110,6 +112,7 @@ export default function RecordPlannedPaymentModal({
         category: categoryName,
         description: description.trim() || `${categoryName} Payment`,
         merchant: merchant.trim() || description.trim() || categoryName,
+        merchant_id: merchantId,
         date,
         source: 'manual',
         approval_status: 'approved',
@@ -287,12 +290,16 @@ export default function RecordPlannedPaymentModal({
               onChange={(e) => setDescription(e.target.value)}
             />
 
-            <Input
+            <MerchantPicker
               id="plan-merchant"
               label="Paid to / Merchant (optional)"
               placeholder="e.g. Landlord, Tata Power, Netflix"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
+              value={{ text: merchant, merchantId }}
+              // Category is fixed by the planned payment; never pre-filled from the merchant.
+              onChange={({ text, merchantId: id }) => {
+                setMerchant(text)
+                setMerchantId(id)
+              }}
             />
 
             <div className="mt-2 flex items-center justify-end gap-2 pt-3 border-t border-sb-hairline">
