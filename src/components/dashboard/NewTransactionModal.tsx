@@ -237,6 +237,7 @@ export default function NewTransactionModal({ open, onClose, onAdded }: NewTrans
             <MerchantPicker
               id="ntm-merchant"
               label="Merchant"
+              hideLabel
               placeholder="Merchant (e.g. Swiggy, Amazon)"
               value={{ text: merchant, merchantId }}
               onChange={({ text, merchantId: id, defaultCategory }) => {
