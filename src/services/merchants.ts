@@ -54,10 +54,11 @@ export async function createMerchant(
 ): Promise<{ data: MerchantOption | null; error: unknown }> {
   const clean = name.replace(/\s+/g, ' ').trim()
   if (!clean) return { data: null, error: new Error('Merchant name is empty') }
+  const category = defaultCategory?.trim() || null
 
   const { data, error } = await supabase
     .from('merchants')
-    .insert({ user_id: userId, name: clean, default_category: defaultCategory })
+    .insert({ user_id: userId, name: clean, default_category: category })
     .select('id, name, default_category')
     .single()
 
@@ -79,10 +80,17 @@ export async function createMerchant(
 
 /**
  * Remember another spelling for a merchant the user just picked. Best effort:
- * a failure only means this spelling won't pre-match next time.
+ * a failure only means this spelling won't pre-match next time, so neither a
+ * thrown client error nor a returned `{ error }` (e.g. a concurrent 23505)
+ * may escape — this must never surface as an unhandled rejection or a scan
+ * failure.
  */
 export async function addMerchantAlias(userId: string, merchant: MerchantOption, typed: string): Promise<void> {
   const key = merchantKey(typed)
   if (!key || key === merchantKey(merchant.name) || merchant.aliases.includes(key)) return
-  await supabase.from('merchant_aliases').insert({ user_id: userId, merchant_id: merchant.id, alias_key: key })
+  try {
+    await supabase.from('merchant_aliases').insert({ user_id: userId, merchant_id: merchant.id, alias_key: key })
+  } catch {
+    // best effort — ignore
+  }
 }

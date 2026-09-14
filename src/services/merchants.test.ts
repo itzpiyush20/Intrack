@@ -5,6 +5,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // calling .single()) resolves the scripted value.
 const script: Record<string, Array<{ data: unknown; error: unknown }>> = {}
 const inserts: Array<{ table: string; row: unknown }> = []
+/** Tables whose next `insert()` call should throw synchronously, like a real client failure. */
+const throwOnInsert = new Set<string>()
 
 interface Chain {
   select: () => Chain
@@ -27,6 +29,7 @@ function chainFor(table: string): Chain {
     order: () => chain,
     range: () => chain,
     insert: (row: unknown) => {
+      if (throwOnInsert.has(table)) throw new Error('client boom')
       inserts.push({ table, row })
       return chain
     },
@@ -45,6 +48,7 @@ import { listMerchants, createMerchant, addMerchantAlias } from './merchants'
 beforeEach(() => {
   for (const k of Object.keys(script)) delete script[k]
   inserts.length = 0
+  throwOnInsert.clear()
 })
 
 describe('listMerchants', () => {
@@ -62,6 +66,33 @@ describe('listMerchants', () => {
     const { data, error } = await listMerchants()
     expect(data).toEqual([])
     expect(error).toEqual({ message: 'boom' })
+  })
+
+  it('keeps merchants when the alias read fails', async () => {
+    script.merchants = [{ data: [{ id: 'm1', name: 'Swiggy', default_category: 'Food & Dining' }], error: null }]
+    script.merchant_aliases = [{ data: null, error: { message: 'x' } }]
+
+    const { data, error } = await listMerchants()
+    expect(error).toBeNull()
+    expect(data).toEqual([{ id: 'm1', name: 'Swiggy', default_category: 'Food & Dining', aliases: [] }])
+  })
+
+  it('reads every page', async () => {
+    const firstPage = Array.from({ length: 1000 }, (_, i) => ({
+      id: `m${i}`,
+      name: `Merchant ${i}`,
+      default_category: null,
+    }))
+    const secondPage = [{ id: 'm1000', name: 'Merchant 1000', default_category: null }]
+    script.merchants = [
+      { data: firstPage, error: null },
+      { data: secondPage, error: null },
+    ]
+    script.merchant_aliases = [{ data: [], error: null }]
+
+    const { data, error } = await listMerchants()
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1001)
   })
 })
 
@@ -89,6 +120,15 @@ describe('createMerchant', () => {
     expect(error).toBeInstanceOf(Error)
     expect(inserts).toHaveLength(0)
   })
+
+  it('stores an empty usual category as null', async () => {
+    script.merchants = [{ data: { id: 'm9', name: 'Sharma Kirana', default_category: null }, error: null }]
+    await createMerchant('u1', 'Sharma Kirana', '   ')
+    expect(inserts[0]).toEqual({
+      table: 'merchants',
+      row: { user_id: 'u1', name: 'Sharma Kirana', default_category: null },
+    })
+  })
 })
 
 describe('addMerchantAlias', () => {
@@ -104,5 +144,10 @@ describe('addMerchantAlias', () => {
     await addMerchantAlias('u1', swiggy, 'Swiggy BLR')
     await addMerchantAlias('u1', swiggy, '')
     expect(inserts).toHaveLength(0)
+  })
+
+  it('swallows a thrown client error', async () => {
+    throwOnInsert.add('merchant_aliases')
+    await expect(addMerchantAlias('u1', swiggy, 'New Spelling')).resolves.toBeUndefined()
   })
 })
