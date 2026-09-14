@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import NewTransactionModal from './NewTransactionModal'
 
 vi.mock('@/context/AuthContext', () => ({
@@ -38,6 +38,15 @@ vi.mock('@/services/transactions', () => ({
   createTransaction: vi.fn().mockResolvedValue({ data: {}, error: null }),
 }))
 
+vi.mock('@/services/merchants', () => ({
+  listMerchants: vi.fn().mockResolvedValue({
+    data: [{ id: 'm1', name: 'Swiggy', default_category: 'Food & Dining', aliases: [] }],
+    error: null,
+  }),
+  createMerchant: vi.fn(),
+  addMerchantAlias: vi.fn().mockResolvedValue(undefined),
+}))
+
 describe('NewTransactionModal (Add Transaction Modal)', () => {
   const mockOnClose = vi.fn()
   const mockOnAdded = vi.fn()
@@ -62,14 +71,42 @@ describe('NewTransactionModal (Add Transaction Modal)', () => {
     expect(submitBtn).toBeDefined()
   })
 
-  it('renders merchant input with autocomplete datalist', () => {
+  it('uses the saved-merchant picker for the merchant field', () => {
     render(<NewTransactionModal open={true} onClose={mockOnClose} onAdded={mockOnAdded} />)
+    expect(screen.getByRole('combobox', { name: 'Merchant' })).toBeDefined()
+    expect(document.getElementById('modal-merchant-suggestions')).toBeNull()
+  })
 
-    const merchantInput = screen.getByLabelText('Merchant name')
-    expect(merchantInput).toBeDefined()
+  it('pre-fills the category from a picked merchant, and saves the link', async () => {
+    render(<NewTransactionModal open={true} onClose={mockOnClose} onAdded={mockOnAdded} />)
+    fireEvent.change(screen.getByPlaceholderText(/Amount/), { target: { value: '250' } })
+    const box = screen.getByRole('combobox', { name: 'Merchant' })
+    fireEvent.focus(box)
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add Transaction/i }))
 
-    const datalist = document.getElementById('modal-merchant-suggestions')
-    expect(datalist).toBeDefined()
+    const { createTransaction } = await import('@/services/transactions')
+    await waitFor(() =>
+      expect(createTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ merchant: 'Swiggy', merchant_id: 'm1', category: 'Food & Dining' })
+      )
+    )
+  })
+
+  it('never overwrites a category the user already chose', async () => {
+    render(<NewTransactionModal open={true} onClose={mockOnClose} onAdded={mockOnAdded} />)
+    fireEvent.change(screen.getByPlaceholderText(/Amount/), { target: { value: '99' } })
+    fireEvent.click(screen.getByRole('button', { name: /Transport/ }))
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Merchant' }))
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add Transaction/i }))
+
+    const { createTransaction } = await import('@/services/transactions')
+    await waitFor(() =>
+      expect(createTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ merchant_id: 'm1', category: 'Transport' })
+      )
+    )
   })
 
   it('expands more details section when clicked', () => {

@@ -17,7 +17,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context'
 import { createTransaction } from '@/services/transactions'
 import { getCards } from '@/services/cards'
-import { KNOWN_MERCHANTS } from '@/services/merchantNormalizer'
+import MerchantPicker from '@/components/merchants/MerchantPicker'
 import { toISODateLocal } from '@/utils/dateFilter'
 import type { Card as CardRow } from '@/types'
 import {
@@ -56,6 +56,7 @@ export default function NewTransactionModal({ open, onClose, onAdded }: NewTrans
 
   const [amount, setAmount] = useState('')
   const [merchant, setMerchant] = useState('')
+  const [merchantId, setMerchantId] = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [showMore, setShowMore] = useState(false)
@@ -84,6 +85,7 @@ export default function NewTransactionModal({ open, onClose, onAdded }: NewTrans
   const resetForm = () => {
     setAmount('')
     setMerchant('')
+    setMerchantId(null)
     setDescription('')
     setCategory('')
     setCardId('')
@@ -140,6 +142,7 @@ export default function NewTransactionModal({ open, onClose, onAdded }: NewTrans
       category,
       description: effectiveDesc,
       merchant: merchant.trim() || null,
+      merchant_id: merchantId,
       date: date || toISODateLocal(new Date()),
       source: 'manual',
       approval_status: 'approved',
@@ -231,19 +234,18 @@ export default function NewTransactionModal({ open, onClose, onAdded }: NewTrans
             />
           </div>
           <div className="min-w-0 flex-1">
-            <Input
-              type="text"
+            <MerchantPicker
+              id="ntm-merchant"
+              label="Merchant"
               placeholder="Merchant (e.g. Swiggy, Amazon)"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              aria-label="Merchant name"
-              list="modal-merchant-suggestions"
+              value={{ text: merchant, merchantId }}
+              onChange={({ text, merchantId: id, defaultCategory }) => {
+                setMerchant(text)
+                setMerchantId(id)
+                // Fill only an empty category — never overwrite the user's pick.
+                if (defaultCategory && !category) setCategory(defaultCategory)
+              }}
             />
-            <datalist id="modal-merchant-suggestions">
-              {KNOWN_MERCHANTS.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
           </div>
         </div>
 
