@@ -26,7 +26,7 @@ import TagPicker from '@/components/tags/TagPicker'
 import type { Card, LoanSource } from '@/types'
 import { creditCardBillCategoryNames, makeIsCreditCardBill } from '@/utils/creditCardBill'
 import type { Database } from '@/types/database'
-import { KNOWN_MERCHANTS } from '@/services/merchantNormalizer'
+import MerchantPicker from '@/components/merchants/MerchantPicker'
 import { toISODateLocal } from '@/utils/dateFilter'
 import { cn } from '@/utils'
 import { ArrowDownLeft, ArrowUpRight, AlertTriangle } from 'lucide-react'
@@ -63,6 +63,9 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
   const [category, setCategory] = useState(editingTransaction?.category || defaultCategory)
   const [description, setDescription] = useState(editingTransaction?.description || '')
   const [merchant, setMerchant] = useState(editingTransaction?.merchant || '')
+  const [merchantId, setMerchantId] = useState<string | null>(editingTransaction?.merchant_id ?? null)
+  // An edit already has a chosen category; a new form has only the default.
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(editingTransaction))
   const [tags, setTags] = useState<string[]>(
     editingTransaction?.tags?.filter(Boolean) || []
   )
@@ -145,6 +148,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
         category,
         description,
         merchant: merchant.trim() || null,
+        merchant_id: merchantId,
         date,
         tags,
         is_returnable: type === 'debit' && isReturnable,
@@ -174,6 +178,7 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
         category,
         description,
         merchant: merchant.trim() || null,
+        merchant_id: merchantId,
         date,
         source: 'manual',
         approval_status: 'approved',
@@ -201,6 +206,8 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
       setAmount('')
       setDescription('')
       setMerchant('')
+      setMerchantId(null)
+      setCategoryTouched(false)
       setTags([])
       setCategory(defaultCategory)
       setDate(toISODateLocal(new Date()))
@@ -294,28 +301,27 @@ export default function ExpenseForm({ editingTransaction, onSaved, onCancel }: E
           <legend className="sr-only">What this was</legend>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Input
-                label="Merchant"
-                id="txn-merchant"
-                placeholder="e.g. Swiggy"
-                value={merchant}
-                onChange={(e) => setMerchant(e.target.value)}
-                list="merchant-suggestions"
-              />
-              <datalist id="merchant-suggestions">
-                {KNOWN_MERCHANTS.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-            </div>
+            <MerchantPicker
+              id="txn-merchant"
+              label="Merchant"
+              placeholder="e.g. Swiggy"
+              value={{ text: merchant, merchantId }}
+              onChange={({ text, merchantId: id, defaultCategory }) => {
+                setMerchant(text)
+                setMerchantId(id)
+                if (defaultCategory && !categoryTouched) setCategory(defaultCategory)
+              }}
+            />
 
             <Select
               label="Category"
               id="txn-category"
               options={categoryOptions}
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                setCategory(e.target.value)
+                setCategoryTouched(true)
+              }}
               required
             />
           </div>
