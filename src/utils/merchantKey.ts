@@ -3,7 +3,9 @@
 //
 // merchantKey() must stay byte-for-byte the same rule as the generated
 // `name_key` column in supabase/048_merchants.sql, or a merchant the database
-// calls a duplicate would look new here (and the reverse).
+// calls a duplicate would look new here (and the reverse). The SQL spells out
+// the same whitespace set as JavaScript's \s (rather than using Postgres's
+// locale/ICU-dependent \s) so the two stay in lockstep.
 // ============================================
 
 export interface MerchantOption {

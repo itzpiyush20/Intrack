@@ -768,19 +768,23 @@ CREATE INDEX IF NOT EXISTS idx_transactions_possible_duplicate_of
 
 -- 048 — per-user saved merchants. transactions.merchant stays free text;
 -- merchant_id links a row only when the user picked a merchant. The ADD COLUMN
--- IF NOT EXISTS below is the safety net for databases created before 048.
+-- IF NOT EXISTS below is the safety net for databases created before 048. The
+-- whitespace class in name_key/alias_key is spelled out explicitly (not \s)
+-- so it does not depend on the database's locale/ICU and equals JavaScript's
+-- \s, which merchantKey() in src/utils/merchantKey.ts uses.
 CREATE TABLE IF NOT EXISTS public.merchants (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  name             TEXT NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 80),
+  name             TEXT NOT NULL CHECK (char_length(name) <= 80),
   name_key         TEXT GENERATED ALWAYS AS (
-                     lower(regexp_replace(regexp_replace(name, '\s+', ' ', 'g'), '^ | $', '', 'g'))
+                     lower(regexp_replace(regexp_replace(name, '[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+', ' ', 'g'), '^ | $', '', 'g'))
                    ) STORED,
   default_category TEXT,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (name_key <> ''),
   UNIQUE (user_id, name_key),
-  -- Target of the composite FK from merchant_aliases.
+  -- Target of the composite FK from merchant_aliases and from transactions.
   UNIQUE (id, user_id)
 );
 
@@ -801,7 +805,11 @@ CREATE TABLE IF NOT EXISTS public.merchant_aliases (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   merchant_id UUID NOT NULL,
-  alias_key   TEXT NOT NULL CHECK (char_length(alias_key) BETWEEN 1 AND 120),
+  -- alias_key must already be normalised, or it could never match.
+  alias_key   TEXT NOT NULL CHECK (
+                 char_length(alias_key) BETWEEN 1 AND 120
+                 AND alias_key = lower(regexp_replace(regexp_replace(alias_key, '[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+', ' ', 'g'), '^ | $', '', 'g'))
+               ),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, alias_key),
   -- Composite FK: an alias can only point at a merchant of the same user.
@@ -821,42 +829,29 @@ CREATE POLICY "Users can manage own merchant aliases"
   WITH CHECK ((select auth.uid()) = user_id);
 
 ALTER TABLE public.transactions
-  ADD COLUMN IF NOT EXISTS merchant_id UUID
-  REFERENCES public.merchants(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS merchant_id UUID;
 
-CREATE INDEX IF NOT EXISTS idx_transactions_user_merchant
-  ON public.transactions(user_id, merchant_id)
-  WHERE merchant_id IS NOT NULL;
-
--- A plain FK cannot say "the merchant must be yours". RLS on merchants already
--- hides other users' ids from the client, but an id can still be guessed, so
--- the write is checked here too. SECURITY INVOKER on purpose: the lookup runs
--- under the caller's RLS, so it can only ever find the caller's own merchant.
-CREATE OR REPLACE FUNCTION public.check_transaction_merchant_owner()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path = ''
-AS $$
+-- Composite FK: a transaction can only link a merchant of the same user, for
+-- every role including service_role. Deleting a merchant clears only
+-- merchant_id (PG15+ column list), never user_id. Added in a DO block so a
+-- re-run does not create a second constraint.
+DO $$
 BEGIN
-  IF NEW.merchant_id IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM public.merchants m
-    WHERE m.id = NEW.merchant_id AND m.user_id = NEW.user_id
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'transactions_merchant_id_owner_fkey'
   ) THEN
-    RAISE EXCEPTION 'merchant % does not belong to this user', NEW.merchant_id
-      USING ERRCODE = '23503';
+    ALTER TABLE public.transactions
+      ADD CONSTRAINT transactions_merchant_id_owner_fkey
+      FOREIGN KEY (merchant_id, user_id)
+      REFERENCES public.merchants(id, user_id)
+      ON DELETE SET NULL (merchant_id);
   END IF;
-  RETURN NEW;
-END;
-$$;
+END$$;
 
-DROP TRIGGER IF EXISTS check_transaction_merchant_owner ON public.transactions;
-CREATE TRIGGER check_transaction_merchant_owner
-  BEFORE INSERT OR UPDATE OF merchant_id, user_id ON public.transactions
-  FOR EACH ROW EXECUTE FUNCTION public.check_transaction_merchant_owner();
-
--- Trigger functions cannot be called directly, but Supabase's default
--- privileges still grant EXECUTE to anon/authenticated. Revoke by name.
-REVOKE EXECUTE ON FUNCTION public.check_transaction_merchant_owner() FROM PUBLIC, anon, authenticated;
+-- Covers the FK: deleting a merchant looks up transactions by merchant_id.
+CREATE INDEX IF NOT EXISTS idx_transactions_merchant
+  ON public.transactions(merchant_id, user_id)
+  WHERE merchant_id IS NOT NULL;
 
 -- 019 — the atomic AI-quota functions live in supabase/019_atomic_ai_quota.sql.
 -- Run that file as well on a fresh install; it is kept separate because it

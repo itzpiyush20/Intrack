@@ -190,7 +190,7 @@ truncated snippet for diagnostics and is purged after 30 days.
 
 ## 6. Database
 
-Supabase project `Intrack` (`ap-south-1`). **19 tables in `public`, RLS enabled
+Supabase project `Intrack` (`ap-south-1`). **21 tables in `public`, RLS enabled
 on all of them.**
 
 | Table | Holds |
@@ -204,6 +204,8 @@ on all of them.**
 | `balance_periods` | Available-money periods |
 | `insurance_policies` | Premium reminders |
 | `merchant_rules` | Learned per-user merchant → category rules |
+| `merchants` | The user's saved merchants (name, usual category) — migration 048 |
+| `merchant_aliases` | Other spellings that mean a saved merchant |
 | `email_scan_logs` | Scan history, quota accounting |
 | `email_scan_rejections` | Why an email was rejected; purged after 30 days |
 | `google_oauth_tokens` | Google refresh tokens, service-role only |

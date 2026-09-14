@@ -19,6 +19,12 @@ describe('merchantKey', () => {
   it('collapses tabs and newlines too', () => {
     expect(merchantKey('Swiggy\t\nBLR')).toBe('swiggy blr')
   })
+  it('treats no-break space and a byte-order mark as whitespace, like the SQL class', () => {
+    expect(merchantKey('\u00a0Swiggy\u00a0\u00a0BLR\ufeff')).toBe('swiggy blr')
+  })
+  it('gives an empty key for a name of only tabs — the database rejects it', () => {
+    expect(merchantKey('\t\t')).toBe('')
+  })
 })
 
 describe('matchMerchant', () => {
