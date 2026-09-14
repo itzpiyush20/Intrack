@@ -151,10 +151,15 @@ export default function RecordPlannedPaymentModal({
 
     setLoading(true)
     try {
+      const nextMerchant = paymentName || selectedTxn.merchant || categoryName
       const { error: updateError } = await updateTransaction(selectedTxn.id, {
         category: categoryName,
         amount: numAmount,
-        merchant: paymentName || selectedTxn.merchant || categoryName,
+        merchant: nextMerchant,
+        // Renaming the merchant text makes any saved-merchant link stale (a row
+        // linked to Swiggy must not read "Netflix"), so the link is cleared.
+        // Owner decision 2026-09-15. Unchanged text keeps its link.
+        ...(nextMerchant !== selectedTxn.merchant ? { merchant_id: null } : {}),
       })
 
       if (updateError) {
