@@ -66,9 +66,10 @@ RLS on both tables: owner-only `FOR ALL` using `(select auth.uid()) = user_id`
 belong to the same user — enforced by a trigger or composite check, verified
 against the live policies before code merges.
 
-`transactions.merchant` text stays as the raw name. When a merchant is picked,
-the text is set to the merchant's name at save time; display prefers the linked
-merchant's current name so a rename reaches every month.
+`transactions.merchant` text stays. When a merchant is picked, the text is set
+to the merchant's name at save time. A rename (Settings, plan 3) rewrites the
+text on every linked row in the same server-side function, so all existing
+display code keeps reading `transactions.merchant` unchanged.
 
 ## Linking rules
 
