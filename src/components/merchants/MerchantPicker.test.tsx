@@ -74,15 +74,8 @@ describe('MerchantPicker', () => {
     expect(onChange).toHaveBeenLastCalledWith({ text: 'Swiggy', merchantId: 'm1', defaultCategory: 'Food & Dining' })
   })
 
-  it('does not save partial text as an alias', async () => {
+  it('picking never saves a spelling', async () => {
     render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'swi', merchantId: null }} onChange={vi.fn()} />)
-    fireEvent.focus(screen.getByLabelText('Merchant'))
-    fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
-    expect(addMerchantAlias).not.toHaveBeenCalled()
-  })
-
-  it('does not save a fragment of an existing alias as an alias', async () => {
-    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'gy bl', merchantId: null }} onChange={vi.fn()} />)
     fireEvent.focus(screen.getByLabelText('Merchant'))
     fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
     expect(addMerchantAlias).not.toHaveBeenCalled()
@@ -308,6 +301,26 @@ describe('MerchantPicker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save merchant' }))
     expect((await screen.findByRole('alert')).textContent).toBe('Could not save this merchant. Try again.')
     expect((screen.getByRole('button', { name: 'Save merchant' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('caps a long pre-filled name at 80 characters', async () => {
+    const longText = 'A'.repeat(100)
+    render(<MerchantPicker id="mp" label="Merchant" value={{ text: longText, merchantId: null }} onChange={vi.fn()} />)
+    fireEvent.focus(screen.getByLabelText('Merchant'))
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /as a merchant/ }))
+    expect((screen.getByLabelText('Merchant name') as HTMLInputElement).value.length).toBe(80)
+  })
+
+  it('shows the generic message for a database error', async () => {
+    createMerchant.mockResolvedValue({
+      data: null,
+      error: Object.assign(new Error('new row violates check constraint'), { code: '23514' }),
+    })
+    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'Chai Point', merchantId: null }} onChange={vi.fn()} />)
+    fireEvent.focus(screen.getByLabelText('Merchant'))
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /as a merchant/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save merchant' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Could not save this merchant. Try again.')
   })
 
   it('notes quietly when the saved list returns an error', async () => {

@@ -15,7 +15,7 @@ import { Plus, Store } from 'lucide-react'
 import { Button, Input, Select } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { useCategories } from '@/context/CategoriesContext'
-import { addMerchantAlias, createMerchant, listMerchants } from '@/services/merchants'
+import { createMerchant, listMerchants } from '@/services/merchants'
 import { filterMerchants, matchMerchant, merchantKey, type MerchantOption } from '@/utils/merchantKey'
 import { cn } from '@/utils'
 
@@ -144,18 +144,15 @@ export default function MerchantPicker({
   }
 
   const pick = (merchant: MerchantOption) => {
-    // Remember a genuinely different spelling only. The typed text is usually a
-    // fragment of the name or of a known alias (that is how it was suggested);
-    // saving that would make every later partial match look exact.
-    const typed = merchantKey(value.text)
-    const known = [merchantKey(merchant.name), ...merchant.aliases]
-    if (user && typed && !known.some((k) => k.includes(typed))) void addMerchantAlias(user.id, merchant, value.text)
+    // Spelling learning happens on Pending approval now, not here — every
+    // suggestion already contains the typed text (that's how it was
+    // suggested), so picking never has a genuinely new spelling to save.
     emit(merchant.name, merchant)
     close()
   }
 
   const startAdd = () => {
-    setNewName(value.text.replace(/\s+/g, ' ').trim())
+    setNewName(value.text.replace(/\s+/g, ' ').trim().slice(0, 80).trimEnd())
     setNewCategory('')
     setAddError('')
     setAdding(true)
@@ -168,7 +165,11 @@ export default function MerchantPicker({
     try {
       const { data, error } = await createMerchant(user.id, newName, newCategory || null)
       if (!data) {
-        setAddError(error instanceof Error ? error.message : GENERIC_SAVE_ERROR)
+        // Only the client-side empty-name check is safe to show verbatim; any
+        // other error (a PostgrestError extends Error too) could leak raw
+        // database detail, so it gets the generic message.
+        const clientSideEmptyName = error instanceof Error && merchantKey(newName) === ''
+        setAddError(clientSideEmptyName ? error.message : GENERIC_SAVE_ERROR)
         return
       }
       setLoaded((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]))

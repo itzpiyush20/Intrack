@@ -276,7 +276,7 @@ export default function PendingPage() {
 
   const { showToast } = useToast()
 
-  const [ruleSuggestion, setRuleSuggestion] = useState<{ merchant: string; category: string } | null>(null)
+  const [ruleSuggestion, setRuleSuggestion] = useState<{ merchant: string; ruleKey: string; category: string } | null>(null)
   const [creatingRule, setCreatingRule] = useState(false)
 
   const [autoCategorizedTxns, setAutoCategorizedTxns] = useState<any[]>([])
@@ -537,20 +537,28 @@ export default function PendingPage() {
     setEditingFields((prev) => ({ ...prev, [id]: { ...prev[id], merchant, merchantId } }))
   }
 
-  // Checks whether this merchant is eligible for a "create a rule?" suggestion.
-  // Does NOT save anything — rule creation is explicit-only now. Returns the
-  // merchant name if eligible (caller decides whether/how to surface it), or
-  // null if not eligible.
-  const getMerchantRuleSuggestion = (txn: TransactionRow): string | null => {
-    const merchant = txn.merchant || ''
-    if (
-      !merchant ||
-      merchant.length <= 2 ||
-      ['Retail Transaction', 'Incoming Credit', 'Bank Transaction'].includes(merchant)
-    ) {
-      return null
-    }
-    return merchant
+  // Decides whether to offer a "create a rule?" suggestion, and computes the
+  // two texts it needs. `displayMerchant` is shown in the banner (the saved
+  // merchant's name, or whatever the user typed/approved). `rawMerchant` is
+  // the ORIGINAL text the scanner saw — learningEngine keys rules on that raw
+  // text and matches future scans against it, never the display name, so a
+  // rule must be saved under `rawMerchant` or it will never fire again.
+  // Both texts must be independently eligible: if the raw text is empty or
+  // too generic to key a rule on, no suggestion is offered even when the
+  // display name looks fine. Does NOT save anything — rule creation is
+  // explicit-only. Pure, so it needs no component state to reason about.
+  const isEligibleMerchantText = (merchant: string): boolean =>
+    merchant.length > 2 && !['Retail Transaction', 'Incoming Credit', 'Bank Transaction'].includes(merchant)
+
+  const resolveRuleSuggestion = (
+    displayMerchant: string | null | undefined,
+    rawMerchant: string | null | undefined,
+    category: string
+  ): { merchant: string; ruleKey: string; category: string } | null => {
+    const display = (displayMerchant || '').trim()
+    const raw = (rawMerchant || '').trim()
+    if (!isEligibleMerchantText(display) || !isEligibleMerchantText(raw)) return null
+    return { merchant: display, ruleKey: raw, category }
   }
 
   // Writes the actual approval to the database. Split from the tap handler
@@ -598,10 +606,12 @@ export default function PendingPage() {
       // Only offer the rule-creation suggestion once the approval has actually
       // committed — otherwise a user who hits Undo could still create a rule
       // for a categorization that was never saved.
-      // Name the merchant as approved on the card, not the scanner's raw text.
-      const suggestedMerchant = getMerchantRuleSuggestion({ ...txn, merchant: fields.merchant.trim() || null })
-      if (suggestedMerchant) {
-        setRuleSuggestion({ merchant: suggestedMerchant, category: fields.category })
+      // The banner names the merchant as approved on the card; the rule itself
+      // is keyed on the scanner's original raw text (txn.merchant), never the
+      // display name, so it can match future scans of the same spelling.
+      const suggestion = resolveRuleSuggestion(fields.merchant, txn.merchant, fields.category)
+      if (suggestion) {
+        setRuleSuggestion(suggestion)
       }
     } catch (err: any) {
       console.error('Error approving transaction:', err)
@@ -998,9 +1008,11 @@ export default function PendingPage() {
       if (updateErr) throw updateErr
 
       if (selectedCategory !== txn.category) {
-        const suggestedMerchant = getMerchantRuleSuggestion(txn)
-        if (suggestedMerchant) {
-          setRuleSuggestion({ merchant: suggestedMerchant, category: selectedCategory })
+        // This flow (Auto-Categorization Review) has no picker/edited display
+        // name — txn.merchant is both what's shown and the scanner's raw text.
+        const suggestion = resolveRuleSuggestion(txn.merchant, txn.merchant, selectedCategory)
+        if (suggestion) {
+          setRuleSuggestion(suggestion)
         }
       }
 
@@ -1566,8 +1578,10 @@ export default function PendingPage() {
                   setCreatingRule(true)
                   try {
                     if (user?.id) {
-                      await saveMerchantRuleToDb(user.id, ruleSuggestion.merchant, ruleSuggestion.category, true)
-                      saveMerchantRule(ruleSuggestion.merchant, ruleSuggestion.category, true)
+                      // Keyed on the scanner's raw text, not the display name shown
+                      // above, so this rule actually matches future scans.
+                      await saveMerchantRuleToDb(user.id, ruleSuggestion.ruleKey, ruleSuggestion.category, true)
+                      saveMerchantRule(ruleSuggestion.ruleKey, ruleSuggestion.category, true)
                     }
                     showToast(`Rule saved: ${ruleSuggestion.merchant} → ${getStyle(ruleSuggestion.category).label}`, 'success')
                     setRuleSuggestion(null)
