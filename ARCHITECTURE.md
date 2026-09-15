@@ -218,8 +218,8 @@ on all of them.**
 | `support_tickets` | Support requests |
 | `signin_logs` | Sign-in audit trail |
 
-**Migrations** are numbered files in `supabase/` (`047_` is the highest; next is
-`048_`). They are **not** in `supabase/migrations/` and must never be moved
+**Migrations** are numbered files in `supabase/` (`048_` is the highest; next is
+`049_`). They are **not** in `supabase/migrations/` and must never be moved
 there — this project has no migration history in Supabase, so a replay would
 drop policies and delete rows.
 
@@ -287,9 +287,10 @@ system in `src/index.css` is the source of truth for colour and type;
 **Merchant field:** `src/components/merchants/MerchantPicker.tsx` is the one
 merchant input, used by the Dashboard add popup, `ExpenseForm` (Expenses and
 the Insights drill-down), Pending review cards and the Subscriptions payment
-popup. It is the only way a transaction gets `merchant_id`: the user picks a
-saved merchant, types one's exact name or saved spelling, or adds one. Pending
-pre-selects a matching saved merchant, and approving the card saves it. Free
+popup. The user picks a saved merchant, types one's exact name or saved
+spelling, or adds one; the picker itself never saves a spelling. Pending
+pre-selects a matching saved merchant, and approving the card both saves the
+`merchant_id` link and learns the scanner's raw spelling as an alias. Free
 text is always accepted and saves unlinked. The fixed brand list
 `KNOWN_MERCHANTS` is no longer shown as suggestions.
 

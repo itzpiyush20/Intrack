@@ -47,24 +47,35 @@ A salary credit with no merchant still counts as income.
 
 Migration `supabase/048_merchants.sql`, mirrored in `schema.sql` **and** its
 safety-net block (both tables `CREATE TABLE IF NOT EXISTS`, the column
-`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`). Applied to production 2026-09-15.
 
 - `merchants`
   - `id uuid pk`, `user_id uuid not null → profiles(id) on delete cascade`
-  - `name text not null`, `default_category text null`
+  - `name text not null` (`CHECK char_length(name) <= 80`), `default_category text null`
   - `created_at`, `updated_at`
-  - unique `(user_id, name_key)` where `name_key` = lower-cased, whitespace-collapsed name
-    (generated column)
+  - `name_key`: a `GENERATED ALWAYS ... STORED` column — lower-cased, with
+    whitespace collapsed to one space and trimmed. The whitespace class is
+    spelled out explicitly (not `\s`) so it does not depend on the database's
+    locale/ICU and equals JavaScript's `\s`, which `merchantKey()` uses.
+    `CHECK (name_key <> '')`
+  - `UNIQUE (user_id, name_key)`
+  - `UNIQUE (id, user_id)` — the target of the composite FKs below
 - `merchant_aliases`
-  - `id`, `user_id`, `merchant_id → merchants(id) on delete cascade`
-  - `alias_key text not null`, unique `(user_id, alias_key)`
-- `transactions.merchant_id uuid null → merchants(id) on delete set null`,
-  indexed `(user_id, merchant_id)`.
+  - `id`, `user_id`, `merchant_id uuid not null`
+  - `alias_key text not null`, normalised the same way, 1–120 chars
+    (`CHECK char_length(alias_key) BETWEEN 1 AND 120 AND alias_key = <normalised>`)
+  - `UNIQUE (user_id, alias_key)`
+  - composite `FOREIGN KEY (merchant_id, user_id) REFERENCES merchants(id, user_id)
+    ON DELETE CASCADE`
+- `transactions.merchant_id uuid null`, composite `FOREIGN KEY (merchant_id, user_id)
+  REFERENCES merchants(id, user_id) ON DELETE SET NULL (merchant_id)`, indexed
+  `(merchant_id, user_id) WHERE merchant_id IS NOT NULL`.
 
 RLS on both tables: owner-only `FOR ALL` using `(select auth.uid()) = user_id`
-(the initplan form from migration 047). A `merchant_id` on a transaction must
-belong to the same user — enforced by a trigger or composite check, verified
-against the live policies before code merges.
+(the initplan form from migration 047). Ownership of a `merchant_id` on a
+transaction — that it belongs to the same user — is enforced by the composite
+FK for every role, including `service_role`, not by a trigger or a check
+constraint; verified against the live policies before code merges.
 
 `transactions.merchant` text stays. When a merchant is picked, the text is set
 to the merchant's name at save time. A rename (Settings, plan 3) rewrites the
@@ -141,6 +152,10 @@ Used in:
   delete (transactions kept, unlinked).
 - Merge moves transactions and aliases to the kept merchant, then deletes the
   other, in one server-side function so a half-merge cannot happen.
+- Deleting or merging a merchant must make Pending reload its saved list; an
+  approval that fails with `23503` (merchant gone) must refresh the list so a
+  retry does not reuse the dead id. Pending should also show a quiet note when
+  the saved list fails to load.
 
 **One-time cleanup** on the Merchants tab while unlinked approved transactions
 with merchant text exist:

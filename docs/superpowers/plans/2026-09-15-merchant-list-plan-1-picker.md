@@ -36,7 +36,7 @@
 
 | File | Status | Responsibility |
 |---|---|---|
-| `supabase/048_merchants.sql` | create | tables, RLS, owner-check trigger, column |
+| `supabase/048_merchants.sql` | create | tables, RLS, composite owner FK, column |
 | `supabase/schema.sql` | modify | same objects for fresh installs + safety net |
 | `src/types/database.ts` | modify | `merchants`, `merchant_aliases`, `merchant_id` types |
 | `src/utils/merchantKey.ts` | create | pure: key, match, filter |
@@ -104,6 +104,7 @@ Write the problem count down. Task 11 compares against it.
 
 - [ ] **Step 1: Write the migration**
 
+```sql
 -- 048_merchants.sql
 --
 -- A saved merchant list per user (spec: docs/superpowers/specs/
@@ -204,6 +205,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_merchant
   WHERE merchant_id IS NOT NULL;
 
 COMMIT;
+```
 
 - [ ] **Step 2: Commit**
 
@@ -225,7 +227,7 @@ The migration is **not applied** here. Task 11 applies it before any merge.
 - [ ] **Step 1: Insert the block**
 
 Paste the body of `048_merchants.sql` from `CREATE TABLE IF NOT EXISTS public.merchants`
-through the `REVOKE` line (no `BEGIN;`/`COMMIT;`), headed by:
+through the final `CREATE INDEX` (no `BEGIN;`/`COMMIT;`), headed by:
 
 ```sql
 -- 048 — per-user saved merchants. transactions.merchant stays free text;
@@ -1450,6 +1452,8 @@ git commit -m "docs: record the saved merchant list" -m "Co-Authored-By: Claude 
 
 - [ ] **Step 7: Apply migration 048 to production — owner confirms first**
 
+Done 2026-09-15 — applied and verified.
+
 Ask the owner. On yes, apply `supabase/048_merchants.sql` with the Supabase MCP
 `apply_migration` (name `048_merchants`) on project `dhanrakshak-497806`'s database.
 Then verify with `execute_sql`:
@@ -1457,11 +1461,10 @@ Then verify with `execute_sql`:
 select table_name from information_schema.tables where table_schema='public' and table_name in ('merchants','merchant_aliases');
 select column_name from information_schema.columns where table_name='transactions' and column_name='merchant_id';
 select policyname, roles, qual from pg_policies where tablename in ('merchants','merchant_aliases');
-select grantee, privilege_type from information_schema.routine_privileges where routine_name='check_transaction_merchant_owner';
-select name, name_key from (values ('  Sharma   Kirana ')) v(name), lateral (select lower(regexp_replace(regexp_replace(v.name, '\s+', ' ', 'g'), '^ | $', '', 'g')) as name_key) k;
+select name, name_key from (values ('  Sharma   Kirana ')) v(name), lateral (select lower(regexp_replace(regexp_replace(v.name, '[\t\n\v\f\r    -     　﻿]+', ' ', 'g'), '^ | $', '', 'g')) as name_key) k;
 ```
-Expected: both tables; the column; two policies scoped to `authenticated`; no
-`anon`/`authenticated` EXECUTE rows; `name_key` = `sharma kirana` (same as `merchantKey`).
+Expected: both tables; the column; two policies scoped to `authenticated`;
+`name_key` = `sharma kirana` (same as `merchantKey`).
 
 Then prove the owner check from the SQL editor as a real user id is not possible
 here, so run it as a data check instead:
@@ -1471,6 +1474,8 @@ select count(*) from public.transactions t join public.merchants m on m.id = t.m
 Expected: `0`.
 
 - [ ] **Step 8: Verify in the real app (local dev, against the migrated DB)**
+
+Skipped by owner 2026-09-15 — not browser-verified.
 
 Start the dev server with the Browser pane (`preview_start`). As a signed-in user:
 1. Dashboard → Add Transaction → type a new name → "+ Add … as a merchant" → pick a
