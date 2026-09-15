@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { merchantKey, matchMerchant, filterMerchants, type MerchantOption } from './merchantKey'
+import { merchantKey, matchMerchant, filterMerchants, preselectMerchants, type MerchantOption } from './merchantKey'
 
 const m = (id: string, name: string, aliases: string[] = []): MerchantOption => ({
   id,
@@ -62,5 +62,52 @@ describe('filterMerchants', () => {
   })
   it('finds a merchant through an alias', () => {
     expect(filterMerchants('bb st', list).map((x) => x.name)).toEqual(['Big Bazaar'])
+  })
+})
+
+describe('preselectMerchants', () => {
+  const saved = [m('m1', 'Swiggy', ['swiggy*blr']), m('m2', 'Zomato')]
+  type F = { merchant: string; merchantId: string | null; category: string }
+
+  it('leaves an already-linked entry unchanged', () => {
+    const fields: Record<string, F> = { a: { merchant: 'Swiggy', merchantId: 'other', category: 'Food' } }
+    const out = preselectMerchants(fields, saved)
+    expect(out).toBe(fields)
+    expect(out.a.merchantId).toBe('other')
+  })
+
+  it('leaves empty text unchanged', () => {
+    const fields: Record<string, F> = { a: { merchant: '  ', merchantId: null, category: 'Food' } }
+    expect(preselectMerchants(fields, saved)).toBe(fields)
+  })
+
+  it('leaves non-matching text unchanged, including substrings', () => {
+    const fields: Record<string, F> = { a: { merchant: 'Swig', merchantId: null, category: 'Food' } }
+    expect(preselectMerchants(fields, saved)).toBe(fields)
+  })
+
+  it('links an alias hit and uses the saved name', () => {
+    const fields: Record<string, F> = { a: { merchant: 'SWIGGY*BLR', merchantId: null, category: 'Food' } }
+    const out = preselectMerchants(fields, saved)
+    expect(out.a).toEqual({ merchant: 'Swiggy', merchantId: 'm1', category: 'Food' })
+  })
+
+  it('returns the identical object when nothing changed', () => {
+    const fields: Record<string, F> = { a: { merchant: 'Uber', merchantId: null, category: 'Travel' } }
+    expect(preselectMerchants(fields, saved)).toBe(fields)
+    expect(preselectMerchants(fields, [])).toBe(fields)
+  })
+
+  it('changes only the matching entry; others keep identity', () => {
+    const a: F = { merchant: 'Uber', merchantId: null, category: 'Travel' }
+    const b: F = { merchant: 'zomato', merchantId: null, category: 'Food' }
+    const c: F = { merchant: 'Swiggy', merchantId: 'm1', category: 'Food' }
+    const fields = { a, b, c }
+    const out = preselectMerchants(fields, saved)
+    expect(out).not.toBe(fields)
+    expect(out.a).toBe(a)
+    expect(out.c).toBe(c)
+    expect(out.b).toEqual({ merchant: 'Zomato', merchantId: 'm2', category: 'Food' })
+    expect(fields.b.merchantId).toBeNull()
   })
 })

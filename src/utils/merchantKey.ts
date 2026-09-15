@@ -31,6 +31,30 @@ export function matchMerchant(text: string | null | undefined, merchants: Mercha
   )
 }
 
+/**
+ * Pre-select a saved merchant on every entry that is not yet linked and whose
+ * merchant text exactly matches a saved name or alias: the entry gets the saved
+ * name and id. Linked entries and non-matches are untouched. Returns the SAME
+ * object when nothing changed, so a React state update can bail out.
+ */
+export function preselectMerchants<T extends { merchant: string; merchantId: string | null }>(
+  fields: Record<string, T>,
+  saved: MerchantOption[]
+): Record<string, T> {
+  if (saved.length === 0) return fields
+  let changed = false
+  const next = { ...fields }
+  for (const [id, f] of Object.entries(fields)) {
+    if (f.merchantId) continue
+    const hit = matchMerchant(f.merchant, saved)
+    if (hit) {
+      next[id] = { ...f, merchant: hit.name, merchantId: hit.id }
+      changed = true
+    }
+  }
+  return changed ? next : fields
+}
+
 const byName = (a: MerchantOption, b: MerchantOption) => a.name.localeCompare(b.name)
 
 /** Picker suggestions: name-prefix matches first, then name/alias substring matches. */

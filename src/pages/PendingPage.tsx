@@ -61,7 +61,7 @@ import {
 import StatementImportModal from '@/components/importer/StatementImportModal'
 import MerchantPicker from '@/components/merchants/MerchantPicker'
 import { listMerchants } from '@/services/merchants'
-import { matchMerchant, type MerchantOption } from '@/utils/merchantKey'
+import { preselectMerchants, type MerchantOption } from '@/utils/merchantKey'
 
 /**
  * How a confidence score is shown: an icon, a word and a colour.
@@ -102,29 +102,6 @@ function defaultReviewFields(txn: TransactionRow): ReviewFields {
   return { category: txn.category, description: txn.description || '', merchant: txn.merchant || '', merchantId: txn.merchant_id ?? null }
 }
 
-/**
- * Pre-select a saved merchant on every card that is not yet linked and whose
- * merchant text matches a saved name or alias. The user still sees the choice
- * and can change or clear it; approval is what saves the link. Returns the
- * same object when nothing changed so React skips the re-render.
- */
-function preselectMerchants(
-  fields: Record<string, ReviewFields>,
-  saved: MerchantOption[]
-): Record<string, ReviewFields> {
-  if (saved.length === 0) return fields
-  let changed = false
-  const next = { ...fields }
-  for (const [id, f] of Object.entries(fields)) {
-    if (f.merchantId) continue
-    const hit = matchMerchant(f.merchant, saved)
-    if (hit) {
-      next[id] = { ...f, merchant: hit.name, merchantId: hit.id }
-      changed = true
-    }
-  }
-  return changed ? next : fields
-}
 
 function parseTransactionTime(txn: TransactionRow): string {
   // Prefer the dedicated transaction_time column (added in Phase 2)
@@ -290,8 +267,11 @@ export default function PendingPage() {
   const handleMerchantAdded = (m: MerchantOption) => {
     const list = savedMerchantsRef.current
     if (list.some((x) => x.id === m.id)) return
-    savedMerchantsRef.current = [...list, m]
-    setSavedMerchants(savedMerchantsRef.current)
+    const next = [...list, m]
+    savedMerchantsRef.current = next
+    setSavedMerchants(next)
+    // Other cards carrying the same text get the saved name and link too.
+    setEditingFields((prev) => preselectMerchants(prev, next))
   }
 
   const { showToast } = useToast()
@@ -598,7 +578,8 @@ export default function PendingPage() {
       // Only offer the rule-creation suggestion once the approval has actually
       // committed — otherwise a user who hits Undo could still create a rule
       // for a categorization that was never saved.
-      const suggestedMerchant = getMerchantRuleSuggestion(txn)
+      // Name the merchant as approved on the card, not the scanner's raw text.
+      const suggestedMerchant = getMerchantRuleSuggestion({ ...txn, merchant: fields.merchant.trim() || null })
       if (suggestedMerchant) {
         setRuleSuggestion({ merchant: suggestedMerchant, category: fields.category })
       }
@@ -956,6 +937,7 @@ export default function PendingPage() {
         // A merchant the user already linked on the survivor is kept; otherwise
         // the merged row's (possibly richer) merchant text is offered, pre-selected
         // against saved merchants like any freshly loaded card.
+        // A typed-but-unlinked merchant is intentionally replaced by the merged row's merchant text.
         const linked = prev[survivor.id]?.merchantId ? prev[survivor.id] : null
         next[survivor.id] = {
           category: prev[survivor.id]?.category ?? mergedRow.category,
@@ -1742,7 +1724,8 @@ export default function PendingPage() {
                   transition={transition(reduceMotion)}
                   // layout gives each card its own stacking context; lift the card
                   // holding a focused picker so its suggestion list is not covered.
-                  className="relative focus-within:z-20"
+                  // z-[5]: above sibling cards, below the sticky selection bar (z-10).
+                  className="relative focus-within:z-[5]"
                 >
                 <Card
                   className={cn(
@@ -1869,7 +1852,7 @@ export default function PendingPage() {
 
                   {/* Corrections. Whatever is chosen here is what gets saved
                       when the row is approved — never before. */}
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                       <label
                         htmlFor={`merchant-${txn.id}`}
