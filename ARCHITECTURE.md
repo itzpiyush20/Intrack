@@ -127,7 +127,9 @@ buffering), `emailBoilerplate.ts` (strips bank security/legal footers),
 merges a bank alert and a merchant receipt for the same payment),
 `currency.ts` (R11 — non-INR detection and formatting).
 
-**Money & ledger:** `transactions.ts`, `budgets.ts`, `categories.ts`,
+**Money & ledger:** `transactions.ts`, `merchants.ts` (the user's saved
+merchant list and its other spellings — migration 048; matching rules in
+`src/utils/merchantKey.ts`), `budgets.ts`, `categories.ts`,
 `balances.ts` (available money and card outstandings), `cards.ts`, `debts.ts`
 (loans, cash advances, repayments), `plannedPayments.ts`,
 `subscriptionDetection.ts` (finds recurring payments in the ledger),
@@ -281,6 +283,15 @@ Lucide icons. **Light mode only** — dark mode and the theme toggle were remove
 2026-08-25; `.light` is applied unconditionally before first paint. The token
 system in `src/index.css` is the source of truth for colour and type;
 `DESIGN.md` is its human summary.
+
+**Merchant field:** `src/components/merchants/MerchantPicker.tsx` is the one
+merchant input, used by the Dashboard add popup, `ExpenseForm` (Expenses and
+the Insights drill-down), Pending review cards and the Subscriptions payment
+popup. It is the only way a transaction gets `merchant_id`: the user picks a
+saved merchant, types one's exact name or saved spelling, or adds one. Pending
+pre-selects a matching saved merchant, and approving the card saves it. Free
+text is always accepted and saves unlinked. The fixed brand list
+`KNOWN_MERCHANTS` is no longer shown as suggestions.
 
 Error reporting is Sentry: `@sentry/react` in the browser (build-time
 `VITE_SENTRY_DSN`; unset means the SDK is not bundled at all) and `@sentry/node`

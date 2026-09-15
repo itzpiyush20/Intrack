@@ -120,9 +120,13 @@ favour".
 
 One shared `MerchantPicker` component replaces the `<datalist>` inputs:
 
-- Type to filter the user's merchants (name + aliases), most-used first.
-- Last row: **+ Add "<typed text>" as a merchant** → small popup with name
-  (prefilled) and optional usual category → saved and selected.
+- Type to filter the user's merchants (name + aliases): names starting with
+  the typed text first, then other matches, each group A–Z (owner's choice
+  2026-09-15 over most-used ordering). Arrow keys and Enter pick; Enter never
+  submits the host form while a suggestion is highlighted.
+- Last row: **+ Add "<typed text>" as a merchant** → small inline panel under
+  the box with name (prefilled) and optional usual category → saved and
+  selected.
 - Picking a merchant with a usual category pre-fills category if the user has
   not chosen one yet; never overwrites a category already chosen.
 - Clearing the picker unlinks (`merchant_id` null) and keeps the typed text.
