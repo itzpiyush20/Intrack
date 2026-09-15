@@ -87,23 +87,36 @@ export default function MerchantPicker({
     }
   }, [usesShared])
 
+  // Closing always clears the highlight, so a reopened list never has a stale active row.
+  const close = () => {
+    setOpen(false)
+    setActiveIndex(-1)
+  }
+
   useEffect(() => {
-    const close = (e: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    const onOutside = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setActiveIndex(-1)
+      }
     }
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
+    document.addEventListener('pointerdown', onOutside)
+    return () => document.removeEventListener('pointerdown', onOutside)
   }, [])
 
   const emit = (text: string, merchant: MerchantOption | null) =>
     onChange({ text, merchantId: merchant?.id ?? null, defaultCategory: merchant?.default_category ?? null })
 
-  // Once per list (load or prop change): link text typed before the list arrived.
+  // A link is only ever the user's act. Text that arrived as the initial value
+  // (an edited row, a prefilled name) is never linked just because it matches.
+  const typedRef = useRef(false)
+
+  // Once per list (load or prop change): link text the user typed before the list arrived.
   const linkedForList = useRef<MerchantOption[] | null>(null)
   useEffect(() => {
     if (linkedForList.current === merchants) return
     linkedForList.current = merchants
-    if (value.merchantId) return
+    if (!typedRef.current || value.merchantId) return
     const match = matchMerchant(value.text, merchants)
     if (match) onChange({ text: value.text, merchantId: match.id, defaultCategory: match.default_category })
   }, [merchants, value.text, value.merchantId, onChange])
@@ -114,23 +127,31 @@ export default function MerchantPicker({
   const itemCount = suggestions.length + (canAdd ? 1 : 0)
   const listShown = open && itemCount > 0
 
-  // Reset the active option whenever the items change (adjust-during-render, not an effect).
+  // Clear the highlight whenever the items change (adjust-during-render, not an effect).
+  // A row is active only after ArrowDown/ArrowUp or hover, so Enter never picks
+  // or adds something the user did not point at.
   const itemsKey = `${suggestions.map((m) => m.id).join('|')}#${canAdd}`
   const [prevItemsKey, setPrevItemsKey] = useState<string | null>(null)
   if (prevItemsKey !== itemsKey) {
     setPrevItemsKey(itemsKey)
-    setActiveIndex(itemCount > 0 ? 0 : -1)
+    setActiveIndex(-1)
   }
 
   const handleType = (text: string) => {
+    typedRef.current = true
     setOpen(true)
     emit(text, matchMerchant(text, merchants))
   }
 
   const pick = (merchant: MerchantOption) => {
-    if (user) void addMerchantAlias(user.id, merchant, value.text)
+    // Remember a genuinely different spelling only. The typed text is usually a
+    // fragment of the name or of a known alias (that is how it was suggested);
+    // saving that would make every later partial match look exact.
+    const typed = merchantKey(value.text)
+    const known = [merchantKey(merchant.name), ...merchant.aliases]
+    if (user && typed && !known.some((k) => k.includes(typed))) void addMerchantAlias(user.id, merchant, value.text)
     emit(merchant.name, merchant)
-    setOpen(false)
+    close()
   }
 
   const startAdd = () => {
@@ -138,7 +159,7 @@ export default function MerchantPicker({
     setNewCategory('')
     setAddError('')
     setAdding(true)
-    setOpen(false)
+    close()
   }
 
   const saveNew = async () => {
@@ -168,12 +189,14 @@ export default function MerchantPicker({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
+      const step = e.key === 'ArrowDown' ? 1 : -1
       if (!open) {
         setOpen(true)
+        // Opening by arrow is itself a move onto the first (or last) row.
+        if (itemCount > 0) setActiveIndex(step > 0 ? 0 : itemCount - 1)
         return
       }
       if (itemCount === 0) return
-      const step = e.key === 'ArrowDown' ? 1 : -1
       setActiveIndex((prev) =>
         prev < 0 ? (step > 0 ? 0 : itemCount - 1) : (prev + step + itemCount) % itemCount
       )
@@ -184,7 +207,7 @@ export default function MerchantPicker({
       if (activeIndex < suggestions.length) pick(suggestions[activeIndex])
       else startAdd()
     } else if (e.key === 'Escape') {
-      setOpen(false)
+      close()
     }
   }
 
@@ -203,6 +226,8 @@ export default function MerchantPicker({
         aria-activedescendant={activeOk ? optionId(activeIndex) : undefined}
         aria-autocomplete="list"
         onFocus={() => setOpen(true)}
+        // Options use mouseDown + preventDefault, so picking never blurs the box.
+        onBlur={close}
         onChange={(e) => handleType(e.target.value)}
         onKeyDown={handleKeyDown}
       />
@@ -219,6 +244,8 @@ export default function MerchantPicker({
         <ul
           id={listId}
           role="listbox"
+          // Keep focus in the box when the press lands on padding or the scrollbar.
+          onMouseDown={(e) => e.preventDefault()}
           className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-sb-hairline bg-surface-1 p-1.5 shadow-xl"
         >
           {suggestions.map((m, i) => (

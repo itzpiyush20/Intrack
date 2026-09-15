@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor, createEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent, cleanup, waitFor, createEvent } from '@testing-library/react'
 import MerchantPicker, { type MerchantPickerValue } from './MerchantPicker'
 
 const listMerchants = vi.fn()
@@ -31,6 +32,25 @@ function Harness({ onChange }: { onChange: (v: MerchantPickerValue) => void }) {
   return <MerchantPicker id="mp" label="Merchant" value={{ text: '', merchantId: null }} onChange={onChange} />
 }
 
+/** Controlled like the real hosts: feeds every onChange back in as the value. */
+function Stateful({ onChange, initial = { text: '', merchantId: null } }: {
+  onChange: (v: MerchantPickerValue) => void
+  initial?: MerchantPickerValue
+}) {
+  const [value, setValue] = useState<MerchantPickerValue>(initial)
+  return (
+    <MerchantPicker
+      id="mp"
+      label="Merchant"
+      value={value}
+      onChange={(next) => {
+        onChange(next)
+        setValue(next)
+      }}
+    />
+  )
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   listMerchants.mockResolvedValue({ data: [SWIGGY, AMAZON], error: null })
@@ -54,11 +74,69 @@ describe('MerchantPicker', () => {
     expect(onChange).toHaveBeenLastCalledWith({ text: 'Swiggy', merchantId: 'm1', defaultCategory: 'Food & Dining' })
   })
 
-  it('remembers the typed spelling as an alias when it differs', async () => {
+  it('does not save partial text as an alias', async () => {
     render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'swi', merchantId: null }} onChange={vi.fn()} />)
     fireEvent.focus(screen.getByLabelText('Merchant'))
     fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
-    expect(addMerchantAlias).toHaveBeenCalledWith('u1', SWIGGY, 'swi')
+    expect(addMerchantAlias).not.toHaveBeenCalled()
+  })
+
+  it('does not save a fragment of an existing alias as an alias', async () => {
+    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'gy bl', merchantId: null }} onChange={vi.fn()} />)
+    fireEvent.focus(screen.getByLabelText('Merchant'))
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Swiggy/ }))
+    expect(addMerchantAlias).not.toHaveBeenCalled()
+  })
+
+  it('does not link an initial value when the saved list arrives', async () => {
+    const onChange = vi.fn()
+    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'Swiggy', merchantId: null }} onChange={onChange} />)
+    fireEvent.focus(screen.getByLabelText('Merchant'))
+    await screen.findByRole('option', { name: /Swiggy/ })
+    // Let the post-load effect run before asserting it did nothing.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20))
+    })
+    expect(onChange).not.toHaveBeenCalledWith(expect.objectContaining({ merchantId: 'm1' }))
+  })
+
+  it('Enter with typed text and no highlighted row lets the host form submit', async () => {
+    render(
+      <form onSubmit={(e) => e.preventDefault()}>
+        <Stateful onChange={vi.fn()} />
+      </form>
+    )
+    const box = screen.getByLabelText('Merchant')
+    fireEvent.focus(box)
+    await screen.findByRole('option', { name: /Swiggy/ })
+    fireEvent.change(box, { target: { value: 'Chai Point' } })
+    await screen.findByRole('option', { name: /as a merchant/ })
+
+    const ev = createEvent.keyDown(box, { key: 'Enter' })
+    fireEvent(box, ev)
+    expect(ev.defaultPrevented).toBe(false)
+    expect(screen.queryByLabelText('Merchant name')).toBeNull()
+  })
+
+  it('focusing an empty box and pressing Enter links nothing', async () => {
+    const onChange = vi.fn()
+    render(<Harness onChange={onChange} />)
+    const box = screen.getByLabelText('Merchant')
+    fireEvent.focus(box)
+    await screen.findByRole('option', { name: /Swiggy/ })
+    const ev = createEvent.keyDown(box, { key: 'Enter' })
+    fireEvent(box, ev)
+    expect(ev.defaultPrevented).toBe(false)
+    expect(onChange).not.toHaveBeenCalledWith(expect.objectContaining({ merchantId: expect.any(String) }))
+  })
+
+  it('closes the list when focus leaves', async () => {
+    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'swi', merchantId: null }} onChange={vi.fn()} />)
+    const box = screen.getByLabelText('Merchant')
+    fireEvent.focus(box)
+    await screen.findByRole('listbox')
+    fireEvent.blur(box)
+    expect(screen.queryByRole('listbox')).toBeNull()
   })
 
   it('links on an exact typed name, and unlinks on anything else', async () => {
@@ -137,6 +215,7 @@ describe('MerchantPicker', () => {
     const box = screen.getByLabelText('Merchant')
     fireEvent.focus(box)
     await screen.findByRole('option', { name: /Swiggy/ })
+    fireEvent.keyDown(box, { key: 'ArrowDown' })
 
     const open = createEvent.keyDown(box, { key: 'Enter' })
     fireEvent(box, open)
@@ -172,7 +251,10 @@ describe('MerchantPicker', () => {
     const box = screen.getByLabelText('Merchant')
     fireEvent.focus(box)
     await screen.findByRole('option', { name: /Swiggy/ })
+    expect(box.hasAttribute('aria-activedescendant')).toBe(false) // nothing active until the user moves
 
+    fireEvent.keyDown(box, { key: 'ArrowDown' })
+    expect(box.getAttribute('aria-activedescendant')).toBe('mp-options-0')
     fireEvent.keyDown(box, { key: 'ArrowDown' })
     expect(box.getAttribute('aria-activedescendant')).toBe('mp-options-1')
     expect(screen.getByRole('option', { name: /as a merchant/ }).getAttribute('aria-selected')).toBe('true')
@@ -244,12 +326,20 @@ describe('MerchantPicker', () => {
   })
 
   it('links a typed name once the saved list arrives', async () => {
+    let resolveList: (v: unknown) => void = () => {}
+    listMerchants.mockReturnValue(new Promise((r) => (resolveList = r)))
     const onChange = vi.fn()
-    render(<MerchantPicker id="mp" label="Merchant" value={{ text: 'swiggy', merchantId: null }} onChange={onChange} />)
-    await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({ text: 'swiggy', merchantId: 'm1', defaultCategory: 'Food & Dining' })
-    )
+    render(<Stateful onChange={onChange} />)
+
+    fireEvent.change(screen.getByLabelText('Merchant'), { target: { value: 'swiggy' } })
     expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenLastCalledWith({ text: 'swiggy', merchantId: null, defaultCategory: null })
+
+    await act(async () => resolveList({ data: [SWIGGY, AMAZON], error: null }))
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith({ text: 'swiggy', merchantId: 'm1', defaultCategory: 'Food & Dining' })
+    )
+    expect(onChange).toHaveBeenCalledTimes(2)
   })
 
   // ---- E. ARIA ----
