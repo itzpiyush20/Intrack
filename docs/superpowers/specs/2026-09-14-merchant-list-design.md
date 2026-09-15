@@ -76,8 +76,7 @@ display code keeps reading `transactions.merchant` unchanged.
 - A transaction is linked only by an explicit user action: picking a merchant,
   adding one, approving a Pending pre-selection, or confirming a cleanup group.
 - Never linked automatically at save, scan or import time.
-- Picking a merchant whose typed spelling differs records that spelling as an
-  alias.
+- Spellings are learned on Pending approval: approving a card linked to a merchant saves the scanner's raw merchant text as an alias when it differs (owner decision 2026-09-15). The picker never saves partial typed text as an alias.
 
 ## Totals — one classifier
 

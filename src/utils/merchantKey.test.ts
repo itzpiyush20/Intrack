@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { merchantKey, matchMerchant, filterMerchants, preselectMerchants, type MerchantOption } from './merchantKey'
+import { merchantKey, matchMerchant, filterMerchants, preselectMerchants, withLearnedAlias, type MerchantOption } from './merchantKey'
 
 const m = (id: string, name: string, aliases: string[] = []): MerchantOption => ({
   id,
@@ -109,5 +109,36 @@ describe('preselectMerchants', () => {
     expect(out.c).toBe(c)
     expect(out.b).toEqual({ merchant: 'Zomato', merchantId: 'm2', category: 'Food' })
     expect(fields.b.merchantId).toBeNull()
+  })
+})
+
+describe('withLearnedAlias', () => {
+  const list = [m('m1', 'Swiggy', ['swiggy*blr']), m('m2', 'Zomato')]
+
+  it('returns the same array for empty text', () => {
+    expect(withLearnedAlias(list, 'm1', '')).toBe(list)
+    expect(withLearnedAlias(list, 'm1', '   ')).toBe(list)
+    expect(withLearnedAlias(list, 'm1', null)).toBe(list)
+    expect(withLearnedAlias(list, 'm1', undefined)).toBe(list)
+  })
+
+  it('returns the same array for an unknown merchant id', () => {
+    expect(withLearnedAlias(list, 'nope', 'SWIGGY BANGALORE')).toBe(list)
+  })
+
+  it('returns the same array when the text is the name', () => {
+    expect(withLearnedAlias(list, 'm1', '  SWIGGY ')).toBe(list)
+  })
+
+  it('returns the same array when the text is already an alias', () => {
+    expect(withLearnedAlias(list, 'm1', 'Swiggy*BLR')).toBe(list)
+  })
+
+  it('adds the normalised key to that merchant only, without mutating', () => {
+    const out = withLearnedAlias(list, 'm1', '  SWIGGY   Bangalore ')
+    expect(out).not.toBe(list)
+    expect(out[0]).toEqual({ ...list[0], aliases: ['swiggy*blr', 'swiggy bangalore'] })
+    expect(out[1]).toBe(list[1])
+    expect(list[0].aliases).toEqual(['swiggy*blr'])
   })
 })

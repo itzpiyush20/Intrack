@@ -60,8 +60,8 @@ import {
 } from 'lucide-react'
 import StatementImportModal from '@/components/importer/StatementImportModal'
 import MerchantPicker from '@/components/merchants/MerchantPicker'
-import { listMerchants } from '@/services/merchants'
-import { preselectMerchants, type MerchantOption } from '@/utils/merchantKey'
+import { addMerchantAlias, listMerchants } from '@/services/merchants'
+import { preselectMerchants, withLearnedAlias, type MerchantOption } from '@/utils/merchantKey'
 
 /**
  * How a confidence score is shown: an icon, a word and a colour.
@@ -574,6 +574,26 @@ export default function PendingPage() {
         category_confirmed_at: new Date().toISOString(),
       })
       if (error) throw error
+
+      // Learn the scanner's spelling for the linked merchant, only now that the
+      // approval has committed (Undo cancels before this, so it learns nothing).
+      // Fire-and-forget: addMerchantAlias skips known keys and swallows errors.
+      // Locally, other unlinked cards with that spelling get pre-selected; each
+      // still needs its own approval.
+      if (fields.merchantId && user) {
+        const list = savedMerchantsRef.current
+        const merchant = list.find((m) => m.id === fields.merchantId)
+        const raw = txn.merchant?.trim()
+        if (merchant && raw) {
+          void addMerchantAlias(user.id, merchant, raw)
+          const nextList = withLearnedAlias(list, merchant.id, raw)
+          if (nextList !== list) {
+            savedMerchantsRef.current = nextList
+            setSavedMerchants(nextList)
+            setEditingFields((prev) => preselectMerchants(prev, nextList))
+          }
+        }
+      }
 
       // Only offer the rule-creation suggestion once the approval has actually
       // committed — otherwise a user who hits Undo could still create a rule

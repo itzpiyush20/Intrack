@@ -55,6 +55,23 @@ export function preselectMerchants<T extends { merchant: string; merchantId: str
   return changed ? next : fields
 }
 
+/**
+ * Local mirror of addMerchantAlias: the list with `rawText`'s key added to that
+ * merchant's aliases. Returns the SAME array when there is nothing to add
+ * (empty text, unknown id, key equals the name key, key already an alias).
+ */
+export function withLearnedAlias(
+  merchants: MerchantOption[],
+  merchantId: string,
+  rawText: string | null | undefined
+): MerchantOption[] {
+  const key = merchantKey(rawText)
+  if (!key) return merchants
+  const target = merchants.find((m) => m.id === merchantId)
+  if (!target || key === merchantKey(target.name) || target.aliases.includes(key)) return merchants
+  return merchants.map((m) => (m === target ? { ...m, aliases: [...m.aliases, key] } : m))
+}
+
 const byName = (a: MerchantOption, b: MerchantOption) => a.name.localeCompare(b.name)
 
 /** Picker suggestions: name-prefix matches first, then name/alias substring matches. */
