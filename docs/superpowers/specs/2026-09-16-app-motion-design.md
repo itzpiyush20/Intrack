@@ -126,6 +126,11 @@ starts (standing rule for anything near the scanner).
   with `RollingNumber`, `success()` haptic.
 - Reject: card glides out to the left.
 - Mobile: `SwipeCard` — swipe right approves, left rejects. Buttons stay.
+  Before wiring it in: `handleApproveWithUndo` (and reject) must ignore a
+  transaction id that already has a timer in `pendingCommitTimers`, so a swipe
+  and "Approve all" cannot both act on one row; approve/reject callbacks should
+  return `false` on failure so the card glides back; check on a real phone that
+  a drifting tap on a card button is not read as a swipe.
 - Scan in progress: thin progress line plus a rolling count of emails checked;
   transactions found appear one at a time as results arrive, replacing the
   spinner. Driven only by progress the scanner already reports.
