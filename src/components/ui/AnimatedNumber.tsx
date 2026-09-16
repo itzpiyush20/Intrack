@@ -3,10 +3,10 @@
 //
 // A figure that counts up to its value instead of appearing at it.
 //
-// This is motion in the sense motion.ts allows: it reports that a number
-// arrived, and it re-runs when the number changes, so switching the period on
-// Home or Insights is visibly a recalculation rather than a silent swap. It
-// does not drift, glow or loop.
+// It re-runs when the number changes, so switching the period on Home or
+// Insights is visibly a recalculation rather than a silent swap. Being
+// replaced by `RollingNumber` in the motion rollout
+// (docs/superpowers/specs/2026-09-16-app-motion-design.md).
 //
 // The text is written straight to the DOM node rather than through state, so a
 // sixty-frame count-up does not cause sixty React renders of the card around
