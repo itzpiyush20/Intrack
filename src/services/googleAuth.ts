@@ -154,10 +154,34 @@ export async function migrateLegacyRefreshToken(supabaseJwt: string): Promise<vo
 }
 
 /**
+ * Cancel a grant at Google. Revoking an access token removes the user's whole
+ * grant to this OAuth client, not just that token. Best-effort: never throws.
+ */
+export async function revokeGoogleAccessToken(token: string): Promise<void> {
+  try {
+    await fetch('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token }),
+    })
+  } catch (e) {
+    console.warn('Google token revoke failed:', e)
+  }
+}
+
+/**
  * Revoke the Google grant and delete the server-side refresh token.
  * Also clears local tokens so the UI immediately reflects the disconnect.
+ *
+ * Two revokes, because they cover different users: the server revokes a
+ * refresh token (only accounts connected before 2026-08-27 have one); the
+ * browser revokes its current access token, which is the only handle on the
+ * grant for everyone connected since. Without the second, "Disconnect" left
+ * Intrack listed as allowed in the user's Google account.
  */
 export async function disconnectGmail(supabaseJwt: string): Promise<{ error: string | null }> {
+  const accessToken = getGoogleToken()
+  if (accessToken) await revokeGoogleAccessToken(accessToken)
   try {
     const res = await fetch('/api/disconnect-gmail', {
       method: 'POST',

@@ -137,6 +137,24 @@ describe('disconnectGmail', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
   })
 
+  it('revokes the browser access token at Google before clearing it', async () => {
+    localStorage.setItem(TOKEN_KEY, 'access-token')
+    localStorage.setItem('intrack_google_token_expiry', String(Date.now() + 60_000))
+    const { disconnectGmail } = await import('./googleAuth')
+    await disconnectGmail('jwt')
+
+    const revokeCall = vi.mocked(fetch).mock.calls.find(([url]) => url === 'https://oauth2.googleapis.com/revoke')
+    expect(revokeCall).toBeDefined()
+    expect(String((revokeCall![1] as RequestInit).body)).toBe('token=access-token')
+  })
+
+  it('does not call Google revoke when no browser token is held', async () => {
+    const { disconnectGmail } = await import('./googleAuth')
+    await disconnectGmail('jwt')
+
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => url === 'https://oauth2.googleapis.com/revoke')).toBe(false)
+  })
+
   it('still clears local state when the server call fails', async () => {
     localStorage.setItem(LINKED_KEY, 'true')
     localStorage.setItem(TOKEN_KEY, 'access-token')

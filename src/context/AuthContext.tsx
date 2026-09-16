@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase, readStoredSession } from '@/services/supabase'
 import { saveGoogleToken, clearGoogleToken, clearAllGoogleTokens, isGoogleConnected, purgeOldTokenKey, validateGoogleToken, migrateLegacyRefreshToken, disconnectGmail, tryRefreshGoogleToken } from '@/services/googleAuth'
-import { rememberGmailConnectOrigin, takeGmailConnectOrigin, isDifferentGmailConnectAccount, type GmailConnectOrigin } from '@/services/gmailConnectGuard'
+import { connectGmailInbox, type GmailConnectResult } from '@/services/gmailConnect'
 import { Button } from '@/components/ui'
 
 interface AuthState {
@@ -34,7 +34,8 @@ interface AuthContextValue extends AuthState {
   disconnectGoogle: () => Promise<{ error: string | null }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithGoogle: (redirectPath?: string, requestGmailScope?: boolean) => Promise<{ error: string | null }>
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: string | null }>
+  connectGmail: () => Promise<GmailConnectResult>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
   isSubscriptionActive: boolean
@@ -174,17 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // (sign-out, expiry detection). This guarantees React re-renders whenever the
   // connection status changes, including after the user clears an expired token.
   const [hasGoogleToken, setHasGoogleToken] = useState<boolean>(() => isGoogleConnected())
-
-  // Wrong-account guard for "Connect Gmail Inbox" — see gmailConnectGuard.ts.
-  // `undefined` = not read yet this page load. Refs survive StrictMode's double
-  // effect run, so the one-shot localStorage record is read only once.
-  const gmailConnectOriginRef = useRef<GmailConnectOrigin | null | undefined>(undefined)
-  const gmailRestoreInFlightRef = useRef(false)
-  const [gmailAccountMismatch, setGmailAccountMismatch] = useState<{
-    pickedEmail: string | null
-    expectedEmail: string | null
-    restored: boolean
-  } | null>(null)
 
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalRedirect, setAuthModalRedirect] = useState<string | null>(null)
@@ -431,39 +421,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
-  const signInWithGoogle = async (redirectPath = '/dashboard', requestGmailScope = false) => {
+  // Sign-in only (basic scopes). Gmail access is NOT requested here: it used
+  // to be, and a wrong pick on Google's chooser then signed the user into — or
+  // created — a different Intrack account. Gmail is connected by connectGmail()
+  // below, which never touches the Supabase session.
+  const signInWithGoogle = async (redirectPath = '/dashboard') => {
     const oAuthOptions: any = {
       redirectTo: `${window.location.origin}${redirectPath}`,
-    }
-
-    if (requestGmailScope) {
-      // Remember who is signed in so that picking a different Google account
-      // does not silently switch Intrack accounts (gmailConnectGuard.ts).
-      // getSession can stall behind the auth lock; fall back to React state.
-      const current = await Promise.race([
-        supabase.auth.getSession().then(({ data }) => data.session).catch(() => null),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
-      ])
-      const origin = current ?? state.session
-      if (origin?.user && origin.refresh_token) rememberGmailConnectOrigin(origin)
-
-      oAuthOptions.scopes = 'https://www.googleapis.com/auth/gmail.readonly'
-      // No `access_type: 'offline'`. Offline access exists to let the app act
-      // while the user is away, which it no longer does — automatic scanning
-      // was removed on 2026-08-27 (plans/remove-auto-sync.md). Asking for a
-      // permission we never use is also harder to justify in Google's Gmail
-      // verification review, so we ask for less.
-      oAuthOptions.queryParams = {
-        prompt: 'select_account',
-        // Pre-selects the right account on Google's chooser.
-        ...(origin?.user?.email ? { login_hint: origin.user.email } : {}),
-      }
-      localStorage.setItem('intrack_requesting_gmail_scope', 'true')
-    } else {
-      oAuthOptions.queryParams = {
-        prompt: 'select_account',
-      }
-      localStorage.removeItem('intrack_requesting_gmail_scope')
+      queryParams: { prompt: 'select_account' },
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -471,6 +436,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: oAuthOptions,
     })
     return { error: error?.message ?? null }
+  }
+
+  // "Connect Gmail Inbox": a Google permission popup for the signed-in user's
+  // own mailbox (gmailConnect.ts). No `access_type: 'offline'` — automatic
+  // scanning was removed on 2026-08-27 (plans/remove-auto-sync.md).
+  const connectGmail = async (): Promise<GmailConnectResult> => {
+    const result = await connectGmailInbox({
+      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      loginEmail: state.user?.email,
+    })
+    if (result.ok) {
+      saveGoogleToken(result.token)
+      setHasGoogleToken(true)
+    }
+    return result
   }
 
   const signOut = async () => {
@@ -536,55 +516,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Purge the old token key from previous app versions (no expiry tracking).
     // This runs once on mount and is a no-op if the key doesn't exist.
     purgeOldTokenKey()
-
-    if (gmailConnectOriginRef.current === undefined) {
-      gmailConnectOriginRef.current = takeGmailConnectOrigin()
-    }
-
-    // Returns true when `session` belongs to a different Intrack account than
-    // the one that started "Connect Gmail Inbox". The caller must then ignore
-    // the session entirely — no state, no token save, no device registration —
-    // while the original account is restored.
-    const interceptWrongGmailAccount = (session: Session | null): boolean => {
-      const origin = gmailConnectOriginRef.current
-      if (!origin || !session?.user) return false
-      if (!isDifferentGmailConnectAccount(origin, session.user.id)) {
-        gmailConnectOriginRef.current = null
-        return false
-      }
-      if (gmailRestoreInFlightRef.current) return true
-      gmailRestoreInFlightRef.current = true
-      localStorage.removeItem('intrack_requesting_gmail_scope')
-      purgeOldTokenKey()
-      const pickedEmail = session.user.email ?? null
-
-      // Deferred: this can run inside onAuthStateChange, which holds the
-      // auth-js lock; calling setSession synchronously there can deadlock.
-      setTimeout(async () => {
-        let restored = false
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: origin.accessToken,
-            refresh_token: origin.refreshToken,
-          })
-          restored = !error
-          if (error) console.warn('Gmail connect: could not restore original session:', error.message)
-        } catch (e) {
-          console.warn('Gmail connect: could not restore original session:', e)
-        }
-        gmailRestoreInFlightRef.current = false
-        if (!restored) {
-          // Never leave the user inside the account they did not mean to use.
-          gmailConnectOriginRef.current = null
-          try { await supabase.auth.signOut({ scope: 'local' }) } catch { /* local clear only */ }
-          clearAllGoogleTokens()
-          setHasGoogleToken(false)
-          setState({ user: null, session: null, loading: false })
-        }
-        setGmailAccountMismatch({ pickedEmail, expectedEmail: origin.email, restored })
-      }, 0)
-      return true
-    }
+    // Flag from the old sign-in-based Connect Gmail flow; nothing reads it now.
+    localStorage.removeItem('intrack_requesting_gmail_scope')
 
     // Get initial session. supabase.auth.getSession() is gated behind the browser
     // Web Locks API, which can hang on tab re-focus after idle or under contention.
@@ -597,8 +530,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     Promise.race([sessionPromise, timeoutPromise]).then(({ data: { session } }) => {
-      if (interceptWrongGmailAccount(session)) return
-
       // Clear loading immediately — token validation happens in the background
       // so a slow Gmail API call never blocks the app from rendering.
       setState({
@@ -617,26 +548,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.provider_token) {
         const providerToken = session.provider_token
-        const isGmailFlow = localStorage.getItem('intrack_requesting_gmail_scope') === 'true'
-        if (isGmailFlow) {
-          saveGoogleToken(providerToken)
-          setHasGoogleToken(true)
-          localStorage.removeItem('intrack_requesting_gmail_scope')
-        } else {
-          // Fire-and-forget: doesn't block loading
-          validateGoogleToken(providerToken).then((isValid) => {
-            if (isValid) {
-              saveGoogleToken(providerToken)
-              setHasGoogleToken(true)
-            } else {
-              // Access token from Supabase session is expired — try silent refresh in background
-              const refreshPromise = session.access_token
-                ? tryRefreshGoogleToken(session.access_token)
-                : Promise.resolve(null)
-              refreshPromise.then((newToken) => setHasGoogleToken(!!newToken || isGoogleConnected()))
-            }
-          })
-        }
+        // A Google sign-in token only counts as a Gmail connection if it can
+        // actually read Gmail (an earlier grant carried over by Google).
+        // Fire-and-forget: doesn't block loading
+        validateGoogleToken(providerToken).then((isValid) => {
+          if (isValid) {
+            saveGoogleToken(providerToken)
+            setHasGoogleToken(true)
+          } else {
+            // Access token from Supabase session is expired — try silent refresh in background
+            const refreshPromise = session.access_token
+              ? tryRefreshGoogleToken(session.access_token)
+              : Promise.resolve(null)
+            refreshPromise.then((newToken) => setHasGoogleToken(!!newToken || isGoogleConnected()))
+          }
+        })
       } else if (!isGoogleConnected() && session?.access_token) {
         // No access token in session at all — try silent refresh with stored refresh token in background
         tryRefreshGoogleToken(session.access_token).then((newToken) => {
@@ -655,12 +581,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (interceptWrongGmailAccount(session)) return
-        // Signed out after load (auth-js has finished reading the URL by now):
-        // the record no longer describes anyone, so a later sign-in as another
-        // account must not be "restored" back.
-        if (!session && !gmailRestoreInFlightRef.current) gmailConnectOriginRef.current = null
-
         if (event === 'PASSWORD_RECOVERY') {
           setAuthModalOpen(false)
           if (window.location.pathname !== '/reset-password') {
@@ -683,23 +603,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.provider_token) {
           const providerToken = session.provider_token
-          // Fresh token from OAuth callback — save ONLY if we explicitly initiated a Gmail scope flow
-          const isGmailFlow = localStorage.getItem('intrack_requesting_gmail_scope') === 'true'
-          if (isGmailFlow) {
-            saveGoogleToken(providerToken)
-            setHasGoogleToken(true)
-            localStorage.removeItem('intrack_requesting_gmail_scope')
-          } else {
-            // Fire-and-forget: doesn't block the auth state update
-            validateGoogleToken(providerToken).then((isValid) => {
-              if (isValid) {
-                saveGoogleToken(providerToken)
-                setHasGoogleToken(true)
-              } else {
-                setHasGoogleToken(isGoogleConnected())
-              }
-            })
-          }
+          // Fire-and-forget: doesn't block the auth state update
+          validateGoogleToken(providerToken).then((isValid) => {
+            if (isValid) {
+              saveGoogleToken(providerToken)
+              setHasGoogleToken(true)
+            } else {
+              setHasGoogleToken(isGoogleConnected())
+            }
+          })
         } else if (event === 'SIGNED_OUT') {
           clearAllGoogleTokens()
           setHasGoogleToken(false)
@@ -1102,6 +1014,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signInWithGoogle,
+        connectGmail,
         signOut,
         resetPassword,
         isSubscriptionActive,
@@ -1116,60 +1029,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      {gmailAccountMismatch && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true" aria-labelledby="gmail-mismatch-title">
-          <div className="w-full max-w-md bg-surface-1 border border-sb-hairline rounded-3xl p-6 shadow-card-lg flex flex-col gap-4">
-            <h2 id="gmail-mismatch-title" className="text-lg font-bold tracking-tight text-sb-ink">
-              That was a different Google account
-            </h2>
-            {gmailAccountMismatch.restored ? (
-              <div className="text-sm text-sb-ink-secondary leading-relaxed space-y-2">
-                <p>
-                  You picked <strong>{gmailAccountMismatch.pickedEmail ?? 'another account'}</strong>, but you are signed in to Intrack as <strong>{gmailAccountMismatch.expectedEmail ?? 'a different account'}</strong>. Gmail was not connected, and you are still signed in to your own account.
-                </p>
-                <p>
-                  To connect, try again and choose <strong>{gmailAccountMismatch.expectedEmail ?? 'the same account'}</strong> on Google&apos;s screen.
-                </p>
-              </div>
-            ) : (
-              <div className="text-sm text-sb-ink-secondary leading-relaxed space-y-2">
-                <p>
-                  You picked <strong>{gmailAccountMismatch.pickedEmail ?? 'another account'}</strong>, but you were signed in to Intrack as <strong>{gmailAccountMismatch.expectedEmail ?? 'a different account'}</strong>. Gmail was not connected.
-                </p>
-                <p>
-                  We could not switch you back automatically, so you have been signed out. Sign in again as <strong>{gmailAccountMismatch.expectedEmail ?? 'your usual account'}</strong>, then connect Gmail choosing that same account.
-                </p>
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
-              {gmailAccountMismatch.restored ? (
-                <Button
-                  block
-                  onClick={() => {
-                    setGmailAccountMismatch(null)
-                    signInWithGoogle(window.location.pathname, true)
-                  }}
-                >
-                  Try again
-                </Button>
-              ) : (
-                <Button
-                  block
-                  onClick={() => {
-                    setGmailAccountMismatch(null)
-                    openAuthModal(window.location.pathname, 'login')
-                  }}
-                >
-                  Sign in
-                </Button>
-              )}
-              <Button variant="ghost" block onClick={() => setGmailAccountMismatch(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </AuthContext.Provider>
   )
 }

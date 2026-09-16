@@ -30,10 +30,16 @@ separate, later step, and you can use the whole app without it.
 Intrack asks for your inbox only when you first try to scan it — from the
 **Pending** page, or the prompt on your Dashboard.
 
-1. Choose **Connect Gmail Inbox**.
-2. Google shows you exactly what is being requested: **read-only access to your
-   Gmail messages** (`gmail.readonly`).
-3. Choose **Allow**.
+1. Choose **Connect Gmail Inbox**. A small Google window opens; you stay on the
+   page.
+2. Pick the Google account with **the same email you sign in to Intrack with**.
+   Intrack only connects that inbox. If you pick a different account, it is not
+   connected, the permission you just gave is cancelled at Google, and you are
+   told which account to choose. Your Intrack sign-in never changes.
+3. Google shows you exactly what is being requested: **read-only access to your
+   Gmail messages** (`gmail.readonly`). Choose **Allow**.
+
+If your Intrack email is not a Google account, Gmail cannot be connected to it.
 
 Intrack can read mail. It cannot send, reply, delete, label or modify anything —
 the permission it holds makes that impossible, not merely disallowed.

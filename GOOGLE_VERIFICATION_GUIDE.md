@@ -82,7 +82,8 @@ verification, and it is the last submission item outstanding.
 deliberately.** It described a single signup flow in which the Gmail consent
 screen appears as part of registration. The app has not worked that way since
 sign-in was narrowed to basic scopes: `gmail.readonly` is now requested
-separately and in context, from the Pending page. Filming to that script would
+separately and in context, from the Pending page, in a Google popup that is not
+a sign-in (since 2026-09-16; `plans/gmail-connect-permission-only.md`). Filming to that script would
 have produced a video that never shows the restricted scope being granted —
 the one thing the video exists to prove — and cost a submission cycle to find
 out.

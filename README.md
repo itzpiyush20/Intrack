@@ -77,7 +77,9 @@ docs/superpowers/ Historical plan/spec pairs for shipped features
 ### Prerequisites
 - Node.js 20+
 - A Supabase project
-- A Google Cloud project with the Gmail API and an OAuth 2.0 client
+- A Google Cloud project with the Gmail API and an OAuth 2.0 web client whose
+  Authorized JavaScript origins list every site origin (the Connect Gmail popup
+  needs them)
 - A Razorpay account (test or live) with the two subscription plans created
 - A Google Gemini API key
 
