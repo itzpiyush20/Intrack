@@ -28,6 +28,7 @@ import { fetchAllTransactions } from '@/services/transactions'
 import { saveMerchantRuleToDb } from '@/services/learningEngine'
 import { mergePayments } from '@/services/paymentMerge'
 import { useAuth } from '@/context/AuthContext'
+import { gmailConnectErrorMessage, preloadGmailConnect } from '@/services/gmailConnect'
 import { cn, formatCurrency, formatDate, parsePaymentSource, formatPaymentSource, isCardPayment, withTimeout, getCurrentMonth, resolveTransactionIdentity, formatNextScanTime, HOME_CURRENCY } from '@/utils'
 import type { Database } from '@/types/database'
 import { useToast } from '@/context'
@@ -212,7 +213,13 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export default function PendingPage() {
-  const { user, signInWithGoogle, hasGoogleToken, notifyGoogleTokenCleared, profile } = useAuth()
+  const { user, connectGmail, hasGoogleToken, notifyGoogleTokenCleared, profile } = useAuth()
+
+  // Google's popup must open within the click's user activation, so the GIS
+  // script is fetched ahead of time. A failure here resurfaces on click.
+  useEffect(() => {
+    preloadGmailConnect().catch(() => {})
+  }, [])
   const { categories, getStyle } = useCategories()
   const [pendingTxns, setPendingTxns] = useState<TransactionRow[]>([])
   // Motion reports that a row arrived or left the review list. Nothing here
@@ -1160,13 +1167,15 @@ export default function PendingPage() {
   }
 
   const handleReconnectGoogle = async () => {
+    setScanning(true)
+    setError(null)
     try {
-      setScanning(true)
-      setError(null)
-      const { error } = await signInWithGoogle('/pending', true)
-      if (error) throw new Error(error)
-    } catch (err: any) {
-      setError(err.message || 'Failed to redirect to Google.')
+      const result = await connectGmail()
+      if (!result.ok) {
+        const message = gmailConnectErrorMessage(result, user?.email)
+        if (message) setError(message)
+      }
+    } finally {
       setScanning(false)
     }
   }

@@ -164,10 +164,10 @@ export default function AuthModal() {
     // rejection reason in their verification review.
     //
     // Gmail is requested later, in context, from the Connect Gmail Inbox
-    // button on the Pending Alerts page (`handleReconnectGoogle` there passes
-    // requestGmailScope = true). Basic scopes show a plain consent screen with
-    // no warning attached.
-    const { error: oAuthErr } = await signInWithGoogle(destination, false)
+    // button (Pending, Settings), as a separate Google permission popup that
+    // never signs anyone in (services/gmailConnect.ts). Basic scopes show a
+    // plain consent screen with no warning attached.
+    const { error: oAuthErr } = await signInWithGoogle(destination)
     if (oAuthErr) {
       setError(oAuthErr)
     } else {

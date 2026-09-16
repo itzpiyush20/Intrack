@@ -23,6 +23,7 @@ import { fetchAllTransactions } from '@/services/transactions'
 import { buildRestoreRow, selectRowsToRestore } from '@/services/backupRestore'
 import { encryptText, decryptText, formatDate, toISODateLocal, cn } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
+import { gmailConnectErrorMessage, preloadGmailConnect } from '@/services/gmailConnect'
 import { useToast } from '@/context'
 import { useCategories } from '@/context/CategoriesContext'
 import CategoryManager from '@/components/settings/CategoryManager'
@@ -84,7 +85,12 @@ type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 const RULE_AUTO_APPROVE_DEFAULT = true
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile, hasGoogleToken, disconnectGoogle, signInWithGoogle } = useAuth()
+  const { user, profile, refreshProfile, hasGoogleToken, disconnectGoogle, connectGmail } = useAuth()
+
+  // Preload Google's script so the Connect popup is not blocked (see PendingPage).
+  useEffect(() => {
+    preloadGmailConnect().catch(() => {})
+  }, [])
   const { showToast } = useToast()
   const { categories, fallbackCategory } = useCategories()
 
@@ -92,21 +98,21 @@ export default function SettingsPage() {
   const [connectLoading, setConnectLoading] = useState(false)
 
   /**
-   * Same call shape as PendingPage's handleReconnectGoogle — the one OAuth
-   * flow. `true` asks for the Gmail scope; nothing here requests offline
-   * access or forces a consent prompt (see CLAUDE.md). On success the browser
-   * leaves for Google, so the loading state is only cleared on failure.
+   * Same call as PendingPage's handleReconnectGoogle: a Google permission popup
+   * (gmailConnect.ts), never a sign-in, so a wrong account pick cannot switch or
+   * create an Intrack account. No offline access, no forced consent (CLAUDE.md).
    */
   const handleConnectGmail = async () => {
+    setConnectLoading(true)
     try {
-      setConnectLoading(true)
-      const { error } = await signInWithGoogle('/settings', true)
-      if (error) throw new Error(error)
-    } catch (err) {
-      showToast(
-        err instanceof Error && err.message ? err.message : 'Failed to redirect to Google.',
-        'error'
-      )
+      const result = await connectGmail()
+      if (result.ok) {
+        showToast('Gmail connected.', 'success')
+      } else {
+        const message = gmailConnectErrorMessage(result, user?.email)
+        if (message) showToast(message, 'error', { duration: 10000 })
+      }
+    } finally {
       setConnectLoading(false)
     }
   }
@@ -838,7 +844,7 @@ export default function SettingsPage() {
                     disabled={connectLoading}
                   >
                     <Key className="h-4 w-4 shrink-0" />
-                    {connectLoading ? 'Redirecting…' : 'Connect Gmail'}
+                    {connectLoading ? 'Connecting…' : 'Connect Gmail'}
                   </Button>
                 </>
               )}

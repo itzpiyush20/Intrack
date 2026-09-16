@@ -137,8 +137,8 @@ merchant list and its other spellings — migration 048; matching rules in
 `backupRestore.ts` (restores from an encrypted `.inbak` file).
 
 **Account & billing:** `supabase.ts` (typed client), `googleAuth.ts` (single
-source of truth for Google tokens), `gmailConnectGuard.ts` (wrong-Google-account
-guard for Connect Gmail, see §7), `profiles.ts`, `subscription.ts` (the one
+source of truth for Google tokens), `gmailConnect.ts` (the Connect Gmail popup,
+see §7), `profiles.ts`, `subscription.ts` (the one
 definition of "premium"), `subscriptionBilling.ts` (browser client for the
 Razorpay Subscriptions endpoints), `adminAccess.ts`, `feedback.ts`, `support.ts`.
 
@@ -239,16 +239,21 @@ Google client id is configured in the Supabase dashboard, not in a `VITE_` env
 var). Gmail access asks for `https://www.googleapis.com/auth/gmail.readonly`
 only, and only when the user connects Gmail.
 
-"Connect Gmail Inbox" is itself a Supabase Google sign-in, not a link to the
-signed-in account, so choosing a different Google account on Google's chooser
-would switch Intrack accounts (creating a new trial account if that address had
-none). `gmailConnectGuard.ts` records the signed-in user and tokens before the
-redirect (15-minute TTL, key purged on sign-out) and passes `login_hint`. On
-return, `AuthContext` compares user ids: on a mismatch it ignores the new
-session (no state, no token save), restores the original with `setSession`, and
-shows a dialog; if the restore fails it signs out locally and asks the user to
-sign in again. A new account created by the wrong pick is not deleted, and
-signing in with a non-Google email still cannot attach a Gmail inbox.
+**Connecting Gmail is not a sign-in.** `signInWithGoogle` asks for basic scopes
+only. "Connect Gmail Inbox" (Pending, Settings) calls `AuthContext.connectGmail`,
+which opens Google Identity Services' token client in a popup
+(`src/services/gmailConnect.ts`, client id from `VITE_GOOGLE_CLIENT_ID`) and never
+touches the Supabase session — so a wrong pick on Google's chooser cannot switch
+or create an Intrack account. The token is accepted only if the Gmail scope was
+granted and `users/me/profile` returns the Intrack login email (Gmail dots,
+`+tag` and googlemail.com ignored); a different address is refused and the grant
+revoked at Google. Every site origin must be listed under the OAuth client's
+Authorized JavaScript origins, and the CSP allows `https://accounts.google.com`.
+Owner decisions and limits: `plans/gmail-connect-permission-only.md`.
+
+Disconnect (`disconnectGmail`) revokes the browser's current access token at
+Google as well as the server-held refresh token, because only pre-2026-08-27
+connections have the latter.
 
 Google access tokens live in the browser; refresh tokens — for grants issued
 before offline access was dropped — are stored server-side in
