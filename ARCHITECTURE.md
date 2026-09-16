@@ -137,7 +137,8 @@ merchant list and its other spellings — migration 048; matching rules in
 `backupRestore.ts` (restores from an encrypted `.inbak` file).
 
 **Account & billing:** `supabase.ts` (typed client), `googleAuth.ts` (single
-source of truth for Google tokens), `profiles.ts`, `subscription.ts` (the one
+source of truth for Google tokens), `gmailConnectGuard.ts` (wrong-Google-account
+guard for Connect Gmail, see §7), `profiles.ts`, `subscription.ts` (the one
 definition of "premium"), `subscriptionBilling.ts` (browser client for the
 Razorpay Subscriptions endpoints), `adminAccess.ts`, `feedback.ts`, `support.ts`.
 
@@ -237,6 +238,17 @@ Supabase Auth handles email/password and Google OAuth (`signInWithOAuth`, so the
 Google client id is configured in the Supabase dashboard, not in a `VITE_` env
 var). Gmail access asks for `https://www.googleapis.com/auth/gmail.readonly`
 only, and only when the user connects Gmail.
+
+"Connect Gmail Inbox" is itself a Supabase Google sign-in, not a link to the
+signed-in account, so choosing a different Google account on Google's chooser
+would switch Intrack accounts (creating a new trial account if that address had
+none). `gmailConnectGuard.ts` records the signed-in user and tokens before the
+redirect (15-minute TTL, key purged on sign-out) and passes `login_hint`. On
+return, `AuthContext` compares user ids: on a mismatch it ignores the new
+session (no state, no token save), restores the original with `setSession`, and
+shows a dialog; if the restore fails it signs out locally and asks the user to
+sign in again. A new account created by the wrong pick is not deleted, and
+signing in with a non-Google email still cannot attach a Gmail inbox.
 
 Google access tokens live in the browser; refresh tokens — for grants issued
 before offline access was dropped — are stored server-side in
