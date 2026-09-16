@@ -1,6 +1,6 @@
 # App motion — design
 
-Date: 2026-09-16. Status: approved by owner, not yet built.
+Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; rollout rounds 1–4 not started (waiting on the owner's tuning).
 
 ## In plain words
 
