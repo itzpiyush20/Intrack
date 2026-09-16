@@ -17,8 +17,15 @@ export { default as Skeleton, PageSkeleton } from './Skeleton'
 export { default as AnimatedNumber } from './AnimatedNumber'
 export { default as AnimatedBar } from './AnimatedBar'
 export { default as PageHeader, PageHeaderChip } from './PageHeader'
+export { default as RollingNumber } from './RollingNumber'
+export { default as SlidingIndicator } from './SlidingIndicator'
+export { default as MorphSurface } from './MorphSurface'
+export { default as SwipeCard } from './SwipeCard'
+export { haptics } from './haptics'
 export { ACTION_BUTTON, ACTION_BUTTON_DANGER, ROW_TILE, SECTION_LABEL } from './styles'
 export {
   EASE_OUT, DURATION, INDICATOR_SPRING, transition,
   panelVariants, rowVariants, staggerParent, staggerChild,
+  GLIDE, GLIDE_EASE, PRESS_SCALE, glide,
 } from './motion'
+export type { Bezier } from './motion'
