@@ -14,13 +14,13 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-m
 import { Check, Plus, Trash2, X } from 'lucide-react'
 import {
   Card, GLIDE, MorphSurface, PRESS_SCALE, RollingNumber, SlidingIndicator, SwipeCard,
-  glide, haptics, type Bezier,
+  GLIDE_EASE, glide, type Bezier,
 } from '@/components/ui'
 import { formatCurrency } from '@/utils'
 
 const CURVES: Record<string, { label: string; ease: Bezier }> = {
-  glide: { label: 'Approved glide', ease: [0.22, 1, 0.36, 1] },
-  softer: { label: 'Softer', ease: [0.33, 1, 0.68, 1] },
+  chosen: { label: 'Chosen (Softer)', ease: GLIDE_EASE },
+  first: { label: 'First draft', ease: [0.22, 1, 0.36, 1] },
   quicker: { label: 'Quicker settle', ease: [0.16, 1, 0.3, 1] },
 }
 
@@ -44,7 +44,7 @@ const sectionLabel = 'text-xs font-bold uppercase tracking-wide text-text-second
 export default function MotionLabPage() {
   const reduce = useReducedMotion()
   const [speed, setSpeed] = useState(1)
-  const [curveId, setCurveId] = useState('glide')
+  const [curveId, setCurveId] = useState('chosen')
   const ease = CURVES[curveId].ease
   const t = (seconds: number) => glide(reduce, seconds * speed, ease)
 
@@ -56,8 +56,7 @@ export default function MotionLabPage() {
   const [nextRow, setNextRow] = useState(1)
   const [newestRow, setNewestRow] = useState<number | null>(null)
 
-  function resolvePending(id: number, direction: 1 | -1) {
-    void (direction === 1 ? haptics.success() : haptics.warning())
+  function resolvePending(id: number) {
     setPending((list) => list.filter((item) => item.id !== id))
   }
 
@@ -66,11 +65,9 @@ export default function MotionLabPage() {
     setRows((list) => [{ id, label: NEW_ROWS[id % NEW_ROWS.length], amount: 50 + id * 37 }, ...list])
     setNextRow(id + 1)
     setNewestRow(id)
-    void haptics.success()
   }
 
   function deleteRow(id: number) {
-    void haptics.warning()
     setRows((list) => list.filter((row) => row.id !== id))
   }
 
@@ -86,7 +83,7 @@ export default function MotionLabPage() {
       <Card className="space-y-4">
         <p className={sectionLabel}>Your settings</p>
         <label className="block space-y-2">
-          <span className="text-sm text-text-primary">Speed: {speed.toFixed(1)}× {speed < 1 ? '(faster)' : speed > 1 ? '(slower)' : ''}</span>
+          <span className="text-sm text-text-primary">Speed: {speed.toFixed(1)}× {speed === 1 ? '(chosen)' : speed < 1 ? '(faster than chosen)' : '(slower than chosen)'}</span>
           <input
             type="range" min={0.5} max={1.6} step={0.1} value={speed}
             onChange={(event) => setSpeed(Number(event.target.value))}
@@ -124,7 +121,7 @@ export default function MotionLabPage() {
         <div>
           <motion.button
             type="button" whileTap={{ scale: PRESS_SCALE }} transition={t(GLIDE.fast)}
-            onClick={() => { setBalanceIndex((i) => (i + 1) % BALANCES.length); void haptics.tap() }}
+            onClick={() => { setBalanceIndex((i) => (i + 1) % BALANCES.length)}}
             className="rounded-xl border border-border-subtle px-4 py-2 text-sm font-semibold text-text-primary"
           >
             Change balance
@@ -140,7 +137,7 @@ export default function MotionLabPage() {
             {PERIODS.map((p) => (
               <button
                 key={p} type="button" role="tab" aria-selected={period === p}
-                onClick={() => { setPeriod(p); void haptics.tap() }}
+                onClick={() => { setPeriod(p)}}
                 className={`relative rounded-full px-4 py-1.5 text-sm font-semibold ${period === p ? 'text-white' : 'text-text-secondary'}`}
               >
                 {period === p && (
@@ -181,7 +178,7 @@ export default function MotionLabPage() {
               >
                 <button
                   type="button"
-                  onClick={() => { setFormOpen(true); void haptics.tap() }}
+                  onClick={() => { setFormOpen(true)}}
                   className="inline-flex items-center gap-2 px-5 py-2.5"
                 >
                   <motion.span layout="position" className="inline-flex items-center gap-2">
@@ -204,7 +201,7 @@ export default function MotionLabPage() {
                   <p className="text-sm text-text-secondary">Amount: ₹450 · Category: Food</p>
                   <button
                     type="button"
-                    onClick={() => { setFormOpen(false); void haptics.success() }}
+                    onClick={() => { setFormOpen(false)}}
                     className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Save
@@ -219,7 +216,7 @@ export default function MotionLabPage() {
       {/* 4. Pending cards */}
       <Card className="space-y-3">
         <p className={sectionLabel}>4 · Pending: swipe or tap</p>
-        <p className="text-sm text-text-secondary">Swipe right to approve, left to reject. On the phone app you also feel a tick.</p>
+        <p className="text-sm text-text-secondary">Swipe right to approve, left to reject.</p>
         <div className="overflow-hidden">
           <AnimatePresence initial={false}>
             {pending.map((item) => (
@@ -234,8 +231,8 @@ export default function MotionLabPage() {
                 transition={t(GLIDE.slow)}
               >
                 <SwipeCard
-                  onSwipeRight={() => resolvePending(item.id, 1)}
-                  onSwipeLeft={() => resolvePending(item.id, -1)}
+                  onSwipeRight={() => resolvePending(item.id)}
+                  onSwipeLeft={() => resolvePending(item.id)}
                   duration={GLIDE.slow * speed} ease={ease}
                 >
                   {({ swipeRight, swipeLeft, leaving }) => (
@@ -310,21 +307,6 @@ export default function MotionLabPage() {
         </ul>
       </Card>
 
-      {/* 6. Haptics */}
-      <Card className="space-y-3">
-        <p className={sectionLabel}>6 · Phone vibration (app only)</p>
-        <div className="flex flex-wrap gap-2">
-          {([['Tap', haptics.tap], ['Success', haptics.success], ['Warning', haptics.warning]] as const).map(([label, fire]) => (
-            <motion.button
-              key={label} type="button" whileTap={{ scale: PRESS_SCALE }} transition={t(GLIDE.fast)}
-              onClick={() => void fire()}
-              className="rounded-xl border border-border-subtle px-4 py-2 text-sm font-semibold text-text-primary"
-            >
-              {label}
-            </motion.button>
-          ))}
-        </div>
-      </Card>
     </div>
   )
 }

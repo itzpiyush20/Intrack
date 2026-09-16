@@ -97,7 +97,7 @@ sm:px-6` so it reads as scrollable.
 > rewritten when that work lands; until then it describes the code as shipped,
 > not a rule to follow.
 > The new tokens and blocks already exist (`GLIDE`, `glide()`, `RollingNumber`,
-> `SlidingIndicator`, `MorphSurface`, `SwipeCard`, `haptics`); screens adopt them
+> `SlidingIndicator`, `MorphSurface`, `SwipeCard`); screens adopt them
 > round by round.
 
 Motion says *something changed* and nothing else. The three shapes in use:

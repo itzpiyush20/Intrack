@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.4.0",
-    "@capacitor/haptics": "^8.0.2",
     "@sentry/node": "^10.74.0",
     "@sentry/react": "^10.74.0",
     "@supabase/supabase-js": "^2.106.2",

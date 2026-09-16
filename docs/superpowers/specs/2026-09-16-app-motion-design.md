@@ -1,6 +1,6 @@
 # App motion — design
 
-Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; rollout rounds 1–4 not started (waiting on the owner's tuning).
+Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; speed and curve tuned 2026-09-17; rollout rounds 1–4 not started.
 
 ## In plain words
 
@@ -26,7 +26,8 @@ time.
 - **Scope:** Home, Insights, Pending (incl. scanning), Expenses, the Add
   Transaction form, navigation and page changes. Budgets, Subscriptions,
   Settings and Profile get only the shared basics.
-- **Haptics: yes**, in the native app only.
+- **Haptics: dropped** (2026-09-17). Intrack is a website only; web vibration
+  would reach Android Chrome but never iPhones. Revisit if a phone app is built.
 - **Test page first**, then a phased rollout.
 
 ## Hard limits (from the brief, not from the old rules)
@@ -36,7 +37,7 @@ time.
    shadows/box sizes in the native build. No animation blocks input: a tap
    during an animation acts immediately. Long lists (> ~12 rows) animate only
    the rows on screen on first paint.
-2. **Durations:** 200–350 ms for interface feedback, up to ~800 ms for figures
+2. **Durations:** 200–350 ms for interface feedback, up to ~900 ms for figures
    and charts arriving. Nothing the user waits on exceeds 350 ms.
 3. **Reduced motion honoured.** Under `prefers-reduced-motion`, movement is
    removed; short opacity fades may stay. Accessibility, not taste.
@@ -51,9 +52,10 @@ time.
 
 `src/components/ui/motion.ts` is rewritten around one curve family:
 
-- Standard ease: `cubic-bezier(0.22, 1, 0.36, 1)` — the curve the owner approved
-  in the demo. No overshoot anywhere.
-- Durations: `fast` 0.2 s, `base` 0.3 s, `slow` 0.5 s, `figure` 0.8 s.
+- Standard ease: `cubic-bezier(0.33, 1, 0.68, 1)` — "Softer", picked by the owner
+  in `/motion-lab` on 2026-09-17. No overshoot anywhere.
+- Durations (owner picked 1.1x the first draft): `fast` 0.22 s, `base` 0.33 s,
+  `slow` 0.55 s, `figure` 0.88 s.
 - Presets: press (scale to 0.97 and back), page rise, row enter, row exit,
   collapse-on-delete, new-row tint, panel swap.
 - Every preset takes the `useReducedMotion()` result, as today.
@@ -66,7 +68,6 @@ New building blocks in `src/components/ui/`:
 | `MorphSurface` | A button grows smoothly into the panel or form it opens, and shrinks back on close (framer `layoutId`). |
 | `SlidingIndicator` | The highlight on the nav or a tab strip glides to the tapped item. |
 | `SwipeCard` | Drag a card sideways; past a threshold it glides away, otherwise it glides back. Buttons remain for keyboard and screen-reader users. |
-| `haptics.ts` | `tap()`, `success()`, `warning()`. Uses `@capacitor/haptics` on native; no-op on web. |
 
 `AnimatedBar` stays but uses the new curve, and animates from its previous
 value instead of from zero when the value changes.
@@ -92,8 +93,6 @@ value instead of from zero when the value changes.
 - Buttons and tappable cards: gentle press.
 - Lists everywhere: added rows glide in; deleted rows collapse and the rows
   below slide up.
-- Haptics: `tap()` on primary actions, `success()` on save, `warning()` on
-  delete confirmation.
 
 ### Round 2 — Home and Insights
 
@@ -112,7 +111,7 @@ value instead of from zero when the value changes.
   single form everywhere, per the one-form decision.
 - A transaction just added gets a brief evergreen tint that fades, so the user
   can see which row is new.
-- Delete: row collapses, neighbours slide up, `warning()` haptic.
+- Delete: row collapses, neighbours slide up.
 - Filter chips and tabs glide their highlight.
 
 ### Round 4 — Pending and scanning
@@ -123,7 +122,7 @@ rejection logging or approval rules. Owner confirms twice before this round
 starts (standing rule for anything near the scanner).
 
 - Approve: card glides out to the right, the Expenses count in the nav ticks up
-  with `RollingNumber`, `success()` haptic.
+  with `RollingNumber`.
 - Reject: card glides out to the left.
 - Mobile: `SwipeCard` — swipe right approves, left rejects. Buttons stay.
   Before wiring it in: `handleApproveWithUndo` (and reject) must ignore a
@@ -150,11 +149,9 @@ starts (standing rule for anything near the scanner).
 - `npx tsc -b`, `npm test -- --run`, `npm run build`, lint on touched files
   against the baseline.
 - Unit tests: `RollingNumber` lands on the exact formatted value and renders
-  final value under reduced motion; `haptics.ts` no-ops on web; `SwipeCard`
+  final value under reduced motion; `SwipeCard`
   threshold decides approve/reject/return.
 - Real browser check at phone width and desktop, including reduced motion
   emulated.
 - Frame-rate spot check on a throttled CPU (Chrome 4× slowdown) for Home,
   Insights and a long Expenses list — no dropped-frame jank during animations.
-- Native: `@capacitor/haptics` added, app rebuilt, haptics felt on a device
-  (owner) — cannot be verified from this machine.

@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { GLIDE, GLIDE_EASE, PRESS_SCALE, glide } from './motion'
 
 describe('glide tokens', () => {
-  it('uses the owner-approved curve', () => {
-    expect([...GLIDE_EASE]).toEqual([0.22, 1, 0.36, 1])
+  it('uses the owner-chosen curve (Softer, picked in the motion lab 2026-09-17)', () => {
+    expect([...GLIDE_EASE]).toEqual([0.33, 1, 0.68, 1])
+  })
+
+  it('uses the owner-chosen speed (1.1x the first draft)', () => {
+    expect(GLIDE).toEqual({ fast: 0.22, base: 0.33, slow: 0.55, figure: 0.88 })
   })
 
   it('never overshoots: both bezier y control points are at most 1', () => {
@@ -13,10 +17,10 @@ describe('glide tokens', () => {
     expect(GLIDE_EASE[3]).toBeLessThanOrEqual(1)
   })
 
-  it('keeps interface feedback within 350ms and figures within 800ms', () => {
+  it('keeps interface feedback within 350ms and figures within 900ms', () => {
     expect(GLIDE.fast).toBeLessThanOrEqual(0.35)
     expect(GLIDE.base).toBeLessThanOrEqual(0.35)
-    expect(GLIDE.figure).toBeLessThanOrEqual(0.8)
+    expect(GLIDE.figure).toBeLessThanOrEqual(0.9)
   })
 
   it('collapses to nothing under reduced motion', () => {

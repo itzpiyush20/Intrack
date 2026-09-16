@@ -22,18 +22,19 @@ import type { Transition, Variants } from 'framer-motion'
 export type Bezier = readonly [number, number, number, number]
 
 /**
- * The owner-approved curve: quick start, long soft settle, no overshoot.
- * Chosen from clickable demos on 2026-09-16 after a springy version was
+ * The owner-chosen curve: gentle start, long soft settle, no overshoot.
+ * Picked on 2026-09-17 in /motion-lab ("Softer"), after a springy version was
  * rejected as too bouncy. Keep both y values at or below 1.
  */
-export const GLIDE_EASE: Bezier = [0.22, 1, 0.36, 1]
+export const GLIDE_EASE: Bezier = [0.33, 1, 0.68, 1]
 
 /**
- * Seconds. `fast` and `base` are feedback the user may be waiting on;
- * `slow` is a surface moving (a card leaving, a form opening); `figure` is a
- * number or chart arriving, which needs long enough to be seen.
+ * Seconds, at the speed the owner picked in /motion-lab (1.1x the first
+ * draft). `fast` and `base` are feedback the user may be waiting on; `slow`
+ * is a surface moving (a card leaving, a form opening); `figure` is a number
+ * or chart arriving, which needs long enough to be seen.
  */
-export const GLIDE = { fast: 0.2, base: 0.3, slow: 0.5, figure: 0.8 } as const
+export const GLIDE = { fast: 0.22, base: 0.33, slow: 0.55, figure: 0.88 } as const
 
 /** Scale a pressed button or tappable card sinks to. */
 export const PRESS_SCALE = 0.97
