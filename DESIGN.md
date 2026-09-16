@@ -91,6 +91,12 @@ sm:px-6` so it reads as scrollable.
 
 ## Motion
 
+> **Superseded 2026-09-16.** The owner scrapped the rules below. The new
+> direction — smooth glide, no bounce, subtle, use-driven, never slower — is in
+> `docs/superpowers/specs/2026-09-16-app-motion-design.md`. This section is
+> rewritten when that work lands; until then it describes the code as shipped,
+> not a rule to follow.
+
 Motion says *something changed* and nothing else. The three shapes in use:
 a single indicator that travels between tabs (`layoutId`, spring 420/36), a panel
 handing over to the next (180ms, `cubic-bezier(0.16, 1, 0.3, 1)`, 6px rise), and

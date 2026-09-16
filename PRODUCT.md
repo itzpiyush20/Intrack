@@ -36,7 +36,8 @@ restraint and legibility, not decoration.
   gradient text, neon glow rings, drifting aurora blobs). Rejected — read as
   generic AI output and undermined trust for a finance app.
 - Neon/bright-mint fintech green (#3ecf8e) as a saturated everywhere-accent.
-- Decorative motion, glow shadows, gradient text, glassmorphism — all banned.
+- Glow shadows, gradient text, glassmorphism — all banned. (Motion is no longer
+  banned as decoration: see `docs/superpowers/specs/2026-09-16-app-motion-design.md`.)
 - Crypto/"to the moon" maximalism. Dark-by-default-because-it-looks-cool.
 
 ## Design Principles
@@ -55,6 +56,6 @@ restraint and legibility, not decoration.
 ## Accessibility & Inclusion
 
 WCAG 2.1 AA in the shipped light theme. Body text ≥4.5:1, large/bold ≥3:1, placeholders
-≥4.5:1. Visible focus rings. `prefers-reduced-motion` honoured (motion is minimal
-by design). `prefers-contrast: more` strengthens borders. Status never encoded by
+≥4.5:1. Visible focus rings. `prefers-reduced-motion` honoured (motion is subtle,
+no bounce; see the 2026-09-16 motion design). `prefers-contrast: more` strengthens borders. Status never encoded by
 colour alone (icons/labels accompany positive/negative/warning).

@@ -62,6 +62,9 @@ nothing to the layout. This has bitten twice already.
 
 ## Motion rules
 
+> **Superseded 2026-09-16** by `docs/superpowers/specs/2026-09-16-app-motion-design.md`.
+> The bans below no longer apply.
+
 `framer-motion` is a dependency. Motion reports that **something changed** —
 nothing decorates. Use the shared variants so every screen moves identically:
 
