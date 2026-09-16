@@ -8,6 +8,10 @@
 // Put inner content in `motion.div layout="position"` so text is not
 // stretched while the surface resizes.
 //
+// It renders a plain div. For an interactive surface (the collapsed Add
+// button) put a real `<button type="button">` inside it rather than giving
+// the div `role="button"`/`tabIndex` — a div gets no Enter/Space activation.
+//
 // `morphId`-derived props (`layoutId`, `transition`) are spread after `...rest`
 // so a caller cannot override them by passing its own `layoutId`/`transition` —
 // the type already excludes those keys from `rest`, this is belt and suspenders

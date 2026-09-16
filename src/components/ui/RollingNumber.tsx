@@ -7,8 +7,9 @@
 //
 // Screen readers get the exact formatted figure once, from a visually hidden
 // span; the rolling slots are aria-hidden. Under reduced motion it is plain
-// text. Slots are keyed from the right (see rollingDigits.ts) so a figure
-// gaining a digit does not remount the ones that stayed.
+// text. Integer slots are keyed counting leftward from the decimal point, and
+// fractional slots rightward from it (see rollingDigits.ts), so a figure
+// gaining a digit or a decimal part does not remount the ones that stayed.
 // ============================================
 
 import { motion, useReducedMotion } from 'framer-motion'

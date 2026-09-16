@@ -1292,8 +1292,9 @@ Expected: tsc clean, all tests pass, build succeeds, lint on new files zero prob
 
 - [ ] **Step 2: Prove new tests fail against wrong behaviour**
 
-- `swipe.ts`: remove `offsetX > 0 &&` from the right-flick branch → "does not approve a flick that moves against its own velocity" goes red → restore.
-- `rollingDigits.ts`: change key to `` `p${index}` `` → "keys from the right" goes red → restore.
+- `swipe.ts`: in the right-flick branch replace `offsetX >= SWIPE_FLICK_MIN_DISTANCE` with `true` → "ignores a fast flick that barely moved" goes red → restore. Delete either half of the reversed-flick early `return 'return'` → "returns when a drag past the threshold is flicked back the other way on release" goes red → restore. (That early return is also what now keeps "does not approve a flick that moves against its own velocity" green.)
+- `SwipeCard.tsx`: make `act` ignore `guard.beginLeaving()`'s result → "fires the action once when its button is pressed twice" goes red → restore.
+- `rollingDigits.ts`: the integer part is keyed counting leftward from the decimal point. Change it to count from the end of the string (`` `i${chars.length - 1 - index}` ``) → "keeps every integer-part key identical when a decimal part is added" goes red → restore.
 - `haptics.ts`: remove the `try/catch` → "never lets a haptics failure break" goes red → restore.
 
 - [ ] **Step 3: Existing screens unchanged**

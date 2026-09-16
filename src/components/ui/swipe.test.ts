@@ -37,6 +37,19 @@ describe('swipeOutcome', () => {
     expect(swipeOutcome(-40, SWIPE_VELOCITY + 1, WIDTH)).toBe('return')
   })
 
+  it('returns when a drag past the threshold is flicked back the other way on release', () => {
+    // Pulled well past the approve threshold, then thrown back towards
+    // centre: the user changed their mind mid-gesture. Distance alone would
+    // still approve it.
+    expect(swipeOutcome(past, -(SWIPE_VELOCITY + 1), WIDTH)).toBe('return')
+    expect(swipeOutcome(-past, SWIPE_VELOCITY + 1, WIDTH)).toBe('return')
+  })
+
+  it('still goes when past the threshold with a slow drift back', () => {
+    expect(swipeOutcome(past, -SWIPE_VELOCITY, WIDTH)).toBe('right')
+    expect(swipeOutcome(-past, SWIPE_VELOCITY, WIDTH)).toBe('left')
+  })
+
   it('ignores a fast flick that barely moved', () => {
     const tooShort = SWIPE_FLICK_MIN_DISTANCE - 1
     expect(swipeOutcome(tooShort, SWIPE_VELOCITY + 1, WIDTH)).toBe('return')
@@ -60,5 +73,17 @@ describe('createSwipeGuard', () => {
     guard.reset()
     expect(guard.isLeaving()).toBe(false)
     expect(guard.beginLeaving()).toBe(true)
+  })
+
+  it('moves the attempt on each new action and each reset, not on a blocked repeat', () => {
+    const guard = createSwipeGuard()
+    const idle = guard.attempt()
+    guard.beginLeaving()
+    const first = guard.attempt()
+    expect(first).not.toBe(idle)
+    guard.beginLeaving()
+    expect(guard.attempt()).toBe(first)
+    guard.reset()
+    expect(guard.attempt()).not.toBe(first)
   })
 })

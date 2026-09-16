@@ -52,13 +52,11 @@ export default function MotionLabPage() {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>('Month')
   const [formOpen, setFormOpen] = useState(false)
   const [pending, setPending] = useState(PENDING)
-  const [exitDirection, setExitDirection] = useState<1 | -1>(1)
   const [rows, setRows] = useState([{ id: 0, label: 'Rent', amount: 18000 }])
   const [nextRow, setNextRow] = useState(1)
   const [newestRow, setNewestRow] = useState<number | null>(null)
 
   function resolvePending(id: number, direction: 1 | -1) {
-    setExitDirection(direction)
     void (direction === 1 ? haptics.success() : haptics.warning())
     setPending((list) => list.filter((item) => item.id !== id))
   }
@@ -129,7 +127,7 @@ export default function MotionLabPage() {
             onClick={() => { setBalanceIndex((i) => (i + 1) % BALANCES.length); void haptics.tap() }}
             className="rounded-xl border border-border-subtle px-4 py-2 text-sm font-semibold text-text-primary"
           >
-            Change period
+            Change balance
           </motion.button>
         </div>
       </Card>
@@ -178,14 +176,18 @@ export default function MotionLabPage() {
             {!formOpen ? (
               <MorphSurface
                 morphId="lab-add" duration={GLIDE.slow * speed} ease={ease}
-                onClick={() => { setFormOpen(true); void haptics.tap() }}
-                className="inline-flex cursor-pointer items-center gap-2 bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white"
+                className="inline-flex bg-brand-500 text-sm font-semibold text-white"
                 style={{ borderRadius: 999 }}
-                role="button" tabIndex={0}
               >
-                <motion.span layout="position" className="inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" aria-hidden="true" /> Add expense
-                </motion.span>
+                <button
+                  type="button"
+                  onClick={() => { setFormOpen(true); void haptics.tap() }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5"
+                >
+                  <motion.span layout="position" className="inline-flex items-center gap-2">
+                    <Plus className="h-4 w-4" aria-hidden="true" /> Add expense
+                  </motion.span>
+                </button>
               </MorphSurface>
             ) : (
               <MorphSurface
@@ -218,15 +220,17 @@ export default function MotionLabPage() {
       <Card className="space-y-3">
         <p className={sectionLabel}>4 · Pending: swipe or tap</p>
         <p className="text-sm text-text-secondary">Swipe right to approve, left to reject. On the phone app you also feel a tick.</p>
-        <div className="space-y-2 overflow-hidden">
-          <AnimatePresence initial={false} custom={exitDirection}>
+        <div className="overflow-hidden">
+          <AnimatePresence initial={false}>
             {pending.map((item) => (
+              // SwipeCard owns the sideways exit (swipe and buttons alike);
+              // this wrapper only closes the gap. The spacing is padding
+              // inside it, not space-y margin, so the collapse takes the gap
+              // with it instead of snapping at the end.
               <motion.div
                 key={item.id}
-                layout
-                custom={exitDirection}
-                variants={{ exit: (direction: number) => ({ x: `${direction * 110}%`, opacity: 0 }) }}
-                exit="exit"
+                className="overflow-hidden pb-2"
+                exit={{ opacity: 0, height: 0, paddingBottom: 0 }}
                 transition={t(GLIDE.slow)}
               >
                 <SwipeCard
@@ -234,21 +238,23 @@ export default function MotionLabPage() {
                   onSwipeLeft={() => resolvePending(item.id, -1)}
                   duration={GLIDE.slow * speed} ease={ease}
                 >
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface-1 p-3">
-                    <div>
-                      <p className="font-semibold text-text-primary">{item.merchant}</p>
-                      <p className="text-xs text-text-secondary">{item.source}</p>
+                  {({ swipeRight, swipeLeft, leaving }) => (
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface-1 p-3">
+                      <div>
+                        <p className="font-semibold text-text-primary">{item.merchant}</p>
+                        <p className="text-xs text-text-secondary">{item.source}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold tabular-nums text-text-primary">{formatCurrency(item.amount)}</span>
+                        <button type="button" aria-label={`Approve ${item.merchant}`} onClick={swipeRight} disabled={leaving} className="flex h-9 w-9 items-center justify-center rounded-lg text-brand-700 hover:bg-surface-2">
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button type="button" aria-label={`Reject ${item.merchant}`} onClick={swipeLeft} disabled={leaving} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-2">
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold tabular-nums text-text-primary">{formatCurrency(item.amount)}</span>
-                      <button type="button" aria-label={`Approve ${item.merchant}`} onClick={() => resolvePending(item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg text-brand-700 hover:bg-surface-2">
-                        <Check className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button type="button" aria-label={`Reject ${item.merchant}`} onClick={() => resolvePending(item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-2">
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </SwipeCard>
               </motion.div>
             ))}
