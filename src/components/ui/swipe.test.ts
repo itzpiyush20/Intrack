@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { SWIPE_DISTANCE_RATIO, SWIPE_VELOCITY, swipeOutcome } from './swipe'
+import {
+  SWIPE_DISTANCE_RATIO,
+  SWIPE_FLICK_MIN_DISTANCE,
+  SWIPE_VELOCITY,
+  createSwipeGuard,
+  swipeOutcome,
+} from './swipe'
 
 const WIDTH = 400
 const past = WIDTH * SWIPE_DISTANCE_RATIO + 1
@@ -29,5 +35,30 @@ describe('swipeOutcome', () => {
     // centre. Acting on velocity alone would approve something the user was
     // pulling towards reject.
     expect(swipeOutcome(-40, SWIPE_VELOCITY + 1, WIDTH)).toBe('return')
+  })
+
+  it('ignores a fast flick that barely moved', () => {
+    const tooShort = SWIPE_FLICK_MIN_DISTANCE - 1
+    expect(swipeOutcome(tooShort, SWIPE_VELOCITY + 1, WIDTH)).toBe('return')
+    expect(swipeOutcome(-tooShort, -(SWIPE_VELOCITY + 1), WIDTH)).toBe('return')
+  })
+
+  it('accepts a fast flick right at the minimum distance', () => {
+    expect(swipeOutcome(SWIPE_FLICK_MIN_DISTANCE, SWIPE_VELOCITY + 1, WIDTH)).toBe('right')
+    expect(swipeOutcome(-SWIPE_FLICK_MIN_DISTANCE, -(SWIPE_VELOCITY + 1), WIDTH)).toBe('left')
+  })
+})
+
+describe('createSwipeGuard', () => {
+  it('lets the first beginLeaving through and blocks repeats until reset', () => {
+    const guard = createSwipeGuard()
+    expect(guard.isLeaving()).toBe(false)
+    expect(guard.beginLeaving()).toBe(true)
+    expect(guard.isLeaving()).toBe(true)
+    expect(guard.beginLeaving()).toBe(false)
+    expect(guard.beginLeaving()).toBe(false)
+    guard.reset()
+    expect(guard.isLeaving()).toBe(false)
+    expect(guard.beginLeaving()).toBe(true)
   })
 })

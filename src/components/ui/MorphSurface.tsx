@@ -7,6 +7,13 @@
 //
 // Put inner content in `motion.div layout="position"` so text is not
 // stretched while the surface resizes.
+//
+// `morphId`-derived props (`layoutId`, `transition`) are spread after `...rest`
+// so a caller cannot override them by passing its own `layoutId`/`transition` —
+// the type already excludes those keys from `rest`, this is belt and suspenders
+// against anyone widening the props type later. Corner radius only glides as
+// part of the morph when it is set via `style` (an inline `borderRadius`); a
+// Tailwind rounded-* class is not tracked by layout animation and will snap.
 // ============================================
 
 import { motion, useReducedMotion, type HTMLMotionProps } from 'framer-motion'
@@ -25,5 +32,5 @@ export default function MorphSurface({
   ...rest
 }: MorphSurfaceProps) {
   const reduce = useReducedMotion()
-  return <motion.div layoutId={morphId} transition={glide(reduce, duration, ease)} {...rest} />
+  return <motion.div {...rest} layoutId={morphId} transition={glide(reduce, duration, ease)} />
 }
