@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Modal, Button, EmptyState, TransactionIdentity } from '@/components/ui'
-import ExpenseForm from '@/components/expenses/ExpenseForm'
+import TransactionForm from '@/components/transactions/TransactionForm'
 import { getTransactionById } from '@/services'
 import { formatCurrency, formatDate, resolveTransactionIdentity } from '@/utils'
 import { useDrillDown, filterTransactionsForDrillDown } from '@/context/DrillDownContext'
@@ -101,7 +101,7 @@ export function DrillDownModal({ transactions }: DrillDownModalProps) {
               ) : editLoading || !editingRow ? (
                 <div key={txn.id} className="p-4 text-sm text-sb-ink-muted">Loading…</div>
               ) : (
-                <ExpenseForm
+                <TransactionForm
                   key={txn.id}
                   editingTransaction={editingRow}
                   onSaved={handleSaved}

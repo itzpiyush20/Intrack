@@ -24,7 +24,7 @@ import {
   SECTION_LABEL, staggerParent, staggerChild,
 } from '@/components/ui'
 import { motion, useReducedMotion } from 'framer-motion'
-import ExpenseForm from '@/components/expenses/ExpenseForm'
+import TransactionForm from '@/components/transactions/TransactionForm'
 import ExpenseList from '@/components/expenses/ExpenseList'
 import SplitBillModal from '@/components/expenses/SplitBillModal'
 import { fetchAllTransactions } from '@/services/transactions'
@@ -381,7 +381,8 @@ export default function ExpensesPage() {
           title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
           sheet
         >
-          <ExpenseForm
+          <TransactionForm
+            key={editingTransaction?.id ?? 'new'}
             editingTransaction={editingTransaction}
             onSaved={handleSaved}
             onCancel={handleCancel}

@@ -5,7 +5,7 @@
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
@@ -62,6 +62,9 @@ import StatementImportModal from '@/components/importer/StatementImportModal'
 import MerchantPicker from '@/components/merchants/MerchantPicker'
 import { addMerchantAlias, listMerchants } from '@/services/merchants'
 import { preselectMerchants, withLearnedAlias, type MerchantOption } from '@/utils/merchantKey'
+import { getCards } from '@/services/cards'
+import type { Card as CardRow } from '@/types'
+import { creditCardBillCategoryNames, makeIsCreditCardBill } from '@/utils/creditCardBill'
 
 /**
  * How a confidence score is shown: an icon, a word and a colour.
@@ -94,12 +97,16 @@ type AutoReviewRow = Pick<
   'id' | 'amount' | 'type' | 'category' | 'currency' | 'date' | 'merchant' | 'description' | 'possible_duplicate_of'
 >
 
-/** What a Pending card lets the user correct; exactly what approval writes. */
-type ReviewFields = { category: string; description: string; merchant: string; merchantId: string | null }
+/**
+ * What a Pending card lets the user correct; exactly what approval writes.
+ * `cardId` is the paying account: '' means cash in hand & bank balance, the
+ * same empty value the Add Transaction popup uses.
+ */
+type ReviewFields = { category: string; description: string; merchant: string; merchantId: string | null; cardId: string }
 
 /** The card's values before any edit, straight from the scanned row. */
 function defaultReviewFields(txn: TransactionRow): ReviewFields {
-  return { category: txn.category, description: txn.description || '', merchant: txn.merchant || '', merchantId: txn.merchant_id ?? null }
+  return { category: txn.category, description: txn.description || '', merchant: txn.merchant || '', merchantId: txn.merchant_id ?? null, cardId: txn.card_id ?? '' }
 }
 
 
@@ -273,6 +280,30 @@ export default function PendingPage() {
     // Other cards carrying the same text get the saved name and link too.
     setEditingFields((prev) => preselectMerchants(prev, next))
   }
+
+  // The user's active cards, for each Pending card's "Account / Card" choice —
+  // the same list and filter as TransactionForm.
+  const [userCards, setUserCards] = useState<CardRow[]>([])
+  useEffect(() => {
+    let alive = true
+    getCards()
+      .then(({ data }) => {
+        if (alive && data) setUserCards(data.filter((c) => !c.is_archived))
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  const isCreditCardBill = useMemo(
+    () => makeIsCreditCardBill(creditCardBillCategoryNames(categories)),
+    [categories]
+  )
+  // Same rule as the Account / Card box in TransactionForm: offered when the
+  // user has cards, except on a credit card bill (it settles a card, it is not
+  // card spend) and a loan (its card belongs to the loan's source).
+  const offersAccountChoice = (category: string) =>
+    userCards.length > 0 && !isCreditCardBill(category) && category.toLowerCase() !== 'loan'
 
   const { showToast } = useToast()
 
@@ -466,6 +497,7 @@ export default function PendingPage() {
           description: parseShortDescription(t.description || '', (t as any).notes || '', t.merchant || ''),
           merchant: t.merchant || '',
           merchantId: t.merchant_id ?? null,
+          cardId: t.card_id ?? '',
         }
       })
       setEditingFields(preselectMerchants(fieldsMap, savedMerchantsRef.current))
@@ -526,7 +558,7 @@ export default function PendingPage() {
     checkScanInactivity()
   }, [checkScanInactivity])
 
-  const handleFieldChange = (id: string, key: 'category' | 'description', value: string) => {
+  const handleFieldChange = (id: string, key: 'category' | 'description' | 'cardId', value: string) => {
     setEditingFields((prev) => ({
       ...prev,
       [id]: { ...prev[id], [key]: value },
@@ -573,6 +605,10 @@ export default function PendingPage() {
         // A blank merchant is a deliberate clear by the user, so null is intended.
         merchant: fields.merchant.trim() || null,
         merchant_id: fields.merchantId,
+        // Paying account, written only where the card offered the choice.
+        // Otherwise the column is left as it was, so approving never unlinks a
+        // card a statement import already set.
+        ...(offersAccountChoice(fields.category) ? { card_id: fields.cardId || null } : {}),
         approval_status: 'approved',
         // Approving here IS the human review, so stamp the confirmation.
         // Migration 007's contract says anything approved via Pending Alerts
@@ -978,6 +1014,7 @@ export default function PendingPage() {
           ),
           merchant: linked ? linked.merchant : mergedRow.merchant || '',
           merchantId: linked ? linked.merchantId : mergedRow.merchant_id ?? null,
+          cardId: prev[survivor.id]?.cardId ?? mergedRow.card_id ?? '',
         }
         return preselectMerchants(next, savedMerchantsRef.current)
       })
@@ -1746,6 +1783,7 @@ export default function PendingPage() {
                 (txn as any).payment_mode === 'credit_card' ||
                 (txn as any).payment_mode === 'debit_card' ||
                 isCardPayment((txn as any).notes)
+              const showAccountPicker = offersAccountChoice(localFields.category)
 
               return (
                 <motion.li
@@ -1886,7 +1924,7 @@ export default function PendingPage() {
 
                   {/* Corrections. Whatever is chosen here is what gets saved
                       when the row is approved — never before. */}
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className={cn('grid gap-3 sm:grid-cols-2', showAccountPicker ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
                     <div>
                       <label
                         htmlFor={`merchant-${txn.id}`}
@@ -1939,6 +1977,29 @@ export default function PendingPage() {
                         placeholder="e.g. Swiggy lunch"
                       />
                     </div>
+
+                    {showAccountPicker && (
+                      <div>
+                        <label
+                          htmlFor={`card-select-${txn.id}`}
+                          className="block text-xs font-medium text-sb-ink-secondary mb-1.5"
+                        >
+                          Account / Card
+                        </label>
+                        <Select
+                          id={`card-select-${txn.id}`}
+                          value={localFields.cardId}
+                          onChange={(e) => handleFieldChange(txn.id, 'cardId', e.target.value)}
+                        >
+                          <option value="">Cash in hand &amp; Bank balance</option>
+                          {userCards.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              Credit Card — {c.name} (•••• {c.last4})
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   {/* The two decisions */}

@@ -36,6 +36,7 @@ vi.mock('@/services/cards', () => ({
 
 vi.mock('@/services/transactions', () => ({
   createTransaction: vi.fn().mockResolvedValue({ data: {}, error: null }),
+  updateTransaction: vi.fn(),
 }))
 
 vi.mock('@/services/merchants', () => ({

@@ -167,7 +167,7 @@ export async function createTransaction(transaction: TransactionInsert) {
   return { data: data as TransactionRow | null, error }
 }
 
-/** Fetch a single transaction's full row — needed before handing it to ExpenseForm, which requires the complete TransactionRow shape (not the narrow columns some list views select). */
+/** Fetch a single transaction's full row — needed before handing it to TransactionForm, which requires the complete TransactionRow shape (not the narrow columns some list views select). */
 export async function getTransactionById(id: string) {
   const { data, error } = await supabase
     .from('transactions')

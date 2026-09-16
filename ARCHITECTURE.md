@@ -285,14 +285,28 @@ system in `src/index.css` is the source of truth for colour and type;
 `DESIGN.md` is its human summary.
 
 **Merchant field:** `src/components/merchants/MerchantPicker.tsx` is the one
-merchant input, used by the Dashboard add popup, `ExpenseForm` (Expenses and
-the Insights drill-down), Pending review cards and the Subscriptions payment
-popup. The user picks a saved merchant, types one's exact name or saved
+merchant input, used by `TransactionForm`, Pending review cards and the
+Subscriptions payment popup. The user picks a saved merchant, types one's exact name or saved
 spelling, or adds one; the picker itself never saves a spelling. Pending
 pre-selects a matching saved merchant, and approving the card both saves the
 `merchant_id` link and learns the scanner's raw spelling as an alias. Free
 text is always accepted and saves unlinked. The fixed brand list
 `KNOWN_MERCHANTS` is no longer shown as suggestions.
+
+**Add / Edit Transaction:** `src/components/transactions/TransactionForm.tsx`
+is the one form for adding or editing a transaction (owner decision
+2026-09-16). It uses the home-page popup layout — amount and merchant,
+category chips, extras under "More options" — and is rendered by the app-wide
+`NewTransactionModal`, the Expenses page add/edit sheet and the Insights
+drill-down edit. Do not add a second form.
+
+**Paying account:** `TransactionForm` and Pending review cards offer the same
+"Account / Card" choice — cash in hand & bank balance (`card_id` null) or one
+of the user's unarchived cards — except on a credit-card bill (the form asks
+which card it settles instead) or a loan (the form asks the loan's source).
+The scanner never sets `card_id`; on Pending the user picks it and approval
+writes it. Where Pending does not offer the choice, approval leaves `card_id`
+untouched.
 
 Error reporting is Sentry: `@sentry/react` in the browser (build-time
 `VITE_SENTRY_DSN`; unset means the SDK is not bundled at all) and `@sentry/node`
