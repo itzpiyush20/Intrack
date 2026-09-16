@@ -1,20 +1,49 @@
 // ============================================
 // Motion vocabulary
 //
-// One set of durations, curves and variants for the whole app, so a list on
-// Expenses and a list on Pending move the same way. Written down because six
-// screens restyled separately is six dialects otherwise.
+// One set of durations and curves for the whole app, so every screen moves
+// the same way.
 //
-// The rule this encodes, from PRODUCT.md: motion reports that something
-// changed. A row arrived, a panel replaced another, a value updated. Nothing
-// here decorates, drifts, glows or bounces — that was the Glassmorphic Aurora
-// era and it was rejected.
+// Direction (owner, 2026-09-16 — docs/superpowers/specs/2026-09-16-app-motion-design.md):
+// subtle, smooth glide, no bounce, fitted to what each screen is for, and
+// never slower. Animate transform and opacity; no blur or filters.
 //
-// Every consumer pairs these with `useReducedMotion()` from framer-motion and
-// passes `reduce` in, so a visitor who asked for less motion gets none.
+// The `GLIDE*` tokens below are the new system. The older exports further
+// down are still used by existing screens and are migrated to glide one
+// rollout round at a time — do not add new uses of them.
+//
+// Every consumer passes `useReducedMotion()` in, so a visitor who asked for
+// less motion gets none.
 // ============================================
 
 import type { Transition, Variants } from 'framer-motion'
+
+/** A cubic-bezier as framer-motion accepts it. */
+export type Bezier = readonly [number, number, number, number]
+
+/**
+ * The owner-approved curve: quick start, long soft settle, no overshoot.
+ * Chosen from clickable demos on 2026-09-16 after a springy version was
+ * rejected as too bouncy. Keep both y values at or below 1.
+ */
+export const GLIDE_EASE: Bezier = [0.22, 1, 0.36, 1]
+
+/**
+ * Seconds. `fast` and `base` are feedback the user may be waiting on;
+ * `slow` is a surface moving (a card leaving, a form opening); `figure` is a
+ * number or chart arriving, which needs long enough to be seen.
+ */
+export const GLIDE = { fast: 0.2, base: 0.3, slow: 0.5, figure: 0.8 } as const
+
+/** Scale a pressed button or tappable card sinks to. */
+export const PRESS_SCALE = 0.97
+
+/** Glide transition, collapsed to nothing when reduced motion is requested. */
+export const glide = (
+  reduce: boolean | null,
+  duration: number = GLIDE.base,
+  ease: Bezier = GLIDE_EASE,
+): Transition => (reduce ? { duration: 0 } : { duration, ease })
 
 /**
  * Exponential ease-out. Fast to start, settling at the end — the curve that
