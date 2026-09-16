@@ -96,6 +96,9 @@ sm:px-6` so it reads as scrollable.
 > `docs/superpowers/specs/2026-09-16-app-motion-design.md`. This section is
 > rewritten when that work lands; until then it describes the code as shipped,
 > not a rule to follow.
+> The new tokens and blocks already exist (`GLIDE`, `glide()`, `RollingNumber`,
+> `SlidingIndicator`, `MorphSurface`, `SwipeCard`, `haptics`); screens adopt them
+> round by round.
 
 Motion says *something changed* and nothing else. The three shapes in use:
 a single indicator that travels between tabs (`layoutId`, spring 420/36), a panel
