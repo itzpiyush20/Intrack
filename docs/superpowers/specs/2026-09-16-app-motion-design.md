@@ -1,6 +1,6 @@
 # App motion — design
 
-Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; speed and curve tuned 2026-09-17; Round 1 shipped 2026-09-17; rounds 2–4 not started.
+Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; speed and curve tuned 2026-09-17; Rounds 1–2 shipped 2026-09-17; rounds 3–4 not started.
 
 ## In plain words
 
@@ -64,7 +64,7 @@ New building blocks in `src/components/ui/`:
 
 | Block | What the user sees |
 |---|---|
-| `RollingNumber` | Each digit rolls in its own slot to the new amount; digits that didn't change stay still. Tabular figures so width never jumps. Replaces `AnimatedNumber`. |
+| `RollingNumber` | Each digit rolls in its own slot to the new amount; digits that didn't change stay still. Tabular figures so width never jumps. Replaced `AnimatedNumber` (deleted in Round 2). |
 | `MorphSurface` | A button grows smoothly into the panel or form it opens, and shrinks back on close (framer `layoutId`). |
 | `SlidingIndicator` | The highlight on the nav or a tab strip glides to the tapped item. |
 | `SwipeCard` | Drag a card sideways; past a threshold it glides away, otherwise it glides back. Buttons remain for keyboard and screen-reader users. |
@@ -98,12 +98,17 @@ value instead of from zero when the value changes.
 
 - Totals and balances use `RollingNumber`; changing the period rolls only the
   digits that changed.
-- Period switch (Week/Month/Year/custom) uses `SlidingIndicator`.
+- Period switch uses `SlidingIndicator` — done on the date filter's Month/Custom
+  tabs. The Insights range picker is a native `<select>`, which has no
+  highlight to slide, so it is left as is.
 - Bars and charts move from old value to new value on period change rather
   than regrowing from zero; line/area charts draw once on first arrival.
-- Chart drilldown: the tapped category bar morphs into its detail panel.
-- Hovering or tapping a chart segment brings it forward and dims the others.
-- Budget progress changes colour at the moment the fill crosses 80 % / 100 %.
+- Hovering a bar or category row dims the others (pointer devices only).
+- **Dropped when built (2026-09-17):** the drilldown morph — the detail opens as
+  a tall bottom sheet, and a thin bar stretched into it reads as distortion,
+  not continuity; the sheet already rises with the Round 1 popup motion. The
+  80 %/100 % budget colour change — Home and Insights have no spent-vs-limit
+  bars (those are on Budgets, which gets the shared basics only).
 
 ### Round 3 — Expenses and the Add Transaction form
 

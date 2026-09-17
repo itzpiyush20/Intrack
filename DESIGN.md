@@ -111,8 +111,15 @@ active nav item carries a highlight (`layoutId`) in the desktop sidebar and the
 mobile bottom bar — each page mounts its own `AppLayout`, so after a lazy route
 load the highlight may simply appear rather than travel;
 buttons and tappable cards press to 97%; list rows glide in and slide out,
-neighbours closing up via `layout`. Blocks for later rounds: `RollingNumber`,
-`SlidingIndicator`, `MorphSurface`, `SwipeCard`.
+neighbours closing up via `layout`.
+
+**Home and Insights:** money totals use `RollingNumber` (only changed digits
+roll; screen readers get the exact figure); the date filter's Month/Custom
+highlight slides (`SlidingIndicator`); bars glide from the old value to the new
+one; the budget burn-down line, balance-score ring and cash-flow runway draw in
+once on arrival; hovering a bar or category row dims its siblings (pointer
+devices only, via `[@media(hover:hover)]`). Blocks waiting for later rounds:
+`MorphSurface`, `SwipeCard`.
 
 Under `prefers-reduced-motion` movement collapses to `duration: 0`. Marketing
 pages (landing, pricing, about) keep their own motion and are outside this brief.
