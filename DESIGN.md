@@ -118,8 +118,9 @@ roll; screen readers get the exact figure); the date filter's Month/Custom
 highlight slides (`SlidingIndicator`); bars glide from the old value to the new
 one; the budget burn-down line, balance-score ring and cash-flow runway draw in
 once on arrival; hovering a bar or category row dims its siblings (pointer
-devices only, via `[@media(hover:hover)]`). The Pending count badge in the nav
-rolls when the count changes (not on first paint).
+devices only, via `[@media(hover:hover)]`). The nav alert badge (every alert —
+pending transactions, budgets over or near their limit, receivables — not only
+Pending rows) rolls when the alert count changes, not on first paint.
 
 **Expenses and the Add form:** every Add Transaction button opens the one form
 from where the button sits — `Modal`'s optional `origin` (viewport px, from
@@ -143,11 +144,15 @@ back in at the top. "Approve all" and bulk approve/reject glide their rows off
 to the matching side. The card's Approve/Reject buttons run through the swipe
 itself and are disabled while the card leaves. Swiping is on only for a
 coarse pointer (`useCoarsePointer`): with a mouse, dragging inside a card
-selects text; buttons work everywhere, and drag never starts from a field,
-select or text box (framer-motion's own rule). Every approve and reject goes
-through one ledger (`src/pages/pendingActions.ts`), so a row is acted on once
-— a second swipe, tap or "Approve all" on it is ignored and the card glides
-back. While a scan runs, a 2px line under the Scan button grows from the left
+selects text; buttons work everywhere, and drag never starts from interactive content —
+a field, select, button, link, label, the merchant suggestion list, or
+anything marked `data-no-swipe` (`shouldStartSwipe` in `swipe.ts`). Every
+approve and reject goes through one ledger (`src/pages/pendingActions.ts`), so
+a row is acted on once — a second swipe, tap or "Approve all" on it is ignored
+and the card glides back. A reload during the undo window (a scan finishing)
+leaves the rows still waiting out of the list and totals, and an Undo pressed
+after the write has started says "Too late to undo — it's already saved."
+While a scan runs, a 2px line under the Scan button grows from the left
 (`scaleX`) through the phases the scanner already reports, never backwards,
 and the first number in its status text rolls (`RollingNumber`). Found
 transactions still arrive together when the scan ends — the page only gets

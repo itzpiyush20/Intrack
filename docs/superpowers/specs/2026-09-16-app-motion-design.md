@@ -141,8 +141,10 @@ rejection logging or approval rules. Owner confirms twice before this round
 starts (standing rule for anything near the scanner).
 
 - Approve: card glides out to the right, the Expenses count in the nav ticks up
-  with `RollingNumber` — **card glide done (2026-09-17); nav count not done,**
-  left for the pass that adds the nav badge. Neighbours close up while the card
+  with `RollingNumber` — **card glide done (2026-09-17); changed when built:**
+  there is no Expenses count in the nav. The nav alert badge (every alert in
+  `notifications` — pending, budgets over or near, receivables — not only
+  Pending rows) rolls when the alert count changes, not on first paint. Neighbours close up while the card
   leaves (`popLayout` + `layout`); bulk actions glide their rows the same way.
 - Reject: card glides out to the left — **done.**
 - Mobile: `SwipeCard` — swipe right approves, left rejects. Buttons stay —
@@ -150,17 +152,21 @@ starts (standing rule for anything near the scanner).
   (`(pointer: coarse)`). With a mouse, dragging inside a card is how text is
   selected, and a card that slides under the cursor fights that. The buttons
   call the card's own `swipeRight`/`swipeLeft`, so tap and swipe share one
-  guard, and are disabled while it leaves. Drag never starts from a text
-  field or select (framer-motion 12 skips those itself).
+  guard, and are disabled while it leaves. Drag never starts from interactive
+  content — a field, select, button, link, label, the merchant suggestion
+  list, or `data-no-swipe` (`shouldStartSwipe`, 2026-09-17: framer-motion 12
+  only skipped text fields and selects, so a swipe could start on a
+  suggestion).
   Preconditions — **done:** the undo-window timers moved out of the page into
   `src/pages/pendingActions.ts`, one ledger for single, "Approve all" and bulk
   actions. A row with an action waiting or writing is skipped, so it is
   written once and comes off the totals once; the handlers return `false` for
   a skipped row and the card glides back. Undo restores only rows whose write
-  it actually cancelled, once. Tests fail against the old behaviour. **Not
-  yet checked on a real phone:** that a drifting tap on a card button is not
-  read as a swipe (a 28px minimum and the shared guard mean the worst case is
-  the same single action).
+  it actually cancelled, once; pressed too late it says so in a toast. A
+  reload inside the undo window leaves waiting rows out of the list, count and
+  totals (`withoutWaitingRows`, 2026-09-17), so Undo after a scan finishes
+  restores them once. Tests fail against the old behaviour. A press on a card
+  button can no longer start a swipe at all.
 - Scan in progress: thin progress line plus a rolling count of emails checked;
   transactions found appear one at a time as results arrive, replacing the
   spinner. Driven only by progress the scanner already reports — **done,

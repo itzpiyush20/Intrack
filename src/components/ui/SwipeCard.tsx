@@ -36,15 +36,20 @@
 //
 // `swipeEnabled={false}` turns the drag off while keeping the buttons' glide
 // and guard — for pointers where dragging a card would fight text selection.
-// Drag never starts from a text input, textarea, select or contenteditable
-// inside the card (framer-motion's own rule), so editing a field cannot swipe.
+// Drag never starts from interactive content inside the card — a field,
+// select, button, link, label, a listbox or its options (the merchant
+// picker's suggestions), contenteditable, or anything marked `data-no-swipe`
+// (`shouldStartSwipe`, swipe.ts). Framer's own listener only skipped text
+// fields and selects, so a press on a suggestion that drifted sideways could
+// approve or reject the transaction. The drag is started by hand from
+// `onPointerDown` for that reason (`dragListener={false}`).
 // ============================================
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { motion, useAnimationControls, useIsPresent, useReducedMotion, type PanInfo } from 'framer-motion'
+import { motion, useAnimationControls, useDragControls, useIsPresent, useReducedMotion, type PanInfo } from 'framer-motion'
 import { cn } from '@/utils'
 import { GLIDE, GLIDE_EASE, glide, type Bezier } from './motion'
-import { createSwipeGuard, swipeOutcome } from './swipe'
+import { createSwipeGuard, shouldStartSwipe, swipeOutcome } from './swipe'
 
 /** `false` (or a promise resolving to it) means the action failed and the card should return. */
 export type SwipeResult = void | boolean
@@ -90,6 +95,7 @@ export default function SwipeCard({
   const [card, setCard] = useState<HTMLDivElement | null>(null)
   const [guard] = useState(createSwipeGuard)
   const controls = useAnimationControls()
+  const dragControls = useDragControls()
   const [leaving, setLeaving] = useState(false)
 
   function returnToCentre() {
@@ -166,10 +172,17 @@ export default function SwipeCard({
     act(outcome)
   }
 
+  const canDrag = !leaving && swipeEnabled
+
   return (
     <motion.div
       ref={setCard}
-      drag={leaving || !swipeEnabled ? false : 'x'}
+      drag={canDrag ? 'x' : false}
+      dragControls={dragControls}
+      dragListener={false}
+      onPointerDown={(event) => {
+        if (canDrag && shouldStartSwipe(event.target)) dragControls.start(event)
+      }}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.6}
       dragMomentum={false}

@@ -19,8 +19,18 @@ function media(): MediaQueryList | null {
 function subscribe(onChange: () => void) {
   const list = media()
   if (!list) return () => {}
-  list.addEventListener('change', onChange)
-  return () => list.removeEventListener('change', onChange)
+  // Safari before 14 has only the deprecated addListener/removeListener on
+  // MediaQueryList; calling addEventListener there threw and took the whole
+  // Pending page down.
+  if (typeof list.addEventListener === 'function') {
+    list.addEventListener('change', onChange)
+    return () => list.removeEventListener('change', onChange)
+  }
+  if (typeof list.addListener === 'function') {
+    list.addListener(onChange)
+    return () => list.removeListener(onChange)
+  }
+  return () => {}
 }
 
 const getSnapshot = () => media()?.matches ?? false

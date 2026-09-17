@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPendingActionLedger, type ScheduleOptions } from './pendingActions'
+import { createPendingActionLedger, withoutWaitingRows, type ScheduleOptions } from './pendingActions'
 
 type Row = { id: string; amount: number }
 
@@ -101,8 +101,8 @@ describe('pending action ledger — one action per row', () => {
     const { page, opts } = fakePage([a, b])
 
     const run = ledger.schedule(opts([a]))!
-    run.undo()
-    run.undo()
+    expect(run.undo()).toBe('undone')
+    expect(run.undo()).toBe('undone')
 
     expect(page.total).toBe(350)
     expect(page.visible.filter((r) => r.id === 'a')).toHaveLength(1)
@@ -119,7 +119,7 @@ describe('pending action ledger — one action per row', () => {
     const { page, opts } = fakePage([a])
     const run = ledger.schedule(opts([a]))!
     vi.advanceTimersByTime(5000)
-    run.undo()
+    expect(run.undo()).toBe('too-late')
     expect(page.committed).toEqual(['a'])
     expect(page.visible).toEqual([])
     expect(page.total).toBe(0)
@@ -147,5 +147,105 @@ describe('pending action ledger — one action per row', () => {
     vi.advanceTimersByTime(5000)
     await vi.runAllTimersAsync()
     expect(ledger.isBusy('a')).toBe(false)
+  })
+})
+
+describe('pending reload during the undo window', () => {
+  /**
+   * PendingPage's fetchPendingData: replace the list, the count and the total
+   * with what the database holds, where every row still reads `pending` until
+   * its write lands.
+   */
+  function reload(page: { visible: Row[]; total: number; count: number }, db: Row[], isWaiting: (id: string) => boolean) {
+    const fetched = withoutWaitingRows(db, db.length, isWaiting)
+    page.visible = fetched.rows
+    page.count = fetched.count
+    page.total = fetched.rows.reduce((s, r) => s + r.amount, 0)
+  }
+
+  function pageWithCount(rows: Row[]) {
+    const made = fakePage(rows)
+    const page = Object.assign(made.page, { count: rows.length })
+    const opts: typeof made.opts = (txns, commit) => {
+      const base = made.opts(txns, commit)
+      return {
+        ...base,
+        hide: (acted) => { base.hide(acted); page.count -= acted.length },
+        // Filtered first, as PendingPage's restoreRows is.
+        restore: (acted) => {
+          page.visible = page.visible.filter((r) => !acted.some((t) => t.id === r.id))
+          base.restore(acted)
+          page.count += acted.length
+        },
+      }
+    }
+    return { page, opts }
+  }
+
+  it('isWaiting is true only while the undo timer runs, not while the write is in flight', async () => {
+    const ledger = createPendingActionLedger()
+    let settle!: () => void
+    const { opts } = fakePage([a])
+    ledger.schedule(opts([a], () => new Promise<void>((resolve) => { settle = resolve })))
+
+    expect(ledger.isWaiting('a')).toBe(true)
+    vi.advanceTimersByTime(5000)
+    expect(ledger.isWaiting('a')).toBe(false)
+    expect(ledger.isBusy('a')).toBe(true)
+    settle()
+    await vi.runAllTimersAsync()
+    expect(ledger.isWaiting('a')).toBe(false)
+  })
+
+  it('keeps a row waiting out its undo window out of a reload, its count and its total', () => {
+    const ledger = createPendingActionLedger()
+    const { page, opts } = pageWithCount([a, b])
+    ledger.schedule(opts([a]))
+
+    // A scan finishes; the database still holds `a` as pending.
+    reload(page, [a, b, c], ledger.isWaiting)
+
+    expect(page.visible.map((r) => r.id)).toEqual(['b', 'c'])
+    expect(page.count).toBe(2)
+    expect(page.total).toBe(290)
+  })
+
+  it('Undo after a reload restores the row exactly once', () => {
+    const ledger = createPendingActionLedger()
+    const { page, opts } = pageWithCount([a, b])
+    const run = ledger.schedule(opts([a]))!
+
+    reload(page, [a, b], ledger.isWaiting)
+    run.undo()
+
+    expect(page.visible.filter((r) => r.id === 'a')).toHaveLength(1)
+    expect(page.count).toBe(2)
+    expect(page.total).toBe(350)
+  })
+
+  it('keeps a row whose write is in flight, or has failed, in a reload', async () => {
+    const ledger = createPendingActionLedger()
+    const { page, opts } = pageWithCount([a, b])
+    let fail!: () => void
+    // A failed write refetches while its own row is still marked writing.
+    ledger.schedule(opts([a], () => new Promise<void>((_, reject) => { fail = () => reject(new Error('network')) })))
+    vi.advanceTimersByTime(5000)
+
+    reload(page, [a, b], ledger.isWaiting)
+    expect(page.visible.map((r) => r.id)).toEqual(['a', 'b'])
+    expect(page.count).toBe(2)
+
+    fail()
+    await vi.runAllTimersAsync()
+    reload(page, [a, b], ledger.isWaiting)
+    expect(page.visible.map((r) => r.id)).toEqual(['a', 'b'])
+    expect(page.total).toBe(350)
+  })
+
+  it('takes waiting rows off a count that covers rows beyond the fetched page', () => {
+    const waiting = new Set(['a'])
+    const result = withoutWaitingRows([a, b], 40, (id) => waiting.has(id))
+    expect(result.rows).toEqual([b])
+    expect(result.count).toBe(39)
   })
 })

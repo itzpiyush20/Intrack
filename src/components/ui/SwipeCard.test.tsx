@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import SwipeCard, { type SwipeCardProps } from './SwipeCard'
+import { shouldStartSwipe } from './swipe'
 
 // Reduced motion collapses every glide to zero duration, so the tests are
 // about the action guard, not animation timing.
@@ -147,5 +148,87 @@ describe('SwipeCard', () => {
     expect(screen.getByTestId('leaving').textContent).toBe('true')
     fireEvent.click(screen.getByText('Approve'))
     expect(onSwipeRight).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('SwipeCard — where a swipe may start', () => {
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  /** A real pointer drag 390px to the right, through framer's own pan session. */
+  async function dragRightFrom(el: Element) {
+    const at = (x: number) => ({
+      clientX: x, clientY: 10, pageX: x, pageY: 10, button: 0, isPrimary: true, pointerId: 1, pointerType: 'touch',
+    })
+    await act(async () => {
+      fireEvent.pointerDown(el, at(10))
+      await pause(30)
+      for (let x = 40; x <= 400; x += 60) {
+        fireEvent.pointerMove(window, at(x))
+        await pause(20)
+      }
+      fireEvent.pointerUp(window, at(400))
+      await pause(50)
+    })
+  }
+
+  function cardWithContent(props: Partial<SwipeCardProps> = {}) {
+    const onSwipeRight = vi.fn()
+    render(
+      <SwipeCard onSwipeRight={onSwipeRight} onSwipeLeft={vi.fn()} {...props}>
+        {() => (
+          <div>
+            <p>Swiggy ₹450</p>
+            <input aria-label="Merchant" />
+            <ul role="listbox">
+              <li role="option" aria-selected={false}>Swiggy Instamart</li>
+            </ul>
+            <button type="button">Keep</button>
+            <div data-no-swipe>Chart</div>
+          </div>
+        )}
+      </SwipeCard>,
+    )
+    return onSwipeRight
+  }
+
+  it('approves on a swipe from the card body', async () => {
+    const onSwipeRight = cardWithContent()
+    await dragRightFrom(screen.getByText('Swiggy ₹450'))
+    expect(onSwipeRight).toHaveBeenCalledTimes(1)
+  })
+
+  it('never approves on a swipe that starts on a merchant suggestion', async () => {
+    const onSwipeRight = cardWithContent()
+    await dragRightFrom(screen.getByText('Swiggy Instamart'))
+    await dragRightFrom(screen.getByRole('listbox'))
+    expect(onSwipeRight).not.toHaveBeenCalled()
+  })
+
+  it('never approves on a swipe that starts on a field, a button or data-no-swipe', async () => {
+    const onSwipeRight = cardWithContent()
+    await dragRightFrom(screen.getByLabelText('Merchant'))
+    await dragRightFrom(screen.getByText('Keep'))
+    await dragRightFrom(screen.getByText('Chart'))
+    expect(onSwipeRight).not.toHaveBeenCalled()
+  })
+
+  it('does not swipe while swiping is switched off', async () => {
+    const onSwipeRight = cardWithContent({ swipeEnabled: false })
+    await dragRightFrom(screen.getByText('Swiggy ₹450'))
+    expect(onSwipeRight).not.toHaveBeenCalled()
+  })
+
+  it('shouldStartSwipe checks the pressed element and its ancestors', () => {
+    const host = document.createElement('div')
+    host.innerHTML =
+      '<div id="body"><span id="text">x</span></div>' +
+      '<ul role="listbox"><li role="option"><span id="inOption">y</span></li></ul>' +
+      '<a href="#"><em id="inLink">z</em></a>' +
+      '<div contenteditable="true"><b id="inEditable">w</b></div>'
+    expect(shouldStartSwipe(host.querySelector('#text'))).toBe(true)
+    expect(shouldStartSwipe(host.querySelector('#inOption'))).toBe(false)
+    expect(shouldStartSwipe(host.querySelector('#inLink'))).toBe(false)
+    expect(shouldStartSwipe(host.querySelector('#inEditable'))).toBe(false)
+    expect(shouldStartSwipe(null)).toBe(true)
   })
 })

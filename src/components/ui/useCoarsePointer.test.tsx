@@ -45,4 +45,23 @@ describe('useCoarsePointer', () => {
     act(() => mq.set(false))
     expect(screen.getByTestId('coarse').textContent).toBe('false')
   })
+
+  it('falls back to addListener/removeListener where addEventListener is missing (Safari < 14)', () => {
+    const listeners = new Set<() => void>()
+    const list = {
+      matches: false,
+      addListener: (cb: () => void) => listeners.add(cb),
+      removeListener: (cb: () => void) => listeners.delete(cb),
+    }
+    vi.stubGlobal('matchMedia', () => list)
+    const { unmount } = render(<Probe />)
+    expect(screen.getByTestId('coarse').textContent).toBe('false')
+    act(() => {
+      list.matches = true
+      listeners.forEach((cb) => cb())
+    })
+    expect(screen.getByTestId('coarse').textContent).toBe('true')
+    unmount()
+    expect(listeners.size).toBe(0)
+  })
 })

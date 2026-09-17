@@ -348,15 +348,18 @@ it must stay at zero.
 
 **Motion kit:** `src/components/ui/motion.ts` holds the `GLIDE` tokens and
 `glide()` (owner-chosen "Softer" no-overshoot curve at 1.1x speed). Blocks in
-`src/components/ui/`: `RollingNumber` (money totals on Home and Insights, the Pending count
-badge), `SlidingIndicator`, `SwipeCard` (Pending review cards; swipe
+`src/components/ui/`: `RollingNumber` (money totals on Home and Insights, the nav alert
+badge — every alert in `notifications`, not only Pending rows), `SlidingIndicator`, `SwipeCard` (Pending review cards; swipe
 on only for a coarse pointer via `useCoarsePointer.ts`), `AnimatedBar`.
 Pending's undo window lives in `src/pages/pendingActions.ts` — one ledger so a
-row is approved or rejected once — and its scan progress line reads the
+row is approved or rejected once, and a reload inside the window leaves waiting
+rows out (`withoutWaitingRows`) — and its scan progress line reads the
 scanner's existing events through `src/pages/scanProgressLine.ts`. `modalOrigin.ts`
-lets `Modal` grow from the button that opened it; every Add Transaction button
-calls its `openAddTransaction(button)`, which dispatches the
-`intrack:open-add-transaction` event `AppLayout` listens for. No haptics: Intrack ships as a website only, so vibration was
+lets `Modal` grow from the button that opened it. The Add Transaction buttons on
+Home, Insights and in the nav call its `openAddTransaction(button)`, which
+dispatches the `intrack:open-add-transaction` event `AppLayout` listens for;
+Expenses' own Add buttons instead take `centreOf(button)` and open the page's
+own `Modal` around the same `TransactionForm`. No haptics: Intrack ships as a website only, so vibration was
 dropped (owner, 2026-09-17). The older motion names (`EASE_OUT`, `DURATION`,
 `INDICATOR_SPRING`, `rowVariants`…) are aliases of the glide values, so existing
 screens already move with the chosen feel.

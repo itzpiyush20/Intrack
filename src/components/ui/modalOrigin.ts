@@ -45,7 +45,11 @@ export function transformOriginFor(
   return `${Math.round(origin.x - left)}px ${Math.round(origin.y - top)}px`
 }
 
-/** The event every Add Transaction button dispatches; AppLayout opens the one form. */
+/**
+ * The event the Add Transaction buttons on Home, Insights and in the nav
+ * dispatch; AppLayout opens the one form. Expenses opens its own Modal with
+ * `centreOf` instead.
+ */
 export const OPEN_ADD_TRANSACTION_EVENT = 'intrack:open-add-transaction'
 
 /** Ask AppLayout to open the Add Transaction popup, growing from `from` when given. */

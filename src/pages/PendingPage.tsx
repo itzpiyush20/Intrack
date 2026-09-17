@@ -16,7 +16,7 @@ import {
 } from '@/components/ui'
 import { useCoarsePointer } from '@/components/ui/useCoarsePointer'
 import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer-motion'
-import { createPendingActionLedger } from './pendingActions'
+import { createPendingActionLedger, withoutWaitingRows, type ScheduledAction } from './pendingActions'
 import { nextScanFraction, splitProgressCount } from './scanProgressLine'
 import {
   getTransactions,
@@ -528,6 +528,15 @@ export default function PendingPage() {
     return () => clearTimeout(timer)
   }, [scanning])
 
+  // Every approve and reject — a card's button or swipe, "Approve all", a bulk
+  // action — goes through one ledger (pendingActions.ts), which acts on a row
+  // at most once until its write settles or Undo cancels it. A swipe plus a
+  // tap, a double tap, or a single approve followed by "Approve all" used to
+  // schedule two writes for one transaction and take it off the totals twice.
+  // Declared before fetchPendingData, which asks it which rows are still
+  // waiting out their undo window.
+  const [actionLedger] = useState(createPendingActionLedger)
+
   const fetchPendingData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -552,23 +561,37 @@ export default function PendingPage() {
 
       if (txnsRes.error) throw txnsRes.error
 
-      const txns = txnsRes.data || []
+      // Rows the user has just approved or rejected are still `pending` in
+      // the database until their undo window closes. They are already hidden
+      // and off the count and totals, so a reload in that window (a scan
+      // finishing, another row's failed write) must not bring them back.
+      // Rows whose write is in flight are kept: a failed write refetches so
+      // its row reappears. Each filter reads the ledger when its state is set.
+      const fetched = txnsRes.data || []
+      const { rows: txns, count } = withoutWaitingRows(
+        fetched,
+        txnsRes.count || 0,
+        actionLedger.isWaiting
+      )
       setPendingTxns(txns)
-      setTotalPendingCount(txnsRes.count || 0)
+      setTotalPendingCount(count)
 
       // The list above is capped, so the headline figures need their own query;
       // fetchAllTransactions pages, where the bare .select() this replaced was
       // silently truncated at PostgREST's 1000-row ceiling.
-      const { data: allPending } = await fetchAllTransactions({ status: 'pending' })
+      const { data: allPendingRows } = await fetchAllTransactions({ status: 'pending' })
+      const allPending = (allPendingRows ?? []).filter((t) => !actionLedger.isWaiting(t.id))
       setTotalPendingValue(
-        (allPending ?? []).reduce((acc, t) => acc + homeCurrencyAmount(t, 'debit'), 0)
+        allPending.reduce((acc, t) => acc + homeCurrencyAmount(t, 'debit'), 0)
       )
       setTotalPendingCredits(
-        (allPending ?? []).reduce((acc, t) => acc + homeCurrencyAmount(t, 'credit'), 0)
+        allPending.reduce((acc, t) => acc + homeCurrencyAmount(t, 'credit'), 0)
       )
 
+      // Fields for every fetched row, waiting ones included, so a row brought
+      // back by Undo still has its review fields.
       const fieldsMap: Record<string, ReviewFields> = {}
-      txns.forEach((t) => {
+      fetched.forEach((t) => {
         fieldsMap[t.id] = {
           category: t.category,
           description: parseShortDescription(t.description || '', (t as any).notes || '', t.merchant || ''),
@@ -584,7 +607,7 @@ export default function PendingPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [actionLedger])
 
   const checkScanInactivity = useCallback(async () => {
     try {
@@ -736,14 +759,8 @@ export default function PendingPage() {
 
   // One-tap approve: removes the row immediately (feels instant), commits
   // the write a few seconds later, and gives the user a real Undo window
-  // in between instead of a confirm-before-you-can-act modal.
-  //
-  // Every approve and reject — a card's button or swipe, "Approve all", a bulk
-  // action — goes through one ledger (pendingActions.ts), which acts on a row
-  // at most once until its write settles or Undo cancels it. A swipe plus a
-  // tap, a double tap, or a single approve followed by "Approve all" used to
-  // schedule two writes for one transaction and take it off the totals twice.
-  const [actionLedger] = useState(createPendingActionLedger)
+  // in between instead of a confirm-before-you-can-act modal. The ledger that
+  // schedules it is declared above fetchPendingData.
 
   // How each row left, read by its exit animation: 'card' when SwipeCard is
   // already gliding the card off itself, 'right'/'left' for a bulk action.
@@ -768,6 +785,12 @@ export default function PendingPage() {
     adjustPendingTotals(rows, 1)
   }
 
+  // Undo pressed after the write has started (the toast can outlive the
+  // window by a moment) cancels nothing; say so rather than doing nothing.
+  const undoAction = (run: ScheduledAction<TransactionRow>) => {
+    if (run.undo() === 'too-late') showToast("Too late to undo — it's already saved.", 'info')
+  }
+
   /** Returns false when the row is already being acted on, so its card glides back. */
   const handleApproveWithUndo = (txn: TransactionRow): boolean => {
     const fields = editingFields[txn.id] || defaultReviewFields(txn)
@@ -782,7 +805,7 @@ export default function PendingPage() {
 
     showToast('Transaction approved.', 'success', {
       duration: UNDO_WINDOW_MS,
-      action: { label: 'Undo', onClick: run.undo },
+      action: { label: 'Undo', onClick: () => undoAction(run) },
     })
     return true
   }
@@ -813,7 +836,7 @@ export default function PendingPage() {
 
     showToast(`Approved ${n} high-confidence transaction${n === 1 ? '' : 's'}.`, 'success', {
       duration: UNDO_WINDOW_MS,
-      action: { label: 'Undo', onClick: run.undo },
+      action: { label: 'Undo', onClick: () => undoAction(run) },
     })
   }
 
@@ -863,7 +886,7 @@ export default function PendingPage() {
 
     showToast('Alert rejected.', 'success', {
       duration: UNDO_WINDOW_MS,
-      action: { label: 'Undo', onClick: run.undo },
+      action: { label: 'Undo', onClick: () => undoAction(run) },
     })
     return true
   }
@@ -919,7 +942,7 @@ export default function PendingPage() {
 
     showToast(message(run.acted.length), 'success', {
       duration: UNDO_WINDOW_MS,
-      action: { label: 'Undo', onClick: run.undo },
+      action: { label: 'Undo', onClick: () => undoAction(run) },
     })
   }
 

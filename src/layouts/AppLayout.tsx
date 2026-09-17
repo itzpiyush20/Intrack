@@ -48,12 +48,13 @@ import { canAccessAdmin } from '@/services/adminAccess'
 import { PageHeaderContext, type PageHero } from './PageHeaderContext'
 
 /**
- * The Pending count badge. It rolls when the count changes (a scan finds
- * transactions, an approval clears one) but not on first paint: every page
- * mounts its own AppLayout, so rolling up from zero would replay on each
- * navigation.
+ * The alert badge — on the Pending Alerts nav item and the notifications bell.
+ * It counts every alert in `notifications` (pending transactions, budgets over
+ * or near their limit, receivables), not only Pending rows. It rolls when the
+ * alert count changes but not on first paint: every page mounts its own
+ * AppLayout, so rolling up from zero would replay on each navigation.
  */
-const pendingBadgeLabel = (count: number) => (count > 9 ? '9+' : String(count))
+const alertBadgeLabel = (count: number) => (count > 9 ? '9+' : String(count))
 
 interface AppLayoutProps {
   children: ReactNode
@@ -557,7 +558,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       <span className="relative flex-1 truncate">{item.label}</span>
                       {badgeCount > 0 && (
                         <span className="relative ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-1 text-[10px] font-bold text-white">
-                          <RollingNumber value={badgeCount} format={pendingBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
+                          <RollingNumber value={badgeCount} format={alertBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
                         </span>
                       )}
                     </Link>
@@ -798,7 +799,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <Bell className="h-4 w-4" />
                     {notifications.length > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-0.5 text-[10px] font-bold text-white ring-1 ring-white/10">
-                        <RollingNumber value={notifications.length} format={pendingBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
+                        <RollingNumber value={notifications.length} format={alertBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
                       </span>
                     )}
                   </button>
@@ -1500,7 +1501,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     aria-hidden="true"
                     className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-danger-text)] px-1 text-[10px] font-bold tnum text-static-white"
                   >
-                    <RollingNumber value={notifications.length} format={pendingBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
+                    <RollingNumber value={notifications.length} format={alertBadgeLabel} rollOnMount={false} duration={GLIDE.base} />
                   </span>
                 )}
               </span>

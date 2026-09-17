@@ -7,6 +7,23 @@ export const SWIPE_FLICK_MIN_DISTANCE = 28
 
 export type SwipeOutcome = 'right' | 'left' | 'return'
 
+/**
+ * Content a swipe must never start from. Framer's own drag listener skips only
+ * text fields, selects and contenteditable; a card also holds buttons, links
+ * and the merchant picker's suggestion list, where a press that drifts
+ * sideways would otherwise approve or reject the transaction. Mark anything
+ * else with `data-no-swipe`.
+ */
+export const NO_SWIPE_SELECTOR =
+  'input, select, textarea, button, a, label, [role="listbox"], [role="option"], [contenteditable="true"], [data-no-swipe]'
+
+/** Whether a pointer pressed on `target` may begin dragging the card. */
+export function shouldStartSwipe(target: EventTarget | null): boolean {
+  const el = target as Element | null
+  if (!el || typeof el.closest !== 'function') return true
+  return el.closest(NO_SWIPE_SELECTOR) === null
+}
+
 export function swipeOutcome(offsetX: number, velocityX: number, width: number): SwipeOutcome {
   const distance = width * SWIPE_DISTANCE_RATIO
   // Past the threshold but thrown back hard towards centre on release: the
