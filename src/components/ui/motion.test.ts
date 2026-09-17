@@ -74,7 +74,7 @@ describe('signed-in screens use the shared motion tokens', () => {
   // A hand-typed curve or spring is how screens drift apart again. Public
   // marketing pages (landing, pricing, about) are outside the motion brief.
   const root = join(__dirname, '..', '..')
-  const skip = /(landing|pricing|Landing|Pricing|About|MarketingHeader|MotionLabPage|motion\.ts|\.test\.)/
+  const skip = /(landing|pricing|Landing|Pricing|About|MarketingHeader|motion\.ts|\.test\.)/
 
   function files(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {

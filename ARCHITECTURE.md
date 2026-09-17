@@ -93,10 +93,7 @@ order that already exists must still be honoured.
 
 **Authenticated:** `/dashboard`, `/expenses`, `/budgets`, `/pending`,
 `/insights`, `/subscriptions`, `/settings`, `/profile`. `/payment-success`
-redirects to `/dashboard`. `/admin` is additionally gated on admin status, as is
-`/motion-lab` — a temporary, unlinked page for tuning animations, removed when
-the motion rollout in `docs/superpowers/specs/2026-09-16-app-motion-design.md`
-finishes.
+redirects to `/dashboard`. `/admin` is additionally gated on admin status.
 Anything unmatched redirects to `/`.
 
 18 page components in `src/pages/`, with sub-folders for `admin/`, `analytics/`,
@@ -351,8 +348,8 @@ it must stay at zero.
 
 **Motion kit:** `src/components/ui/motion.ts` holds the `GLIDE` tokens and
 `glide()` (owner-chosen "Softer" no-overshoot curve at 1.1x speed). Blocks in
-`src/components/ui/`: `RollingNumber` (money totals on Home and Insights),
-`SlidingIndicator`, `MorphSurface`, `SwipeCard` (Pending review cards; swipe
+`src/components/ui/`: `RollingNumber` (money totals on Home and Insights, the Pending count
+badge), `SlidingIndicator`, `SwipeCard` (Pending review cards; swipe
 on only for a coarse pointer via `useCoarsePointer.ts`), `AnimatedBar`.
 Pending's undo window lives in `src/pages/pendingActions.ts` — one ledger so a
 row is approved or rejected once — and its scan progress line reads the

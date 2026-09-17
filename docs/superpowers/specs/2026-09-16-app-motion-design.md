@@ -1,6 +1,6 @@
 # App motion — design
 
-Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; speed and curve tuned 2026-09-17; Rounds 1–2 shipped 2026-09-17; rounds 3–4 not started.
+Date: 2026-09-16. Status: approved by owner. Motion kit and `/motion-lab` shipped 2026-09-16; speed and curve tuned 2026-09-17; Rounds 1–4 shipped 2026-09-17; `/motion-lab` and the unused `MorphSurface` removed at the end of the rollout.
 
 ## In plain words
 

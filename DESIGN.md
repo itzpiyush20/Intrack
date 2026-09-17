@@ -97,7 +97,7 @@ Direction (owner, 2026-09-16/17; full design in
 slower. Animate `transform` and `opacity` (plus framer `layout` for morphs).
 
 **Tokens** (`src/components/ui/motion.ts`): curve `cubic-bezier(0.33, 1, 0.68, 1)`
-("Softer", picked in `/motion-lab`), durations `GLIDE` — `fast` 0.22s, `base`
+("Softer", picked in the temporary `/motion-lab` page, removed when the rollout finished), durations `GLIDE` — `fast` 0.22s, `base`
 0.33s, `slow` 0.55s, `figure` 0.88s — and `glide(reduce, duration)`. The older
 names `EASE_OUT`, `DURATION`, `INDICATOR_SPRING`, `transition()` and the
 variants point at the same values, so every screen moves alike. The three CSS
@@ -118,8 +118,8 @@ roll; screen readers get the exact figure); the date filter's Month/Custom
 highlight slides (`SlidingIndicator`); bars glide from the old value to the new
 one; the budget burn-down line, balance-score ring and cash-flow runway draw in
 once on arrival; hovering a bar or category row dims its siblings (pointer
-devices only, via `[@media(hover:hover)]`). Block waiting for a later round:
-`MorphSurface`.
+devices only, via `[@media(hover:hover)]`). The Pending count badge in the nav
+rolls when the count changes (not on first paint).
 
 **Expenses and the Add form:** every Add Transaction button opens the one form
 from where the button sits — `Modal`'s optional `origin` (viewport px, from

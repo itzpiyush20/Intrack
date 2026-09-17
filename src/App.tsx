@@ -77,7 +77,6 @@ const pageImports = {
   '/refund-policy':  () => import('@/pages/RefundPage'),
   '/reset-password': () => import('@/pages/ResetPasswordPage'),
   '/admin':          () => import('@/pages/admin/AdminPage'),
-  '/motion-lab':     () => import('@/pages/admin/MotionLabPage'),
 }
 
 const DashboardPage     = lazyWithRetry(pageImports['/dashboard'])
@@ -95,7 +94,6 @@ const PricingPage       = lazyWithRetry(pageImports['/pricing'])
 const RefundPage        = lazyWithRetry(pageImports['/refund-policy'])
 const ResetPasswordPage = lazyWithRetry(pageImports['/reset-password'])
 const AdminPage         = lazyWithRetry(pageImports['/admin'])
-const MotionLabPage     = lazyWithRetry(pageImports['/motion-lab'])
 
 // ─── Loading fallback ────────────────────────────────────
 /**
@@ -189,8 +187,6 @@ function AnimatedRoutes() {
             <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<AdminPage />} />
-              {/* Temporary: motion tuning page, removed when the motion rollout ends. */}
-              <Route path="/motion-lab" element={<MotionLabPage />} />
             </Route>
           </Route>
 

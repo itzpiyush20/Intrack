@@ -22,7 +22,6 @@ Disallow: /profile
 Disallow: /subscriptions
 Disallow: /payment-success
 Disallow: /admin
-Disallow: /motion-lab
 
 # Account flows. Nothing to index, and reset links are single-use.
 Disallow: /reset-password
