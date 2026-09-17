@@ -23,6 +23,7 @@ import {
 } from '@/components/ui'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useCategories } from '@/context/CategoriesContext'
+import { useToast } from '@/context/ToastContext'
 import { cn, formatCurrency, formatDate, resolveTransactionIdentity } from '@/utils'
 import { deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsCategory } from '@/services/transactions'
 import type { Database } from '@/types/database'
@@ -80,6 +81,7 @@ export default function ExpenseList({
 }: ExpenseListProps) {
   const { categories, getStyle } = useCategories()
   const reduceMotion = useReducedMotion()
+  const { showToast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
@@ -102,7 +104,14 @@ export default function ExpenseList({
     setDeletingId(id)
     const { error } = await deleteTransaction(id)
     setDeletingId(null)
-    if (!error) setRemovedIds((prev) => [...prev, id])
+    if (error) {
+      // The service returns its error rather than throwing, so this is the
+      // only place a failed delete can reach the user. The row stays put.
+      console.error('Delete failed:', error)
+      showToast("Couldn't delete that transaction. Try again.", 'error')
+    } else {
+      setRemovedIds((prev) => [...prev, id])
+    }
     onRefresh()
   }
 
@@ -125,11 +134,15 @@ export default function ExpenseList({
     setIsBulkDeleting(true)
     try {
       const { error } = await bulkDeleteTransactions(selectedIds)
-      if (!error) setRemovedIds((prev) => [...prev, ...selectedIds])
+      if (error) throw error
+      setRemovedIds((prev) => [...prev, ...selectedIds])
       setSelectedIds([])
       onRefresh()
     } catch (err) {
       console.error('Bulk delete failed:', err)
+      showToast("Couldn't delete those transactions. Try again.", 'error')
+      setSelectedIds([])
+      onRefresh()
     } finally {
       setIsBulkDeleting(false)
     }
@@ -138,12 +151,17 @@ export default function ExpenseList({
   const handleBulkCategoryUpdate = async (category: string) => {
     if (selectedIds.length === 0 || !category) return
     try {
-      await bulkUpdateTransactionsCategory(selectedIds, category)
-      setSelectedIds([])
-      onRefresh()
+      // Returns its error rather than throwing — rethrow so the catch runs.
+      const { error } = await bulkUpdateTransactionsCategory(selectedIds, category)
+      if (error) throw error
     } catch (err) {
       console.error('Bulk category update failed:', err)
+      showToast("Couldn't change the category. Try again.", 'error')
     }
+    // Success or failure, re-read what is stored. Nothing here is optimistic,
+    // so a failed write leaves every row showing its real category.
+    setSelectedIds([])
+    onRefresh()
   }
 
   if (loading) {
