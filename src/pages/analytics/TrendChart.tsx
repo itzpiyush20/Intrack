@@ -142,7 +142,7 @@ export function TrendChart({
                   keep the full width on a 360px phone. */}
               <div className="relative h-56 min-w-full select-none pt-5 pl-12 sm:min-w-[500px] md:min-w-0">
                 <ValueAxis maxVal={maxVal} />
-                <div className="relative flex h-full items-end justify-between gap-1.5 sm:gap-5 md:gap-7">
+                <div className="group/bars relative flex h-full items-end justify-between gap-1.5 sm:gap-5 md:gap-7">
                   {trendData.map((h, index) => {
                     // A zero bar must render as nothing. Flooring every bar at 3%
                     // drew a stub for days with no activity, which reads as spend

@@ -89,3 +89,19 @@ describe('AnimatedBar', () => {
     expect(bar.style.height).toBe('60%')
   })
 })
+
+describe('AnimatedBar with motion allowed', () => {
+  beforeEach(() => setReducedMotion(false))
+
+  it('glides from the old value to the new one on the same element, never resetting to 0%', async () => {
+    const { container, rerender } = render(<AnimatedBar percent={40} duration={0.05} />)
+    const bar = container.firstChild as HTMLElement
+
+    rerender(<AnimatedBar percent={75} duration={0.05} />)
+
+    // Same DOM node: a period change updates the existing bar rather than
+    // remounting a fresh one that would restart from 0%.
+    expect(container.firstChild).toBe(bar)
+    await waitFor(() => expect(bar.style.width).toBe('75%'))
+  })
+})

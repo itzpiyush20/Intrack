@@ -13,7 +13,8 @@
 // ============================================================
 
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
-import { Card, Badge, Skeleton } from '@/components/ui'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Card, Badge, Skeleton, GLIDE, GLIDE_EASE, glide } from '@/components/ui'
 import {
   formatCurrency,
   formatCurrencyCompact,
@@ -538,6 +539,7 @@ export function CashFlowRunway({
   initialStartingBalance,
   className,
 }: CashFlowRunwayProps) {
+  const reduce = useReducedMotion()
   const [horizon, setHorizon] = useState<RunwayHorizon>(60)
   const [startingBalance, setStartingBalance] = useState<number>(initialStartingBalance ?? 0)
   const [loading, setLoading] = useState<boolean>(initialStartingBalance === undefined)
@@ -1007,17 +1009,33 @@ export function CashFlowRunway({
             </g>
           )}
 
-          {/* Area Fill */}
-          <path d={areaD} fill="url(#runwayGradient)" />
+          {/* Area Fill — fades in once the curve has drawn. Only animates on
+              first arrival: `d` updates (horizon change, adjusted sliders)
+              land as a plain attribute update on the same mounted element, so
+              the fill never resets to invisible. */}
+          <motion.path
+            d={areaD}
+            fill="url(#runwayGradient)"
+            initial={reduce ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={reduce ? { duration: 0 } : { duration: GLIDE.base, delay: GLIDE.figure, ease: GLIDE_EASE }}
+          />
 
-          {/* Runway Curve Line */}
-          <path
+          {/* Runway Curve Line — draws left to right on first arrival via
+              `pathLength`; a later `d` change (different horizon, an
+              adjusted what-if slider) just updates the shape in place rather
+              than redrawing from zero, since `initial` only applies at mount
+              and the `animate` target (`pathLength: 1`) does not change. */}
+          <motion.path
             d={pathD}
             fill="none"
             stroke={statusMeta.strokeColor}
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            initial={reduce ? { pathLength: 1 } : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={glide(reduce, GLIDE.figure)}
           />
 
           {/* X-axis ticks */}

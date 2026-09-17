@@ -1,4 +1,5 @@
-import { Card } from '@/components/ui'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Card, GLIDE, glide } from '@/components/ui'
 import { formatCurrency } from '@/utils'
 import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 
@@ -24,6 +25,7 @@ interface AdherenceDiagnosticProps {
  * a card that silently swallows clicks gives no hint that it would.
  */
 export function AdherenceDiagnostic({ healthScore, totalIncome, totalDebit, onClick }: AdherenceDiagnosticProps) {
+  const reduce = useReducedMotion()
   const band =
     healthScore >= 80
       ? { label: 'Close to balanced', color: 'var(--status-positive-text)', Icon: CheckCircle2 }
@@ -42,7 +44,11 @@ export function AdherenceDiagnostic({ healthScore, totalIncome, totalDebit, onCl
       <div className="relative h-28 w-28">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true" focusable="false">
           <circle cx="50" cy="50" r={R} fill="none" stroke="#e6ede8" strokeWidth="8" />
-          <circle
+          {/* Fills from 0 on first arrival, and re-animates old value → new
+              value whenever the score itself changes (a fresh `animate`
+              target on an already-mounted element interpolates rather than
+              resetting to 0). */}
+          <motion.circle
             cx="50"
             cy="50"
             r={R}
@@ -50,7 +56,9 @@ export function AdherenceDiagnostic({ healthScore, totalIncome, totalDebit, onCl
             stroke={band.color}
             strokeWidth="8"
             strokeLinecap="round"
-            strokeDasharray={`${filled} ${CIRCUMFERENCE}`}
+            initial={reduce ? false : { strokeDasharray: `0 ${CIRCUMFERENCE}` }}
+            animate={{ strokeDasharray: `${filled} ${CIRCUMFERENCE}` }}
+            transition={glide(reduce, GLIDE.figure)}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

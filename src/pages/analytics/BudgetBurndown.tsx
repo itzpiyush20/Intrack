@@ -1,8 +1,12 @@
-import { Card, Badge, EmptyState, Skeleton } from '@/components/ui'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Card, Badge, EmptyState, Skeleton, GLIDE, GLIDE_EASE, glide } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import { Gauge, AlertTriangle, Eye, Check } from 'lucide-react'
 import { NEUTRAL_MARK, CARD_TITLE, CARD_SUBTITLE } from './chartTokens'
+
+/** Sanitizes a category name into a usable SVG id fragment. */
+const clipId = (category: string) => `budget-burndown-clip-${category.replace(/[^a-zA-Z0-9]/g, '-')}`
 
 export interface BudgetBurndownItem {
   category: string
@@ -35,6 +39,7 @@ function buildPoints(values: number[], maxY: number, width: number, height: numb
 
 export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndownProps) {
   const { getStyle } = useCategories()
+  const reduce = useReducedMotion()
   const WIDTH = 100
   const HEIGHT = 40
 
@@ -129,26 +134,60 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                       aria-hidden="true"
                       focusable="false"
                     >
-                      {/* Ideal even-pace line. */}
-                      <polyline
+                      {/*
+                        The actual-spend line draws in left-to-right on first
+                        arrival via a clip rect that widens 0 → WIDTH, not
+                        framer's `pathLength` dash trick. `pathLength` sets
+                        stroke-dasharray/stroke-dashoffset in path-length units;
+                        combined with `vectorEffect="non-scaling-stroke"` *and*
+                        `preserveAspectRatio="none"` (this chart's viewBox is
+                        100×40 stretched to fill a wide, short box — a
+                        non-uniform scale), browsers disagree on how a
+                        non-scaling stroke's dash pattern should be computed
+                        under anisotropic scaling, so the drawn length can come
+                        out visibly wrong. A clip-path rect is plain geometry in
+                        the same user-space the polyline is drawn in, so it is
+                        unaffected by either the vector-effect or the aspect
+                        ratio — correct at any width. */}
+                      <defs>
+                        <clipPath id={clipId(item.category)}>
+                          <motion.rect
+                            x={0}
+                            y={0}
+                            height={HEIGHT}
+                            initial={reduce ? { width: WIDTH } : { width: 0 }}
+                            animate={{ width: WIDTH }}
+                            transition={glide(reduce, GLIDE.figure)}
+                          />
+                        </clipPath>
+                      </defs>
+                      {/* Ideal even-pace line. Dashed, so it fades in by
+                          opacity rather than drawing with pathLength — a
+                          pathLength sweep breaks a dash pattern into moving
+                          fragments instead of revealing the line. */}
+                      <motion.polyline
                         points={idealPoints}
                         fill="none"
                         stroke={NEUTRAL_MARK}
                         strokeWidth="1"
                         strokeDasharray="3,2"
                         vectorEffect="non-scaling-stroke"
+                        initial={reduce ? { opacity: 1 } : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={glide(reduce, GLIDE.base)}
                       />
-                      {/* Actual cumulative spend so far */}
+                      {/* Actual cumulative spend so far — drawn in via the clip rect above. */}
                       <polyline
                         points={actualPoints}
                         fill="none"
                         stroke={cat.color}
                         strokeWidth="1.75"
                         vectorEffect="non-scaling-stroke"
+                        clipPath={`url(#${clipId(item.category)})`}
                       />
-                      {/* Projected trajectory to month end */}
+                      {/* Projected trajectory to month end — fades in after the actual line has drawn. */}
                       {item.daysElapsed < item.daysInMonth && (
-                        <line
+                        <motion.line
                           x1={lastActualX}
                           y1={lastActualY}
                           x2={WIDTH}
@@ -156,8 +195,12 @@ export function BudgetBurndown({ data, loading, onCategoryClick }: BudgetBurndow
                           stroke={cat.color}
                           strokeWidth="1.25"
                           strokeDasharray="2,2"
-                          opacity="0.6"
                           vectorEffect="non-scaling-stroke"
+                          initial={reduce ? { opacity: 0.6 } : { opacity: 0 }}
+                          animate={{ opacity: 0.6 }}
+                          transition={
+                            reduce ? { duration: 0 } : { duration: GLIDE.base, delay: GLIDE.figure, ease: GLIDE_EASE }
+                          }
                         />
                       )}
                     </svg>

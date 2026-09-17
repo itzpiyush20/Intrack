@@ -88,10 +88,20 @@ export const TOOLTIP =
  * reachable by keyboard and announced as an action; the focus ring is part of
  * the recipe because a chart with an invisible focus ring is a chart a
  * keyboard user cannot navigate.
+ *
+ * Also carries the hover-focus recipe for the row of columns it sits in: the
+ * row wrapper is a named group (`group/bars`), and pointing at any one column
+ * dims the rest to 0.55 opacity while the pointed-at one stays full — the
+ * column's own `:hover` (not `group-hover`) wins over the dimmed state with
+ * `!opacity-100`. Desktop-only (`@media(hover:hover)`), so a touch tap that
+ * fires `:hover` sticky-state on mobile does not leave every other column
+ * dimmed until the next tap elsewhere.
  */
 export const CHART_COLUMN =
   'group relative flex h-full min-w-11 flex-1 cursor-pointer flex-col items-center justify-end ' +
-  'rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40'
+  'rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ' +
+  'transition-opacity duration-[220ms] ease-[cubic-bezier(0.33,1,0.68,1)] ' +
+  '[@media(hover:hover)]:group-hover/bars:opacity-[0.55] [@media(hover:hover)]:hover:!opacity-100'
 
 /** Wide content scrolls inside itself; the page body never scrolls sideways. */
 export const CHART_SCROLLER = 'w-full overflow-x-auto scrollbar-none pb-1'

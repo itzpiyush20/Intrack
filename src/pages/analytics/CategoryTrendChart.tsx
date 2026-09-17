@@ -113,7 +113,7 @@ export function CategoryTrendChart({ data, loading, hasTransactions, onSegmentCl
                   ))}
                 </div>
 
-                <div className="relative flex h-full items-end justify-between gap-1.5 sm:gap-5 md:gap-7">
+                <div className="group/bars relative flex h-full items-end justify-between gap-1.5 sm:gap-5 md:gap-7">
                   {data.map((m, index) => {
                     const open = tappedIndex === index
                     const visible = m.segments.filter((s) => s.amount > 0)
