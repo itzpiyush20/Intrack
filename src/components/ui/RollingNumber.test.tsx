@@ -93,5 +93,15 @@ describe('RollingNumber', () => {
       rerender(<RollingNumber value={142850} format={rupees} />)
       expect(screen.getByText('₹1,42,850')).toBeDefined()
     })
+
+    it('renders a compact figure with a unit letter, e.g. formatCurrencyCompact\'s "₹1.2L"', () => {
+      // The unit letter ("L", "Cr", "K") is a non-digit token like ₹ or a
+      // comma — splitForRolling must not choke on it or treat it as a digit.
+      const compact = (n: number) => `₹${(n / 100000).toFixed(1)}L`
+      const { container } = render(<RollingNumber value={120000} format={compact} />)
+      expect(screen.getByText('₹1.2L')).toBeDefined()
+      // Digit slots: '1' and '2' only — ₹, '.', and 'L' are static tokens.
+      expect(container.querySelectorAll('[data-roll-slot]').length).toBe(2)
+    })
   })
 })

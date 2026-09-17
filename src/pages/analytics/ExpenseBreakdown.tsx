@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { AnimatedNumber, Card, EmptyState, Skeleton, DURATION, EASE_OUT } from '@/components/ui'
+import { Card, EmptyState, Skeleton, DURATION, EASE_OUT, RollingNumber } from '@/components/ui'
 import { formatCurrency, formatCurrencyCompact } from '@/utils'
 import { useCategories } from '@/context/CategoriesContext'
 import { PieChart } from 'lucide-react'
@@ -116,7 +116,7 @@ export function ExpenseBreakdown({
               />
               <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full bg-surface-1 shadow-inner sm:h-28 sm:w-28">
                 <p className="text-xs font-semibold uppercase tracking-wider text-sb-ink-muted">Total out</p>
-                <AnimatedNumber
+                <RollingNumber
                   value={summary.total_expenses}
                   format={formatCurrencyCompact}
                   duration={DURATION.data}
@@ -125,7 +125,7 @@ export function ExpenseBreakdown({
               </div>
             </div>
 
-            <ul className="w-full max-w-sm flex-1 space-y-1">
+            <ul className="w-full max-w-sm flex-1 space-y-1 group/rows">
               {rows.map((item) => {
                 const cat = getStyle(item.category)
                 const amount = formatCurrency(item.amount)
@@ -136,7 +136,7 @@ export function ExpenseBreakdown({
                       disabled={!onCategoryClick}
                       onClick={onCategoryClick ? () => onCategoryClick(item.category) : undefined}
                       aria-label={`${cat.label}: ${amount}, ${item.percentage.toFixed(0)} percent of spending. Open its transactions.`}
-                      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-default disabled:hover:bg-transparent"
+                      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2.5 py-1.5 text-left transition-[background-color,opacity] duration-[220ms] ease-[cubic-bezier(0.33,1,0.68,1)] hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-default disabled:hover:bg-transparent [@media(hover:hover)]:group-hover/rows:opacity-[0.55] [@media(hover:hover)]:hover:!opacity-100 focus-visible:!opacity-100"
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <span

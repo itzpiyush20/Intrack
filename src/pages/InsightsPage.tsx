@@ -15,7 +15,7 @@ import {
   EmptyState,
   Skeleton,
   DateFilterPicker,
-  AnimatedNumber,
+  RollingNumber,
   PageHeader,
   PageHeaderChip,
   panelVariants,
@@ -248,7 +248,7 @@ function PeriodSummary({
                 <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" style={{ color: tile.color }} />
                 {tile.label}
               </p>
-              <AnimatedNumber
+              <RollingNumber
                 value={tile.value}
                 format={formatCurrency}
                 className="mt-2 block truncate text-xl font-extrabold tracking-tight tnum sm:text-2xl lg:text-3xl"

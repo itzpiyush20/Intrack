@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Button from './Button'
+import SlidingIndicator from './SlidingIndicator'
 import { cn, getCurrentMonth, resolveDateFilter, type DateFilter } from '@/utils'
 
 interface DateFilterPickerProps {
@@ -28,6 +29,9 @@ function todayStr(): string {
 
 export default function DateFilterPicker({ value, onChange, maxMonth, className }: DateFilterPickerProps) {
   const max = maxMonth ?? getCurrentMonth()
+  // Unique per instance so two pickers on the same page (e.g. a modal over
+  // the page behind it) don't share one sliding highlight via layoutId.
+  const indicatorId = useId()
 
   // Remembers the last month viewed in Month mode, so switching Custom -> Month
   // restores where the user left off instead of jumping back to the current month.
@@ -66,11 +70,17 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
           aria-selected={value.mode === 'month'}
           onClick={switchToMonth}
           className={cn(
-            'px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            value.mode === 'month' ? 'bg-surface-1 text-sb-ink shadow-xs border border-sb-hairline' : 'text-sb-ink-muted hover:text-sb-ink'
+            'relative px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-colors cursor-pointer',
+            value.mode === 'month' ? 'text-sb-ink' : 'text-sb-ink-muted hover:text-sb-ink'
           )}
         >
-          Month
+          {value.mode === 'month' && (
+            <SlidingIndicator
+              layoutId={`date-filter-mode-${indicatorId}`}
+              className="rounded-md bg-surface-1 shadow-xs border border-sb-hairline"
+            />
+          )}
+          <span className="relative z-10">Month</span>
         </button>
         <button
           type="button"
@@ -78,11 +88,17 @@ export default function DateFilterPicker({ value, onChange, maxMonth, className 
           aria-selected={value.mode === 'custom'}
           onClick={switchToCustom}
           className={cn(
-            'px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            value.mode === 'custom' ? 'bg-surface-1 text-sb-ink shadow-xs border border-sb-hairline' : 'text-sb-ink-muted hover:text-sb-ink'
+            'relative px-2.5 py-1.5 min-h-9 rounded-md text-xs font-semibold transition-colors cursor-pointer',
+            value.mode === 'custom' ? 'text-sb-ink' : 'text-sb-ink-muted hover:text-sb-ink'
           )}
         >
-          Custom
+          {value.mode === 'custom' && (
+            <SlidingIndicator
+              layoutId={`date-filter-mode-${indicatorId}`}
+              className="rounded-md bg-surface-1 shadow-xs border border-sb-hairline"
+            />
+          )}
+          <span className="relative z-10">Custom</span>
         </button>
       </div>
 

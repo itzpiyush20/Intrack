@@ -23,7 +23,7 @@ import { AppLayout } from '@/layouts'
 import { useNextScan } from '@/hooks'
 import {
   Card, Button, EmptyState, Modal, DateFilterPicker, TransactionIdentity, Skeleton, PageHeader,
-  AnimatedNumber, AnimatedBar,
+  AnimatedBar, RollingNumber,
   staggerParent, staggerChild, rowVariants, transition, SECTION_LABEL, ROW_TILE,
 } from '@/components/ui'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
@@ -1059,7 +1059,7 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">Inflow</span>
                     </div>
-                    <AnimatedNumber
+                    <RollingNumber
                       value={summary?.total_income || 0}
                       format={formatCurrency}
                       className="mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-[var(--status-positive-text)]"
@@ -1081,7 +1081,7 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-sb-ink-muted">Outflow</span>
                     </div>
-                    <AnimatedNumber
+                    <RollingNumber
                       value={summary?.total_expenses || 0}
                       format={formatCurrency}
                       className="mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum text-sb-ink"
@@ -1106,7 +1106,7 @@ export default function DashboardPage() {
                         {(summary?.savings || 0) >= 0 ? 'Surplus' : 'Deficit'}
                       </span>
                     </div>
-                    <AnimatedNumber
+                    <RollingNumber
                       value={summary?.savings || 0}
                       format={formatCurrency}
                       className={`mt-4 block text-3xl sm:text-4xl font-extrabold tracking-tight tnum ${
@@ -1346,7 +1346,7 @@ export default function DashboardPage() {
                       variants={staggerParent(reduce, CATEGORY_BREAKDOWN_PREVIEW_COUNT)}
                       initial="initial"
                       animate="animate"
-                      className="space-y-1"
+                      className="space-y-1 group/rows"
                     >
                       {(showAllCategories
                         ? summary.category_breakdown
@@ -1363,7 +1363,7 @@ export default function DashboardPage() {
                               type="button"
                               onClick={() => handleCategoryClick(item.category)}
                               aria-label={`${cat.label}: ${formatCurrency(item.amount)} across ${item.count} transactions`}
-                              className="-mx-2 w-full space-y-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-surface-2/60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                              className="-mx-2 w-full space-y-2 rounded-xl px-2 py-2.5 text-left transition-[background-color,opacity] duration-[220ms] ease-[cubic-bezier(0.33,1,0.68,1)] hover:bg-surface-2/60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 [@media(hover:hover)]:group-hover/rows:opacity-[0.55] [@media(hover:hover)]:hover:!opacity-100 focus-visible:!opacity-100"
                             >
                               <div className="flex items-baseline justify-between gap-3">
                                 <span className="flex min-w-0 items-baseline gap-2">
