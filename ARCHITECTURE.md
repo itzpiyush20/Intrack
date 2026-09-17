@@ -353,9 +353,9 @@ it must stay at zero.
 `glide()` (owner-chosen "Softer" no-overshoot curve at 1.1x speed). Blocks in
 `src/components/ui/`: `RollingNumber`, `SlidingIndicator`, `MorphSurface`,
 `SwipeCard`. No haptics: Intrack ships as a website only, so vibration was
-dropped (owner, 2026-09-17). Older motion exports
-(`EASE_OUT`, `DURATION`, `rowVariants`…) are still used by existing screens and
-are being migrated round by round.
+dropped (owner, 2026-09-17). The older motion names (`EASE_OUT`, `DURATION`,
+`INDICATOR_SPRING`, `rowVariants`…) are aliases of the glide values, so existing
+screens already move with the chosen feel.
 
 ---
 

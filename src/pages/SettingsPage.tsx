@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AppLayout } from '@/layouts'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Card, Button, Input, Select, Modal, EmptyState, PageHeader, PageHeaderChip, ACTION_BUTTON_DANGER } from '@/components/ui'
+import { Card, Button, Input, Select, Modal, EmptyState, PageHeader, PageHeaderChip, ACTION_BUTTON_DANGER, GLIDE, glide } from '@/components/ui'
 import {
   getMerchantRules,
   deleteMerchantRule,
@@ -679,7 +679,7 @@ export default function SettingsPage() {
                       layoutId="settings-tab-indicator"
                       aria-hidden="true"
                       className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                      transition={glide(reduceMotion)}
                     />
                   )}
                   <Icon className="h-4 w-4 shrink-0 relative" />
@@ -700,7 +700,7 @@ export default function SettingsPage() {
                 initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
-                transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+                transition={glide(reduceMotion, GLIDE.fast)}
                 className="space-y-6"
               >
           {tab === 'general' && (
@@ -914,7 +914,7 @@ export default function SettingsPage() {
                         initial={reduceMotion ? false : { opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
-                        transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+                        transition={glide(reduceMotion, GLIDE.fast)}
                         className="flex flex-col gap-3 p-3 rounded-xl bg-surface-1 border border-sb-hairline shadow-xs transition-all hover:border-brand-500/30 hover:shadow-card sm:flex-row sm:items-center sm:gap-2"
                       >
                         <span className="text-sm font-semibold text-sb-ink capitalize truncate sm:flex-1">

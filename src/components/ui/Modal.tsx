@@ -1,10 +1,11 @@
 import { type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/utils'
 import { useDialog } from '@/hooks'
 import Button from './Button'
+import { GLIDE, glide } from './motion'
 
 interface ModalProps {
   isOpen: boolean
@@ -26,6 +27,7 @@ export default function Modal({
   className,
   sheet = false,
 }: ModalProps) {
+  const reduce = useReducedMotion()
 
   // Escape, scroll lock, focus trap and focus restore all live in useDialog so
   // this modal and AuthModal cannot drift apart. This used to handle only the
@@ -43,8 +45,8 @@ export default function Modal({
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: glide(reduce, GLIDE.base) }}
+            exit={{ opacity: 0, transition: glide(reduce, GLIDE.fast) }}
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
           />
@@ -56,17 +58,9 @@ export default function Modal({
             aria-modal="true"
             aria-label={title}
             tabIndex={-1}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              transition: { type: 'spring', damping: 25, stiffness: 350 }
-            }}
-            exit={{
-              opacity: 0,
-              y: 20,
-              transition: { duration: 0.2 }
-            }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0, transition: glide(reduce, GLIDE.slow) }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12, transition: glide(reduce, GLIDE.fast) }}
             className={cn(
               "relative w-full max-w-lg bg-surface-1 border border-sb-hairline shadow-2xl flex flex-col max-h-[75svh] overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-transparent before:via-brand-500/40 before:to-transparent",
               sheet ? "rounded-t-3xl sm:rounded-2xl max-h-[92svh] sm:max-h-[75svh]" : "rounded-2xl",

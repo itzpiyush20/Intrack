@@ -441,9 +441,10 @@ html { scroll-behavior: smooth; }
 .stagger-7 { animation-delay: 0.21s; }
 .stagger-8 { animation-delay: 0.24s; }
 
-.animate-fade-in   { animation: fade-in 0.30s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-slide-up  { animation: slide-up 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-scale-up  { animation: scale-up 0.20s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Owner-chosen motion (2026-09-17): "Softer" curve at 1.1x — matches GLIDE in src/components/ui/motion.ts. */
+.animate-fade-in   { animation: fade-in 0.33s cubic-bezier(0.33, 1, 0.68, 1) both; }
+.animate-slide-up  { animation: slide-up 0.37s cubic-bezier(0.33, 1, 0.68, 1) both; }
+.animate-scale-up  { animation: scale-up 0.22s cubic-bezier(0.33, 1, 0.68, 1) both; }
 .animate-slide-down { animation: slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-slide-left { animation: slide-left 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-spin-slow { animation: spin-slow 8s linear infinite; }

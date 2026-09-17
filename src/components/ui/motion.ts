@@ -8,9 +8,10 @@
 // subtle, smooth glide, no bounce, fitted to what each screen is for, and
 // never slower. Animate transform and opacity; no blur or filters.
 //
-// The `GLIDE*` tokens below are the new system. The older exports further
-// down are still used by existing screens and are migrated to glide one
-// rollout round at a time — do not add new uses of them.
+// The `GLIDE*` tokens below are the system. The older names further down
+// (`EASE_OUT`, `DURATION`, `INDICATOR_SPRING`, the variants) are kept because
+// existing screens import them, but they now point at the glide values, so
+// every screen moves with the same curve. Prefer `glide()` in new code.
 //
 // Every consumer passes `useReducedMotion()` in, so a visitor who asked for
 // less motion gets none.
@@ -46,23 +47,26 @@ export const glide = (
   ease: Bezier = GLIDE_EASE,
 ): Transition => (reduce ? { duration: 0 } : { duration, ease })
 
-/**
- * Exponential ease-out. Fast to start, settling at the end — the curve that
- * reads as responsive rather than as animation. No bounce, no elastic.
- */
-export const EASE_OUT = [0.16, 1, 0.3, 1] as const
+/** Older name for `GLIDE_EASE`, kept for existing imports. */
+export const EASE_OUT = GLIDE_EASE
 
 /**
- * 180ms for anything the user is waiting on; 240ms for larger surfaces.
- *
- * `data` is the outlier and deliberately so: a figure counting up or a bar
- * growing is not interface feedback the user is blocked on, it is the value
- * itself being reported, and it needs long enough to be read as arriving.
+ * Older duration names, mapped onto the glide scale: small feedback (`fast`,
+ * `base`) is `GLIDE.fast`, a larger surface (`slow`) is `GLIDE.base`, and a
+ * figure or bar arriving (`data`) is `GLIDE.figure`.
  */
-export const DURATION = { fast: 0.14, base: 0.18, slow: 0.24, data: 0.65 } as const
+export const DURATION = {
+  fast: GLIDE.fast,
+  base: GLIDE.fast,
+  slow: GLIDE.base,
+  data: GLIDE.figure,
+} as const
 
-/** The spring a travelling indicator uses (an active tab marker, a toggle). */
-export const INDICATOR_SPRING: Transition = { type: 'spring', stiffness: 420, damping: 36 }
+/**
+ * How a travelling indicator moves (an active tab marker, a toggle). The name
+ * is historical: it was a spring, and is now the glide so it cannot overshoot.
+ */
+export const INDICATOR_SPRING: Transition = { duration: GLIDE.base, ease: GLIDE_EASE }
 
 /** Base transition, collapsed to nothing when reduced motion is requested. */
 export const transition = (reduce: boolean | null, duration: number = DURATION.base): Transition =>

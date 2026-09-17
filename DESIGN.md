@@ -91,25 +91,31 @@ sm:px-6` so it reads as scrollable.
 
 ## Motion
 
-> **Superseded 2026-09-16.** The owner scrapped the rules below. The new
-> direction — smooth glide, no bounce, subtle, use-driven, never slower — is in
-> `docs/superpowers/specs/2026-09-16-app-motion-design.md`. This section is
-> rewritten when that work lands; until then it describes the code as shipped,
-> not a rule to follow.
-> The new tokens and blocks already exist (`GLIDE`, `glide()`, `RollingNumber`,
-> `SlidingIndicator`, `MorphSurface`, `SwipeCard`); screens adopt them
-> round by round.
+Direction (owner, 2026-09-16/17; full design in
+`docs/superpowers/specs/2026-09-16-app-motion-design.md`): subtle, smooth glide,
+**no bounce or overshoot**, used only where it helps the screen, and never
+slower. Animate `transform` and `opacity` (plus framer `layout` for morphs).
 
-Motion says *something changed* and nothing else. The three shapes in use:
-a single indicator that travels between tabs (`layoutId`, spring 420/36), a panel
-handing over to the next (180ms, `cubic-bezier(0.16, 1, 0.3, 1)`, 6px rise), and
-list rows that fade in on arrival and slide out on removal. Every one is gated on
-`useReducedMotion()` and collapses to `duration: 0`.
+**Tokens** (`src/components/ui/motion.ts`): curve `cubic-bezier(0.33, 1, 0.68, 1)`
+("Softer", picked in `/motion-lab`), durations `GLIDE` — `fast` 0.22s, `base`
+0.33s, `slow` 0.55s, `figure` 0.88s — and `glide(reduce, duration)`. The older
+names `EASE_OUT`, `DURATION`, `INDICATOR_SPRING`, `transition()` and the
+variants point at the same values, so every screen moves alike. The three CSS
+entrance classes in `index.css` (`animate-fade-in`, `-slide-up`, `-scale-up`)
+use the same curve. A test in `motion.test.ts` fails if a signed-in screen
+hand-types the old curve or a spring.
 
-Restrained, state-conveying only: 150–250ms transitions, subtle fade/slide/scale
-entrances, list stagger ≤0.24s. **Removed**: float, glow-pulse, aurora-drift,
-button shimmer sweep, gradient-border hover (kept as neutralized no-ops so legacy
-class references stay safe). `prefers-reduced-motion` collapses all of it.
+**In place across the signed-in app:** page changes rise 8px (transform only —
+see the note in `App.tsx`); popups rise and fade in, drop and fade out; the
+active nav item carries a highlight (`layoutId`) in the desktop sidebar and the
+mobile bottom bar — each page mounts its own `AppLayout`, so after a lazy route
+load the highlight may simply appear rather than travel;
+buttons and tappable cards press to 97%; list rows glide in and slide out,
+neighbours closing up via `layout`. Blocks for later rounds: `RollingNumber`,
+`SlidingIndicator`, `MorphSurface`, `SwipeCard`.
+
+Under `prefers-reduced-motion` movement collapses to `duration: 0`. Marketing
+pages (landing, pricing, about) keep their own motion and are outside this brief.
 
 ## Retired (do not reintroduce)
 

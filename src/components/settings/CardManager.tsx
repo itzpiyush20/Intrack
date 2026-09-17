@@ -29,6 +29,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Card, Button, Input, Modal, ConfirmDialog, EmptyState, ACTION_BUTTON, ACTION_BUTTON_DANGER,
+  GLIDE, glide,
 } from '@/components/ui'
 import { useToast } from '@/context'
 import {
@@ -229,7 +230,7 @@ export default function CardManager() {
         initial={reduceMotion ? false : { opacity: 0, y: -4 }}
         animate={{ opacity: 1, y: 0 }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
-        transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+        transition={glide(reduceMotion, GLIDE.fast)}
         className="rounded-xl border border-sb-hairline bg-surface-1 shadow-xs p-4 transition-all hover:border-brand-500/30 hover:shadow-card"
       >
         <div className="flex items-start gap-3">

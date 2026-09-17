@@ -9,7 +9,7 @@ import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { transition } from '@/components/ui'
+import { SlidingIndicator, glide, transition } from '@/components/ui'
 import { useAuth, useToast } from '@/context'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -534,7 +534,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           layoutId="desktop-sidebar-active"
                           aria-hidden="true"
                           className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/80 shadow-xs"
-                          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                          transition={glide(reduceMotion)}
                         />
                       )}
                       <Icon className={cn("h-4 w-4 shrink-0 relative transition-transform duration-150 group-hover:scale-105", isActive ? "text-brand-600" : "text-sb-ink-muted group-hover:text-sb-ink")} />
@@ -1427,11 +1427,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   aria-label={aria}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                    'relative flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                     isActive ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
                   )}
                 >
+                  {isActive && (
+                    <SlidingIndicator layoutId="mobile-tab-active" className="inset-x-5 top-0 bottom-auto h-[3px] rounded-b-full bg-brand-500" />
+                  )}
                   <TabIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">{label}</span>
                 </Link>
@@ -1465,11 +1468,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               }
               aria-current={location.pathname === ROUTES.PENDING ? 'page' : undefined}
               className={cn(
-                'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                'relative flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                 location.pathname === ROUTES.PENDING ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
               )}
             >
+              {location.pathname === ROUTES.PENDING && (
+                <SlidingIndicator layoutId="mobile-tab-active" className="inset-x-5 top-0 bottom-auto h-[3px] rounded-b-full bg-brand-500" />
+              )}
               <span className="relative inline-flex shrink-0">
                 <Bell className="h-5 w-5" aria-hidden="true" />
                 {notifications.length > 0 && (
@@ -1490,11 +1496,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               aria-label="Insights"
               aria-current={location.pathname === ROUTES.INSIGHTS ? 'page' : undefined}
               className={cn(
-                'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
+                'relative flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                 location.pathname === ROUTES.INSIGHTS ? 'text-brand-600 font-semibold' : 'text-sb-ink-muted hover:text-sb-ink'
               )}
             >
+              {location.pathname === ROUTES.INSIGHTS && (
+                <SlidingIndicator layoutId="mobile-tab-active" className="inset-x-5 top-0 bottom-auto h-[3px] rounded-b-full bg-brand-500" />
+              )}
               <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span className="text-[10.5px] sm:text-xs font-medium tracking-tight truncate max-w-full">Insights</span>
             </Link>

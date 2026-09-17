@@ -15,7 +15,7 @@
 import { useEffect, useState } from 'react'
 import { APP_CONFIG } from '@/constants'
 import { AppLayout } from '@/layouts'
-import { PageHeader, PageHeaderChip } from '@/components/ui'
+import { GLIDE, PageHeader, PageHeaderChip, glide } from '@/components/ui'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { cn } from '@/utils'
 import {
@@ -95,7 +95,7 @@ export default function AdminPage() {
                       layoutId="admin-tab-indicator"
                       aria-hidden="true"
                       className="absolute inset-0 rounded-xl bg-brand-50 border border-brand-200/70 shadow-xs"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                      transition={glide(reduceMotion)}
                     />
                   )}
                   <Icon className="h-4 w-4 shrink-0 relative" />
@@ -115,7 +115,7 @@ export default function AdminPage() {
                 initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
-                transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+                transition={glide(reduceMotion, GLIDE.fast)}
               >
                 {tab === 'overview' && <OverviewTab />}
                 {tab === 'users' && <UsersTab />}

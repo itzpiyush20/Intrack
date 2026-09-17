@@ -15,7 +15,7 @@ import CookieConsent from '@/components/CookieConsent'
 import URLAuthTrigger from '@/components/auth/URLAuthTrigger'
 import AuthModal from '@/components/auth/AuthModal'
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar'
-import { PageSkeleton } from '@/components/ui'
+import { GLIDE, GLIDE_EASE, PageSkeleton } from '@/components/ui'
 import { applyLightTheme, clearStoredTheme } from '@/utils/theme'
 import { setCanonical } from '@/utils/seo'
 import { lazyWithRetry, prefetchOnIntent } from '@/utils/chunkLoad'
@@ -157,9 +157,9 @@ function AnimatedRoutes() {
         // a stalled animation would leave the ENTIRE app (nav + content) at opacity:0
         // — a blank white screen with a correct page title. A stalled transform only
         // leaves content a few px off, so the app is always visible regardless.
-        initial={{ y: 14 }}
+        initial={{ y: 8 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.30, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: GLIDE.base, ease: GLIDE_EASE }}
         style={{ minHeight: '100vh' }}
       >
         <Routes location={location}>
