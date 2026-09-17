@@ -19,6 +19,9 @@ import { submitFeedback, supabase } from '@/services'
 import { getActiveReceivables } from '@/services/transactions'
 import NewTransactionModal from '@/components/dashboard/NewTransactionModal'
 import {
+  OPEN_ADD_TRANSACTION_EVENT, addTransactionOrigin, openAddTransaction, type ViewportPoint,
+} from '@/components/ui/modalOrigin'
+import {
   Bell,
   User,
   Settings,
@@ -342,11 +345,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   // Add Transaction Modal
   const [newTxModalOpen, setNewTxModalOpen] = useState(false)
+  // Where the tapped Add button sits, so the popup grows out of it.
+  const [newTxOrigin, setNewTxOrigin] = useState<ViewportPoint | undefined>(undefined)
 
   useEffect(() => {
-    const handleOpenAdd = () => setNewTxModalOpen(true)
-    window.addEventListener('intrack:open-add-transaction', handleOpenAdd)
-    return () => window.removeEventListener('intrack:open-add-transaction', handleOpenAdd)
+    const handleOpenAdd = (event: Event) => {
+      setNewTxOrigin(addTransactionOrigin(event))
+      setNewTxModalOpen(true)
+    }
+    window.addEventListener(OPEN_ADD_TRANSACTION_EVENT, handleOpenAdd)
+    return () => window.removeEventListener(OPEN_ADD_TRANSACTION_EVENT, handleOpenAdd)
   }, [])
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature_request' | 'ui_ux' | 'other'>('ui_ux')
   const [feedbackRating, setFeedbackRating] = useState<number>(5)
@@ -1369,6 +1377,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         open={newTxModalOpen}
         onClose={() => setNewTxModalOpen(false)}
         onAdded={() => setNewTxModalOpen(false)}
+        origin={newTxOrigin}
       />
 
       {/* PWA Install Banner for Mobile Viewports.
@@ -1445,7 +1454,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="flex-1 flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => setNewTxModalOpen(true)}
+                onClick={(e) => openAddTransaction(e.currentTarget)}
                 className={cn(
                   'flex h-12 w-12 items-center justify-center rounded-2xl shadow-md shadow-brand-500/25 transition-all active:scale-95 cursor-pointer',
                   'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:bg-[var(--btn-primary-bg-active)] text-[var(--btn-primary-fg)]',

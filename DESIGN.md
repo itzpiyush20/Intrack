@@ -121,6 +121,20 @@ once on arrival; hovering a bar or category row dims its siblings (pointer
 devices only, via `[@media(hover:hover)]`). Blocks waiting for later rounds:
 `MorphSurface`, `SwipeCard`.
 
+**Expenses and the Add form:** every Add Transaction button opens the one form
+from where the button sits — `Modal`'s optional `origin` (viewport px, from
+`openAddTransaction(button)` / `centreOf`) makes the panel grow from 92 % to
+full size with its transform-origin on that point, over `GLIDE.slow`, and close
+back toward it over `GLIDE.fast`. A bottom sheet on a phone keeps the plain
+rise, since scaling would lift it off the screen edge; edit keeps the rise too.
+Under reduced motion the popup only fades. On Expenses, the row just added or
+edited carries an evergreen wash (`bg-brand-500/10`, behind the row content)
+that fades over 1.2s after a short beat; it is opacity only, so it stays under
+reduced motion without the beat. Deleting a row removes it as soon as the
+delete succeeds; it slides out and its neighbours close up via `layout`.
+Refetches after a save, delete, import or split keep the rows on screen rather
+than flashing the skeleton, which is what used to make the list jump.
+
 Under `prefers-reduced-motion` movement collapses to `duration: 0`. Marketing
 pages (landing, pricing, about) keep their own motion and are outside this brief.
 

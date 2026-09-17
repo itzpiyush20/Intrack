@@ -17,7 +17,7 @@
 // ============================================
 
 import { APP_CONFIG } from '@/constants'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type MouseEvent } from 'react'
 import { AppLayout } from '@/layouts'
 import {
   Card, Button, Modal, Input, Select, DateFilterPicker, PageHeader,
@@ -26,6 +26,8 @@ import {
 import { motion, useReducedMotion } from 'framer-motion'
 import TransactionForm from '@/components/transactions/TransactionForm'
 import ExpenseList from '@/components/expenses/ExpenseList'
+import { HIGHLIGHT_MS, pickHighlightId, type PendingHighlight } from '@/components/expenses/rowHighlight'
+import { centreOf, type ViewportPoint } from '@/components/ui/modalOrigin'
 import SplitBillModal from '@/components/expenses/SplitBillModal'
 import { fetchAllTransactions } from '@/services/transactions'
 import { cn, formatCurrency, getCurrentMonth, withTimeout, resolveDateFilter, creditCardBillCategoryNames, makeIsCreditCardBill, type DateFilter } from '@/utils'
@@ -57,6 +59,19 @@ export default function ExpensesPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>({ mode: 'month', month: getCurrentMonth() })
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
+  // Where the tapped Add button sits, so the form grows out of it. Cleared for
+  // an edit, which opens from a row and keeps the plain rise.
+  const [formOrigin, setFormOrigin] = useState<ViewportPoint | undefined>(undefined)
+
+  // The row just added or edited, tinted briefly so the user can find it.
+  // `key` changes on every save so saving the same row twice tints it twice.
+  const [highlight, setHighlight] = useState<{ id: string; key: number } | null>(null)
+  const pendingHighlight = useRef<PendingHighlight | null>(null)
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadedRows = useRef<TransactionRow[]>([])
+  useEffect(() => () => {
+    if (highlightTimer.current) clearTimeout(highlightTimer.current)
+  }, [])
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('')
@@ -66,8 +81,11 @@ export default function ExpensesPage() {
     () => (location.state as any)?.tag || 'all'
   )
 
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true)
+  // `quiet` keeps the rows on screen while refetching after a save or delete,
+  // so the list can glide rows in and out instead of flashing the skeleton.
+  // A first load, a range change and "Try again" still show the skeleton.
+  const fetchTransactions = useCallback(async (quiet: boolean = false) => {
+    if (quiet !== true) setLoading(true)
     setError(null)
     try {
       // Pages through every row rather than taking PostgREST's default 1000-row
@@ -79,7 +97,17 @@ export default function ExpensesPage() {
         45000,
         'Transactions fetch'
       )
-      setTransactions(data || [])
+      const rows = data || []
+      loadedRows.current = rows
+      setTransactions(rows)
+
+      const id = pickHighlightId(pendingHighlight.current, rows)
+      pendingHighlight.current = null
+      if (id) {
+        setHighlight({ id, key: Date.now() })
+        if (highlightTimer.current) clearTimeout(highlightTimer.current)
+        highlightTimer.current = setTimeout(() => setHighlight(null), HIGHLIGHT_MS)
+      }
     } catch (err: any) {
       console.error('Error fetching transactions:', err)
       setError(err.message || 'Failed to load transactions.')
@@ -94,7 +122,10 @@ export default function ExpensesPage() {
   }, [fetchTransactions])
 
   useEffect(() => {
-    const handleTxAdded = () => fetchTransactions()
+    const handleTxAdded = () => {
+      pendingHighlight.current = { kind: 'added', knownIds: new Set(loadedRows.current.map((t) => t.id)) }
+      fetchTransactions(true)
+    }
     window.addEventListener('intrack:transaction-added', handleTxAdded)
     return () => window.removeEventListener('intrack:transaction-added', handleTxAdded)
   }, [fetchTransactions])
@@ -110,12 +141,21 @@ export default function ExpensesPage() {
     }
   }, [location.state])
 
+  const handleOpenAdd = (e: MouseEvent<HTMLElement>) => {
+    setFormOrigin(centreOf(e.currentTarget))
+    setShowForm(true)
+  }
+
   const handleEdit = (txn: TransactionRow) => {
+    setFormOrigin(undefined)
     setEditingTransaction(txn)
     setShowForm(true)
   }
 
   const handleSaved = () => {
+    pendingHighlight.current = editingTransaction
+      ? { kind: 'edited', id: editingTransaction.id }
+      : { kind: 'added', knownIds: new Set(loadedRows.current.map((t) => t.id)) }
     if (editingTransaction) {
       showToast('Transaction edited successfully')
     } else {
@@ -123,7 +163,7 @@ export default function ExpensesPage() {
     }
     setShowForm(false)
     setEditingTransaction(null)
-    fetchTransactions()
+    fetchTransactions(true)
   }
 
   const handleCancel = () => {
@@ -234,7 +274,7 @@ export default function ExpensesPage() {
                 <FileSpreadsheet className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" /> Import Statement
               </Button>
               <Button
-                onClick={() => setShowForm(true)}
+                onClick={handleOpenAdd}
                 className="h-11 justify-center gap-1.5 whitespace-nowrap font-semibold shadow-xs"
               >
                 <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
@@ -254,7 +294,7 @@ export default function ExpensesPage() {
             </p>
             <Button
               variant="secondary"
-              onClick={fetchTransactions}
+              onClick={() => fetchTransactions()}
               className="h-11 shrink-0 justify-center"
             >
               Try again
@@ -380,6 +420,7 @@ export default function ExpensesPage() {
           onClose={handleCancel}
           title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
           sheet
+          origin={formOrigin}
         >
           <TransactionForm
             key={editingTransaction?.id ?? 'new'}
@@ -394,7 +435,7 @@ export default function ExpensesPage() {
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
           onSuccess={() => {
-            fetchTransactions()
+            fetchTransactions(true)
           }}
         />
 
@@ -404,7 +445,7 @@ export default function ExpensesPage() {
           onClose={() => setSplittingTransaction(null)}
           transaction={splittingTransaction}
           onSplitComplete={() => {
-            fetchTransactions()
+            fetchTransactions(true)
           }}
         />
 
@@ -428,10 +469,11 @@ export default function ExpensesPage() {
             loading={loading}
             onEdit={handleEdit}
             onSplit={(txn) => setSplittingTransaction(txn)}
-            onRefresh={fetchTransactions}
+            onRefresh={() => fetchTransactions(true)}
+            highlight={highlight}
             isFiltered={isFiltered}
             emptyAction={
-              <Button onClick={() => setShowForm(true)} className="h-11 justify-center gap-1.5 font-semibold shadow-xs">
+              <Button onClick={handleOpenAdd} className="h-11 justify-center gap-1.5 font-semibold shadow-xs">
                 <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
               </Button>
             }

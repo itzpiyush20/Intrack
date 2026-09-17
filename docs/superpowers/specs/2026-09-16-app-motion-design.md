@@ -112,12 +112,26 @@ value instead of from zero when the value changes.
 
 ### Round 3 — Expenses and the Add Transaction form
 
-- The Add button morphs into the Add Transaction popup (`MorphSurface`). Same
-  single form everywhere, per the one-form decision.
-- A transaction just added gets a brief evergreen tint that fades, so the user
-  can see which row is new.
-- Delete: row collapses, neighbours slide up.
-- Filter chips and tabs glide their highlight.
+- The Add button opens the Add Transaction popup from where it sits — **done,
+  changed when built (2026-09-17):** not a `MorphSurface` `layoutId` morph. The
+  popup is a portal with its own entrance, and a 48px button stretched into a
+  full form reads as distortion. Instead `Modal` takes an `origin` (the tapped
+  button's centre) and the panel grows from ~92 % toward full size with its
+  transform-origin on that point, closing back toward it. Every Add button
+  passes it (`openAddTransaction(button)`). A phone bottom sheet keeps its
+  rise: it is attached to the screen edge, and scaling would pull it off that
+  edge mid-animation — and the FAB sits right under it, so the rise already
+  comes from the button. Same single form everywhere, per the one-form decision.
+- A transaction just added (or edited) gets a brief evergreen tint that fades —
+  **done.** The form reports no id, so Expenses notes the row ids it had before
+  its existing refetch and tints the one that appears (`rowHighlight.ts`).
+- Delete: row leaves, neighbours slide up — **done.** The real jump was the
+  refetch flashing the skeleton over the whole list; saves, deletes, imports
+  and splits now refetch quietly, and a deleted row is removed as soon as the
+  delete succeeds.
+- Filter chips and tabs glide their highlight — **already in place:** the only
+  tab control on Expenses is the date filter's Month/Custom (Round 2). The
+  direction, category and tag filters are native `<select>`s, left as is.
 
 ### Round 4 — Pending and scanning
 

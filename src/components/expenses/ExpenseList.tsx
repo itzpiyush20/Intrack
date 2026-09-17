@@ -19,7 +19,7 @@
 
 import {
   Card, Badge, EmptyState, ConfirmDialog, TransactionIdentity, Select, Skeleton,
-  ACTION_BUTTON, ACTION_BUTTON_DANGER, transition, rowVariants, staggerParent,
+  ACTION_BUTTON, ACTION_BUTTON_DANGER, transition, rowVariants, staggerParent, GLIDE, glide,
 } from '@/components/ui'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useCategories } from '@/context/CategoriesContext'
@@ -45,6 +45,11 @@ interface ExpenseListProps {
   isFiltered?: boolean
   /** Optional call-to-action rendered in the genuinely-empty state. */
   emptyAction?: ReactNode
+  /**
+   * The row just added or edited. It gets a brief evergreen tint that fades,
+   * so the user can see which row is new. A new `key` replays the tint.
+   */
+  highlight?: { id: string; key: number } | null
 }
 
 /**
@@ -64,13 +69,14 @@ const ROW_GRID = cn(
 const ROW_PADDING = 'px-4 py-3.5 sm:px-5'
 
 export default function ExpenseList({
-  transactions,
+  transactions: fetchedTransactions,
   loading,
   onEdit,
   onSplit,
   onRefresh,
   isFiltered = false,
   emptyAction,
+  highlight = null,
 }: ExpenseListProps) {
   const { categories, getStyle } = useCategories()
   const reduceMotion = useReducedMotion()
@@ -79,16 +85,24 @@ export default function ExpenseList({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  // Rows deleted here, hidden as soon as the delete succeeds so the row
+  // collapses and its neighbours glide up without waiting for the refetch.
+  const [removedIds, setRemovedIds] = useState<string[]>([])
+
+  const transactions = removedIds.length > 0
+    ? fetchedTransactions.filter((t) => !removedIds.includes(t.id))
+    : fetchedTransactions
 
   // Reset selection when transactions change
   useEffect(() => {
     setSelectedIds([])
-  }, [transactions])
+  }, [fetchedTransactions])
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
-    await deleteTransaction(id)
+    const { error } = await deleteTransaction(id)
     setDeletingId(null)
+    if (!error) setRemovedIds((prev) => [...prev, id])
     onRefresh()
   }
 
@@ -110,7 +124,8 @@ export default function ExpenseList({
     if (selectedIds.length === 0) return
     setIsBulkDeleting(true)
     try {
-      await bulkDeleteTransactions(selectedIds)
+      const { error } = await bulkDeleteTransactions(selectedIds)
+      if (!error) setRemovedIds((prev) => [...prev, ...selectedIds])
       setSelectedIds([])
       onRefresh()
     } catch (err) {
@@ -283,10 +298,25 @@ export default function ExpenseList({
                   className={cn(
                     ROW_GRID,
                     ROW_PADDING,
-                    'transition-colors',
+                    'relative isolate transition-colors',
                     isSelected ? 'bg-brand-500/[0.05]' : 'hover:bg-surface-2/50'
                   )}
                 >
+                  {/* Just added or edited: an evergreen wash that fades.
+                      Opacity only, behind the row's content (-z-10 inside
+                      the row's own stacking context). */}
+                  {highlight?.id === txn.id && (
+                    <motion.span
+                      key={highlight.key}
+                      aria-hidden="true"
+                      data-testid="row-new-tint"
+                      className="pointer-events-none absolute inset-0 -z-10 bg-brand-500/10"
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 0 }}
+                      transition={{ ...glide(false, 1.2), delay: reduceMotion ? 0 : GLIDE.base }}
+                    />
+                  )}
+
                   {/* Tick. The 44px target is the padded label around it, so the
                       grid column stays as narrow as the box itself. */}
                   <label className="-mt-2 flex h-11 w-5 cursor-pointer items-center justify-center md:-my-3">

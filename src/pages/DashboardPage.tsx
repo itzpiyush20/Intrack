@@ -26,6 +26,7 @@ import {
   AnimatedBar, RollingNumber,
   staggerParent, staggerChild, rowVariants, transition, SECTION_LABEL, ROW_TILE,
 } from '@/components/ui'
+import { openAddTransaction } from '@/components/ui/modalOrigin'
 import ActiveSubscriptionsWidget from '@/components/dashboard/ActiveSubscriptionsWidget'
 import ReceivablesCard from '@/components/dashboard/ReceivablesCard'
 import BalancesWidget from '@/components/dashboard/BalancesWidget'
@@ -792,7 +793,7 @@ export default function DashboardPage() {
                   <Settings className="h-4 w-4 shrink-0" aria-hidden="true" /> Customise
                 </Button>
                 <Button
-                  onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                  onClick={(e) => openAddTransaction(e.currentTarget)}
                   className="h-11 gap-1.5 font-semibold shadow-xs rounded-xl whitespace-nowrap"
                 >
                   <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
@@ -1443,7 +1444,7 @@ export default function DashboardPage() {
                         description="Every transaction you add or approve shows up here, newest first — so you can check at a glance that nothing is missing."
                         action={
                           <Button
-                            onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                            onClick={(e) => openAddTransaction(e.currentTarget)}
                             className="gap-1.5 font-semibold shadow-xs"
                           >
                             <Plus className="h-4 w-4 shrink-0" aria-hidden="true" /> Add Transaction
@@ -1542,9 +1543,9 @@ export default function DashboardPage() {
                 description="Add a transaction, or scan your inbox from Pending, and it will appear here."
                 action={
                   <Button
-                    onClick={() => {
+                    onClick={(e) => {
                       setShowAllRecentModal(false)
-                      window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))
+                      openAddTransaction(e.currentTarget)
                     }}
                     className="gap-1.5 font-semibold shadow-xs"
                   >

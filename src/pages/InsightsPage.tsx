@@ -23,6 +23,7 @@ import {
   staggerChild,
   transition,
 } from '@/components/ui'
+import { openAddTransaction } from '@/components/ui/modalOrigin'
 import { supabase } from '@/services/supabase'
 import { fetchAllTransactions } from '@/services/transactions'
 import { useAuth } from '@/context/AuthContext'
@@ -1099,7 +1100,7 @@ export default function InsightsPage() {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => window.dispatchEvent(new CustomEvent('intrack:open-add-transaction'))}
+                    onClick={(e) => openAddTransaction(e.currentTarget)}
                     className={LINK_BUTTON_SECONDARY}
                   >
                     Add Transaction

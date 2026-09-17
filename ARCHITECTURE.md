@@ -352,7 +352,10 @@ it must stay at zero.
 **Motion kit:** `src/components/ui/motion.ts` holds the `GLIDE` tokens and
 `glide()` (owner-chosen "Softer" no-overshoot curve at 1.1x speed). Blocks in
 `src/components/ui/`: `RollingNumber` (money totals on Home and Insights),
-`SlidingIndicator`, `MorphSurface`, `SwipeCard`, `AnimatedBar`. No haptics: Intrack ships as a website only, so vibration was
+`SlidingIndicator`, `MorphSurface`, `SwipeCard`, `AnimatedBar`. `modalOrigin.ts`
+lets `Modal` grow from the button that opened it; every Add Transaction button
+calls its `openAddTransaction(button)`, which dispatches the
+`intrack:open-add-transaction` event `AppLayout` listens for. No haptics: Intrack ships as a website only, so vibration was
 dropped (owner, 2026-09-17). The older motion names (`EASE_OUT`, `DURATION`,
 `INDICATOR_SPRING`, `rowVariants`…) are aliases of the glide values, so existing
 screens already move with the chosen feel.
