@@ -33,6 +33,11 @@
 // If the parent brings a card back under the same key while its
 // AnimatePresence exit is still running, framer reuses this instance; the
 // `useIsPresent` effect resets it so it does not come back stuck invisible.
+//
+// `swipeEnabled={false}` turns the drag off while keeping the buttons' glide
+// and guard — for pointers where dragging a card would fight text selection.
+// Drag never starts from a text input, textarea, select or contenteditable
+// inside the card (framer-motion's own rule), so editing a field cannot swipe.
 // ============================================
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -61,6 +66,8 @@ export interface SwipeCardProps {
   /** Seconds for the card to leave. */
   duration?: number
   ease?: Bezier
+  /** Allow dragging the card. Buttons keep working either way. Default true. */
+  swipeEnabled?: boolean
 }
 
 /** Used when the card has no measured width yet (e.g. jsdom). */
@@ -73,6 +80,7 @@ export default function SwipeCard({
   className,
   duration = GLIDE.slow,
   ease = GLIDE_EASE,
+  swipeEnabled = true,
 }: SwipeCardProps) {
   const reduce = useReducedMotion()
   const isPresent = useIsPresent()
@@ -161,7 +169,7 @@ export default function SwipeCard({
   return (
     <motion.div
       ref={setCard}
-      drag={leaving ? false : 'x'}
+      drag={leaving || !swipeEnabled ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.6}
       dragMomentum={false}

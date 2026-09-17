@@ -141,17 +141,37 @@ rejection logging or approval rules. Owner confirms twice before this round
 starts (standing rule for anything near the scanner).
 
 - Approve: card glides out to the right, the Expenses count in the nav ticks up
-  with `RollingNumber`.
-- Reject: card glides out to the left.
-- Mobile: `SwipeCard` — swipe right approves, left rejects. Buttons stay.
-  Before wiring it in: `handleApproveWithUndo` (and reject) must ignore a
-  transaction id that already has a timer in `pendingCommitTimers`, so a swipe
-  and "Approve all" cannot both act on one row; approve/reject callbacks should
-  return `false` on failure so the card glides back; check on a real phone that
-  a drifting tap on a card button is not read as a swipe.
+  with `RollingNumber` — **card glide done (2026-09-17); nav count not done,**
+  left for the pass that adds the nav badge. Neighbours close up while the card
+  leaves (`popLayout` + `layout`); bulk actions glide their rows the same way.
+- Reject: card glides out to the left — **done.**
+- Mobile: `SwipeCard` — swipe right approves, left rejects. Buttons stay —
+  **done, changed when built:** swipe is on only for a coarse pointer
+  (`(pointer: coarse)`). With a mouse, dragging inside a card is how text is
+  selected, and a card that slides under the cursor fights that. The buttons
+  call the card's own `swipeRight`/`swipeLeft`, so tap and swipe share one
+  guard, and are disabled while it leaves. Drag never starts from a text
+  field or select (framer-motion 12 skips those itself).
+  Preconditions — **done:** the undo-window timers moved out of the page into
+  `src/pages/pendingActions.ts`, one ledger for single, "Approve all" and bulk
+  actions. A row with an action waiting or writing is skipped, so it is
+  written once and comes off the totals once; the handlers return `false` for
+  a skipped row and the card glides back. Undo restores only rows whose write
+  it actually cancelled, once. Tests fail against the old behaviour. **Not
+  yet checked on a real phone:** that a drifting tap on a card button is not
+  read as a swipe (a 28px minimum and the shared guard mean the worst case is
+  the same single action).
 - Scan in progress: thin progress line plus a rolling count of emails checked;
   transactions found appear one at a time as results arrive, replacing the
-  spinner. Driven only by progress the scanner already reports.
+  spinner. Driven only by progress the scanner already reports — **done,
+  changed when built:** the line (`scaleX`, origin left) follows the
+  scanner's existing `{ phase, current, total }` events, each phase taking a
+  share, `saving` flushes ignored, never backwards (`scanProgressLine.ts`).
+  There is no single "emails checked" counter — each phase counts from zero —
+  so the first number of the scanner's own status text rolls instead. The
+  page receives found transactions only when the scan ends, so they are not
+  faked one at a time: the list rises in once, staggered and capped. The
+  button keeps its spinner as the busy state; the line sits under it.
 
 ## Identity files updated alongside
 

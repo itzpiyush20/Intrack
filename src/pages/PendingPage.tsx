@@ -12,8 +12,12 @@ import { useNextScan } from '@/hooks'
 import {
   Card, Button, Input, Select, Badge, EmptyState, Modal, TransactionIdentity,
   Skeleton, PageHeader, PageHeaderChip, SECTION_LABEL, transition, rowVariants,
+  RollingNumber, SwipeCard, GLIDE, glide,
 } from '@/components/ui'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { useCoarsePointer } from '@/components/ui/useCoarsePointer'
+import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer-motion'
+import { createPendingActionLedger } from './pendingActions'
+import { nextScanFraction, splitProgressCount } from './scanProgressLine'
 import {
   getTransactions,
   updateTransaction,
@@ -212,6 +216,66 @@ function errorMessage(err: unknown, fallback: string): string {
   return typeof message === 'string' && message ? message : fallback
 }
 
+/** The undo window between tapping Approve/Reject and the database write. */
+const UNDO_WINDOW_MS = 5000
+
+/** Cards past this index appear without the arrival rise (the spec's ~12-row limit). */
+const REVIEW_CARDS_ANIMATED = 12
+
+/** How a review card left the list — see `rowExits` in PendingPage. */
+type RowExit = 'card' | 'right' | 'left'
+
+/**
+ * A review card's list motion. Arrival is the shared row rise, each card a
+ * beat behind the one above (the `custom` delay, capped like staggerParent).
+ * Leaving depends on how: a card SwipeCard is already gliding off only fades
+ * with it, so it is not slid twice; a bulk action glides the whole row off to
+ * its side. Neighbours close the gap through `layout`.
+ */
+function reviewCardVariants(reduce: boolean | null, exitOf: () => RowExit | undefined): Variants {
+  const row = rowVariants(reduce)
+  return {
+    initial: row.initial,
+    animate: (delay: number = 0) => ({
+      opacity: 1,
+      x: 0,
+      y: 0,
+      transition: reduce ? { duration: 0 } : { ...glide(reduce, GLIDE.base), delay },
+    }),
+    exit: () => {
+      const how = exitOf()
+      if (reduce) return { opacity: 0, transition: { duration: 0 } }
+      if (how === 'card') return { opacity: 0, transition: glide(reduce, GLIDE.slow) }
+      if (how === 'right' || how === 'left') {
+        return { x: how === 'right' ? '110%' : '-110%', opacity: 0, transition: glide(reduce, GLIDE.slow) }
+      }
+      return { ...(row.exit as object), transition: transition(reduce) }
+    },
+  }
+}
+
+/** Arrival delay for the card at `index` of `count`: the staggerParent step, capped at 0.24s in total. */
+function reviewCardDelay(index: number, count: number): number {
+  const step = Math.min(0.24 / Math.max(Math.min(count, REVIEW_CARDS_ANIMATED), 1), 0.04)
+  return Math.min(index * step, 0.24)
+}
+
+/**
+ * The scanner's own status line, with its first number rolling as it counts.
+ * The wording is exactly `formatScanProgress`'s.
+ */
+function ScanStatusText({ text }: { text: string }) {
+  const parts = splitProgressCount(text)
+  if (!parts) return <>{text}</>
+  return (
+    <>
+      {parts.before}
+      <RollingNumber value={parts.count} format={String} rollOnMount={false} duration={GLIDE.fast} />
+      {parts.after}
+    </>
+  )
+}
+
 export default function PendingPage() {
   const { user, connectGmail, hasGoogleToken, notifyGoogleTokenCleared, profile } = useAuth()
 
@@ -349,6 +413,12 @@ export default function PendingPage() {
   // as the engine reports its first phase.
   const [scanTakingLong, setScanTakingLong] = useState(false)
   const [scanProgress, setScanProgress] = useState<string | null>(null)
+  // How far along the thin line under the scan button is, 0..1. Driven only by
+  // the progress events the scanner already emits (scanProgressLine.ts).
+  const [scanFraction, setScanFraction] = useState(0)
+  // Swipe to approve/reject only where a finger is the pointer. With a mouse,
+  // dragging inside a card selects text; buttons work everywhere.
+  const swipeEnabled = useCoarsePointer()
 
   // ── Fetch last scan log ──────────────────────────────────
   const fetchLastScanLog = useCallback(async () => {
@@ -667,38 +737,54 @@ export default function PendingPage() {
   // One-tap approve: removes the row immediately (feels instant), commits
   // the write a few seconds later, and gives the user a real Undo window
   // in between instead of a confirm-before-you-can-act modal.
-  const pendingCommitTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
-  const pendingCommitTimers = pendingCommitTimersRef.current
+  //
+  // Every approve and reject — a card's button or swipe, "Approve all", a bulk
+  // action — goes through one ledger (pendingActions.ts), which acts on a row
+  // at most once until its write settles or Undo cancels it. A swipe plus a
+  // tap, a double tap, or a single approve followed by "Approve all" used to
+  // schedule two writes for one transaction and take it off the totals twice.
+  const [actionLedger] = useState(createPendingActionLedger)
 
-  const handleApproveWithUndo = (txn: TransactionRow) => {
+  // How each row left, read by its exit animation: 'card' when SwipeCard is
+  // already gliding the card off itself, 'right'/'left' for a bulk action.
+  // A mutable map held in state (never replaced), like SwipeCard's guard.
+  const [rowExits] = useState(() => new Map<string, RowExit>())
+
+  const hideRows = (rows: TransactionRow[], exit: RowExit) => {
+    const ids = new Set(rows.map((t) => t.id))
+    rows.forEach((t) => rowExits.set(t.id, exit))
+    setPendingTxns((prev) => prev.filter((t) => !ids.has(t.id)))
+    setTotalPendingCount((prev) => Math.max(0, prev - rows.length))
+    adjustPendingTotals(rows, -1)
+  }
+
+  const restoreRows = (rows: TransactionRow[]) => {
+    const ids = new Set(rows.map((t) => t.id))
+    rows.forEach((t) => rowExits.delete(t.id))
+    // Filtered first so a list refreshed during the undo window cannot end up
+    // holding the row twice under one key.
+    setPendingTxns((prev) => [...rows, ...prev.filter((t) => !ids.has(t.id))])
+    setTotalPendingCount((prev) => prev + rows.length)
+    adjustPendingTotals(rows, 1)
+  }
+
+  /** Returns false when the row is already being acted on, so its card glides back. */
+  const handleApproveWithUndo = (txn: TransactionRow): boolean => {
     const fields = editingFields[txn.id] || defaultReviewFields(txn)
-
-    setPendingTxns((prev) => prev.filter((t) => t.id !== txn.id))
-    setTotalPendingCount((prev) => Math.max(0, prev - 1))
-    adjustPendingTotals([txn], -1)
-
-    const timer = setTimeout(() => {
-      pendingCommitTimers.delete(txn.id)
-      commitApproval(txn, fields)
-    }, 5000)
-    pendingCommitTimers.set(txn.id, timer)
+    const run = actionLedger.schedule({
+      txns: [txn],
+      delayMs: UNDO_WINDOW_MS,
+      hide: (rows) => hideRows(rows, 'card'),
+      restore: restoreRows,
+      commit: () => commitApproval(txn, fields),
+    })
+    if (!run) return false
 
     showToast('Transaction approved.', 'success', {
-      duration: 5000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          const pending = pendingCommitTimers.get(txn.id)
-          if (pending) {
-            clearTimeout(pending)
-            pendingCommitTimers.delete(txn.id)
-          }
-          setPendingTxns((prev) => [txn, ...prev])
-          setTotalPendingCount((prev) => prev + 1)
-          adjustPendingTotals([txn], 1)
-        },
-      },
+      duration: UNDO_WINDOW_MS,
+      action: { label: 'Undo', onClick: run.undo },
     })
+    return true
   }
 
   // Bulk approve — only offered for high-confidence suggestions (>=80%,
@@ -709,43 +795,25 @@ export default function PendingPage() {
       const suggestion = applyMerchantRules(txn.merchant || '', (txn as any).notes || '', txn.category)
       return suggestion.confidence >= 80
     })
-    if (eligible.length === 0) return
 
-    setPendingTxns((prev) => prev.filter((t) => !eligible.some((e) => e.id === t.id)))
-    setTotalPendingCount((prev) => Math.max(0, prev - eligible.length))
-    adjustPendingTotals(eligible, -1)
-
-    const snapshot = eligible.map((txn) => ({
-      txn,
-      fields: editingFields[txn.id] || defaultReviewFields(txn),
-    }))
+    // Fields are snapshotted now, as the cards show them.
+    const fieldsById = new Map(eligible.map((txn) => [txn.id, editingFields[txn.id] || defaultReviewFields(txn)]))
     // Bulk approve intentionally never offers a rule-creation suggestion —
     // showing one banner per merchant across many transactions would be spammy.
     // Rule creation stays a single-transaction, explicit opt-in action.
+    const run = actionLedger.schedule({
+      txns: eligible,
+      delayMs: UNDO_WINDOW_MS,
+      hide: (rows) => hideRows(rows, 'right'),
+      restore: restoreRows,
+      commit: (rows) => Promise.all(rows.map((txn) => commitApproval(txn, fieldsById.get(txn.id)!))),
+    })
+    if (!run) return
+    const n = run.acted.length
 
-    const timer = setTimeout(() => {
-      snapshot.forEach(({ txn }) => pendingCommitTimers.delete(txn.id))
-      snapshot.forEach(({ txn, fields }) => commitApproval(txn, fields))
-    }, 5000)
-    snapshot.forEach(({ txn }) => pendingCommitTimers.set(txn.id, timer))
-
-    showToast(`Approved ${eligible.length} high-confidence transaction${eligible.length === 1 ? '' : 's'}.`, 'success', {
-      duration: 5000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          snapshot.forEach(({ txn }) => {
-            const pending = pendingCommitTimers.get(txn.id)
-            if (pending) {
-              clearTimeout(pending)
-              pendingCommitTimers.delete(txn.id)
-            }
-          })
-          setPendingTxns((prev) => [...snapshot.map((s) => s.txn), ...prev])
-          setTotalPendingCount((prev) => prev + eligible.length)
-          adjustPendingTotals(eligible, 1)
-        },
-      },
+    showToast(`Approved ${n} high-confidence transaction${n === 1 ? '' : 's'}.`, 'success', {
+      duration: UNDO_WINDOW_MS,
+      action: { label: 'Undo', onClick: run.undo },
     })
   }
 
@@ -778,37 +846,26 @@ export default function PendingPage() {
     }
   }
 
-  // One-tap reject: removes the row immediately, commits the delete a few
+  // One-tap reject: removes the row immediately, commits the write a few
   // seconds later, and gives a real Undo window — same friction-reduction
   // pattern as handleApproveWithUndo, since a blocking confirm modal here
   // was an arbitrary extra step for a comparably reversible action.
-  const handleRejectWithUndo = (txn: TransactionRow) => {
-    setPendingTxns((prev) => prev.filter((t) => t.id !== txn.id))
-    setTotalPendingCount((prev) => Math.max(0, prev - 1))
-    adjustPendingTotals([txn], -1)
-
-    const timer = setTimeout(() => {
-      pendingCommitTimers.delete(txn.id)
-      handleReject(txn)
-    }, 5000)
-    pendingCommitTimers.set(txn.id, timer)
+  /** Returns false when the row is already being acted on, so its card glides back. */
+  const handleRejectWithUndo = (txn: TransactionRow): boolean => {
+    const run = actionLedger.schedule({
+      txns: [txn],
+      delayMs: UNDO_WINDOW_MS,
+      hide: (rows) => hideRows(rows, 'card'),
+      restore: restoreRows,
+      commit: () => handleReject(txn),
+    })
+    if (!run) return false
 
     showToast('Alert rejected.', 'success', {
-      duration: 5000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          const pending = pendingCommitTimers.get(txn.id)
-          if (pending) {
-            clearTimeout(pending)
-            pendingCommitTimers.delete(txn.id)
-          }
-          setPendingTxns((prev) => [txn, ...prev])
-          setTotalPendingCount((prev) => prev + 1)
-          adjustPendingTotals([txn], 1)
-        },
-      },
+      duration: UNDO_WINDOW_MS,
+      action: { label: 'Undo', onClick: run.undo },
     })
+    return true
   }
 
   // ── Bulk actions on a selection the user makes ───────────
@@ -842,65 +899,47 @@ export default function PendingPage() {
    * Shared body of bulk approve and bulk reject: clear the rows from view at
    * once, schedule one timer that commits them all, and offer one Undo for the
    * whole batch. Twelve separate toasts for twelve rows would bury the Undo
-   * that matters.
+   * that matters. Rows already being acted on are left out.
    */
   const runBulk = (
     txns: TransactionRow[],
-    commit: (txn: TransactionRow) => void,
-    message: (n: number) => string
+    commit: (txn: TransactionRow) => Promise<unknown>,
+    message: (n: number) => string,
+    exit: RowExit
   ) => {
-    if (txns.length === 0) return
-    const snapshot = txns.slice()
-    const ids = new Set(snapshot.map((t) => t.id))
-
-    setPendingTxns((prev) => prev.filter((t) => !ids.has(t.id)))
-    setTotalPendingCount((prev) => Math.max(0, prev - snapshot.length))
-    adjustPendingTotals(snapshot, -1)
+    const run = actionLedger.schedule({
+      txns,
+      delayMs: UNDO_WINDOW_MS,
+      hide: (rows) => hideRows(rows, exit),
+      restore: restoreRows,
+      commit: (rows) => Promise.all(rows.map(commit)),
+    })
+    if (!run) return
     clearSelection()
 
-    const timer = setTimeout(() => {
-      snapshot.forEach((txn) => pendingCommitTimers.delete(txn.id))
-      snapshot.forEach(commit)
-    }, 5000)
-    snapshot.forEach((txn) => pendingCommitTimers.set(txn.id, timer))
-
-    showToast(message(snapshot.length), 'success', {
-      duration: 5000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          snapshot.forEach((txn) => {
-            const pending = pendingCommitTimers.get(txn.id)
-            if (pending) {
-              clearTimeout(pending)
-              pendingCommitTimers.delete(txn.id)
-            }
-          })
-          setPendingTxns((prev) => [...snapshot, ...prev])
-          setTotalPendingCount((prev) => prev + snapshot.length)
-          adjustPendingTotals(snapshot, 1)
-        },
-      },
+    showToast(message(run.acted.length), 'success', {
+      duration: UNDO_WINDOW_MS,
+      action: { label: 'Undo', onClick: run.undo },
     })
   }
 
   const handleBulkApprove = () => {
+    // Fields are snapshotted now, as the cards show them.
+    const fieldsById = new Map(selectedTxns.map((txn) => [txn.id, editingFields[txn.id] || defaultReviewFields(txn)]))
     runBulk(
       selectedTxns,
-      (txn) =>
-        commitApproval(
-          txn,
-          editingFields[txn.id] || defaultReviewFields(txn)
-        ),
-      (n) => `Approved ${n} transaction${n === 1 ? '' : 's'}.`
+      (txn) => commitApproval(txn, fieldsById.get(txn.id)!),
+      (n) => `Approved ${n} transaction${n === 1 ? '' : 's'}.`,
+      'right'
     )
   }
 
   const handleBulkReject = () => {
     runBulk(
       selectedTxns,
-      (txn) => { void handleReject(txn) },
-      (n) => `Rejected ${n} alert${n === 1 ? '' : 's'}.`
+      (txn) => handleReject(txn),
+      (n) => `Rejected ${n} alert${n === 1 ? '' : 's'}.`,
+      'left'
     )
   }
 
@@ -1081,6 +1120,7 @@ export default function PendingPage() {
   const handleScan = async () => {
     setScanning(true)
     setScanProgress(null)
+    setScanFraction(0)
     setScanSuccessMessage(null)
     setScanCooldownMessage(null)
     setError(null)
@@ -1094,7 +1134,12 @@ export default function PendingPage() {
       }
 
       const res = await withTimeout(
-        scanRealGmailInbox({ onProgress: (p) => setScanProgress(formatScanProgress(p)) }),
+        scanRealGmailInbox({
+          onProgress: (p) => {
+            setScanProgress(formatScanProgress(p))
+            setScanFraction((prev) => nextScanFraction(prev, p))
+          },
+        }),
         90000,
         'Gmail scan'
       )
@@ -1163,6 +1208,7 @@ export default function PendingPage() {
     } finally {
       setScanning(false)
       setScanProgress(null)
+      setScanFraction(0)
     }
   }
 
@@ -1272,10 +1318,27 @@ export default function PendingPage() {
                   <Sparkles className="h-4 w-4 text-white" /> Scan Bank Alerts
                 </Button>
               </div>
-              {scanning && (scanProgress || scanTakingLong) ? (
-                <span role="status" className="text-xs text-sb-ink-muted">
-                  {scanProgress ?? 'Still scanning your inbox — large inboxes can take up to a minute…'}
-                </span>
+              {scanning ? (
+                <div className="flex w-full min-w-48 flex-col items-start gap-1.5 md:items-end">
+                  {/* Thin progress line: scaleX from the left, never backwards. */}
+                  <div aria-hidden="true" className="h-0.5 w-full overflow-hidden rounded-full bg-sb-hairline">
+                    <motion.div
+                      className="h-full w-full origin-left rounded-full bg-brand-500"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: scanFraction }}
+                      transition={glide(reduceMotion, GLIDE.base)}
+                    />
+                  </div>
+                  {(scanProgress || scanTakingLong) && (
+                    <span role="status" className="text-xs text-sb-ink-muted">
+                      {scanProgress ? (
+                        <ScanStatusText text={scanProgress} />
+                      ) : (
+                        'Still scanning your inbox — large inboxes can take up to a minute…'
+                      )}
+                    </span>
+                  )}
+                </div>
               ) : nextScanAt ? (
                 <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Calendar className="h-3 w-3 text-brand-600 shrink-0" /> Next scan {formatNextScanTime(nextScanAt)}
@@ -1766,9 +1829,13 @@ export default function PendingPage() {
               />
             </Card>
           ) : (
-            <ul className="space-y-3">
-            <AnimatePresence initial={false}>
-            {pendingTxns.map((txn) => {
+            // popLayout lifts a leaving card out of the flow at once, so its
+            // neighbours close up while it glides off rather than after.
+            // overflow-x-clip keeps a card gliding off-screen from widening the
+            // page, without clipping a picker's suggestion list vertically.
+            <ul className="relative space-y-3 overflow-x-clip">
+            <AnimatePresence mode="popLayout">
+            {pendingTxns.map((txn, index) => {
               const localFields = editingFields[txn.id] || defaultReviewFields(txn)
               const isDebit = txn.type === 'debit'
               const cardDetails = formatCardDetails(txn)
@@ -1798,8 +1865,10 @@ export default function PendingPage() {
                 <motion.li
                   key={txn.id}
                   layout={!reduceMotion}
-                  variants={rowVariants(reduceMotion)}
-                  initial="initial"
+                  variants={reviewCardVariants(reduceMotion, () => rowExits.get(txn.id))}
+                  custom={reviewCardDelay(index, pendingTxns.length)}
+                  // Long lists rise in only the first screenful on first paint.
+                  initial={index < REVIEW_CARDS_ANIMATED ? 'initial' : false}
                   animate="animate"
                   exit="exit"
                   transition={transition(reduceMotion)}
@@ -1808,6 +1877,15 @@ export default function PendingPage() {
                   // z-[5]: above sibling cards, below the sticky selection bar (z-10).
                   className="relative focus-within:z-[5]"
                 >
+                {/* One card, one action: its buttons and its swipe share SwipeCard's
+                    guard, and the handlers return false for a row already being
+                    acted on so the card glides back. */}
+                <SwipeCard
+                  swipeEnabled={swipeEnabled}
+                  onSwipeRight={() => handleApproveWithUndo(txn)}
+                  onSwipeLeft={() => handleRejectWithUndo(txn)}
+                >
+                {({ swipeRight, swipeLeft, leaving }) => (
                 <Card
                   className={cn(
                     'p-4 sm:p-5 flex flex-col gap-4 border-sb-hairline bg-surface-1 shadow-card hover:shadow-card-hover transition-all duration-200',
@@ -2016,20 +2094,24 @@ export default function PendingPage() {
                     <Button
                       variant="secondary"
                       className="h-11 justify-center gap-1.5 text-[var(--status-danger-text)] border-[var(--status-danger-border)] hover:bg-[var(--status-danger-subtle)] hover:border-[var(--status-danger-text)]/40"
-                      onClick={() => handleRejectWithUndo(txn)}
+                      onClick={swipeLeft}
+                      disabled={leaving}
                       aria-label={`Reject ${identity.title}`}
                     >
                       <X className="h-4 w-4" aria-hidden="true" /> Reject
                     </Button>
                     <Button
                       className="h-11 min-w-[9rem] justify-center gap-1.5"
-                      onClick={() => handleApproveWithUndo(txn)}
+                      onClick={swipeRight}
+                      disabled={leaving}
                       aria-label={`Approve ${identity.title}`}
                     >
                       <Check className="h-4 w-4" aria-hidden="true" /> Approve
                     </Button>
                   </div>
                 </Card>
+                )}
+                </SwipeCard>
                 </motion.li>
               )
             })}

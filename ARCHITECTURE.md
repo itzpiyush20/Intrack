@@ -352,7 +352,11 @@ it must stay at zero.
 **Motion kit:** `src/components/ui/motion.ts` holds the `GLIDE` tokens and
 `glide()` (owner-chosen "Softer" no-overshoot curve at 1.1x speed). Blocks in
 `src/components/ui/`: `RollingNumber` (money totals on Home and Insights),
-`SlidingIndicator`, `MorphSurface`, `SwipeCard`, `AnimatedBar`. `modalOrigin.ts`
+`SlidingIndicator`, `MorphSurface`, `SwipeCard` (Pending review cards; swipe
+on only for a coarse pointer via `useCoarsePointer.ts`), `AnimatedBar`.
+Pending's undo window lives in `src/pages/pendingActions.ts` — one ledger so a
+row is approved or rejected once — and its scan progress line reads the
+scanner's existing events through `src/pages/scanProgressLine.ts`. `modalOrigin.ts`
 lets `Modal` grow from the button that opened it; every Add Transaction button
 calls its `openAddTransaction(button)`, which dispatches the
 `intrack:open-add-transaction` event `AppLayout` listens for. No haptics: Intrack ships as a website only, so vibration was

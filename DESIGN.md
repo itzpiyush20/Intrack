@@ -118,8 +118,8 @@ roll; screen readers get the exact figure); the date filter's Month/Custom
 highlight slides (`SlidingIndicator`); bars glide from the old value to the new
 one; the budget burn-down line, balance-score ring and cash-flow runway draw in
 once on arrival; hovering a bar or category row dims its siblings (pointer
-devices only, via `[@media(hover:hover)]`). Blocks waiting for later rounds:
-`MorphSurface`, `SwipeCard`.
+devices only, via `[@media(hover:hover)]`). Block waiting for a later round:
+`MorphSurface`.
 
 **Expenses and the Add form:** every Add Transaction button opens the one form
 from where the button sits — `Modal`'s optional `origin` (viewport px, from
@@ -134,6 +134,25 @@ reduced motion without the beat. Deleting a row removes it as soon as the
 delete succeeds; it slides out and its neighbours close up via `layout`.
 Refetches after a save, delete, import or split keep the rows on screen rather
 than flashing the skeleton, which is what used to make the list jump.
+
+**Pending:** each review card sits in a `SwipeCard`. Approve glides the card
+off to the right, Reject to the left (`GLIDE.slow`), and its neighbours close
+up at the same time (`AnimatePresence mode="popLayout"` plus `layout`); an
+Undo inside that glide brings the same card back, and after it the card rises
+back in at the top. "Approve all" and bulk approve/reject glide their rows off
+to the matching side. The card's Approve/Reject buttons run through the swipe
+itself and are disabled while the card leaves. Swiping is on only for a
+coarse pointer (`useCoarsePointer`): with a mouse, dragging inside a card
+selects text; buttons work everywhere, and drag never starts from a field,
+select or text box (framer-motion's own rule). Every approve and reject goes
+through one ledger (`src/pages/pendingActions.ts`), so a row is acted on once
+— a second swipe, tap or "Approve all" on it is ignored and the card glides
+back. While a scan runs, a 2px line under the Scan button grows from the left
+(`scaleX`) through the phases the scanner already reports, never backwards,
+and the first number in its status text rolls (`RollingNumber`). Found
+transactions still arrive together when the scan ends — the page only gets
+them then — so the list rises in once, each card a beat behind (first 12
+cards, 0.24s total).
 
 Under `prefers-reduced-motion` movement collapses to `duration: 0`. Marketing
 pages (landing, pricing, about) keep their own motion and are outside this brief.

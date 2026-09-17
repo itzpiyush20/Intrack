@@ -120,6 +120,24 @@ describe('SwipeCard', () => {
     expect(onSwipeRight).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps the buttons and their guard when swiping is switched off', () => {
+    const onSwipeRight = vi.fn()
+    render(
+      <SwipeCard onSwipeRight={onSwipeRight} onSwipeLeft={vi.fn()} swipeEnabled={false}>
+        {({ swipeRight, leaving }) => (
+          <div>
+            <button type="button" onClick={swipeRight}>Approve</button>
+            <span data-testid="leaving">{String(leaving)}</span>
+          </div>
+        )}
+      </SwipeCard>,
+    )
+    fireEvent.click(screen.getByText('Approve'))
+    fireEvent.click(screen.getByText('Approve'))
+    expect(onSwipeRight).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('leaving').textContent).toBe('true')
+  })
+
   it('stays gone when the action succeeds', async () => {
     const onSwipeRight = vi.fn().mockResolvedValue(true)
     renderCard({ onSwipeRight, onSwipeLeft: vi.fn() })
