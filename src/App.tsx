@@ -5,7 +5,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
+import { motion, MotionConfig } from 'framer-motion'
 import { AuthProvider, ToastProvider, CategoriesProvider, useAuth } from '@/context'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import AdminRoute from '@/components/auth/AdminRoute'
@@ -126,75 +126,79 @@ function PageLoader() {
 // ─── Animated Routes — page transition wrapper ───────────
 function AnimatedRoutes() {
   const location = useLocation()
-  // No `mode="wait"`, and no exit animation.
+  // NO AnimatePresence here. A plain keyed motion.div: React unmounts the
+  // outgoing route the instant the key changes, and the incoming one animates
+  // in. Entry-only, which is what the eye reads anyway.
   //
-  // `mode="wait"` holds the incoming page until the outgoing one has finished
-  // exiting. When a route redirects immediately on mount — a mistyped URL,
-  // /login, /signup, or any protected route opened while signed out — the key
-  // changes before the entry animation has finished, so the exit never starts
-  // and the incoming page is never mounted. The result was a blank page showing
-  // only the cookie banner: no console error, no failed request, and a correct
-  // URL in the address bar. Reproduced on production, and verified fixed
-  // against a production build here.
+  // AnimatePresence — even with no `exit` and no `mode="wait"` — kept the
+  // outgoing page mounted FOREVER on the signed-in routes, which made the app
+  // unusable (reproduced on production, 2026-09-18). Every page renders
+  // AppLayout, whose nav highlight is a shared `layoutId` (SlidingIndicator).
+  // framer-motion holds a removed subtree that owns a `layoutId` so it can
+  // hand the highlight over to the new one, and that hand-off never resolved
+  // here, so nothing was ever removed. Each page sets `min-height: 100vh`, so
+  // they stacked: three clicks left three whole pages in #root with the live
+  // one below the fold. URL and tab title were already correct, so a click
+  // read as a dead link and only a reload — a fresh document holding one page
+  // — appeared to work.
   //
-  // Dropping `mode="wait"` alone would let both pages render together for the
-  // length of the exit, and since each sets `min-height: 100vh` the document
-  // briefly doubles in height and the scrollbar jumps. Removing `exit` too
-  // means the outgoing page unmounts at once, so there is no overlap.
-  // Transitions are entry-only now, which is what the eye reads anyway.
+  // `mode="wait"` is not the way back either: it holds the incoming page until
+  // the outgoing one has exited, and a route that redirects on mount (a
+  // mistyped URL, /login, /signup, any protected route opened while signed
+  // out) changes the key before the entry animation finishes, so the exit
+  // never starts and the incoming page never mounts — a blank page with a
+  // correct URL and no console error.
   return (
-    <AnimatePresence initial={false}>
-      <motion.div
-        key={location.pathname}
-        // IMPORTANT: animate TRANSFORM ONLY — never opacity — for the app-shell
-        // wrapper. framer-motion sets `initial` as an inline style on mount and
-        // fades to `animate` via requestAnimationFrame. The browser PAUSES rAF in a
-        // backgrounded / mid-transition tab (exactly the tab state during a Google
-        // OAuth redirect back to /dashboard) and on a GPU compositor stall (a known
-        // failure mode here — see commit 55d2ace). If we gated visibility on opacity,
-        // a stalled animation would leave the ENTIRE app (nav + content) at opacity:0
-        // — a blank white screen with a correct page title. A stalled transform only
-        // leaves content a few px off, so the app is always visible regardless.
-        initial={{ y: 8 }}
-        animate={{ y: 0 }}
-        transition={{ duration: GLIDE.base, ease: GLIDE_EASE }}
-        style={{ minHeight: '100vh' }}
-      >
-        <Routes location={location}>
-          {/* Public routes */}
-          <Route path="/"                element={<LandingPage />} />
-          <Route path="/login"           element={<LoginRedirect />} />
-          <Route path="/signup"          element={<SignupRedirect />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/support"         element={<SupportPage />} />
-          <Route path="/privacy"         element={<PrivacyPage />} />
-          <Route path="/about"           element={<AboutPage />} />
-          <Route path="/terms"           element={<TermsPage />} />
-          <Route path="/pricing"         element={<PricingPage />} />
-          <Route path="/refund-policy"   element={<RefundPage />} />
-          <Route path="/reset-password"  element={<ResetPasswordPage />} />
+    <motion.div
+      key={location.pathname}
+      // IMPORTANT: animate TRANSFORM ONLY — never opacity — for the app-shell
+      // wrapper. framer-motion sets `initial` as an inline style on mount and
+      // fades to `animate` via requestAnimationFrame. The browser PAUSES rAF in a
+      // backgrounded / mid-transition tab (exactly the tab state during a Google
+      // OAuth redirect back to /dashboard) and on a GPU compositor stall (a known
+      // failure mode here — see commit 55d2ace). If we gated visibility on opacity,
+      // a stalled animation would leave the ENTIRE app (nav + content) at opacity:0
+      // — a blank white screen with a correct page title. A stalled transform only
+      // leaves content a few px off, so the app is always visible regardless.
+      initial={{ y: 8 }}
+      animate={{ y: 0 }}
+      transition={{ duration: GLIDE.base, ease: GLIDE_EASE }}
+      style={{ minHeight: '100vh' }}
+    >
+      <Routes location={location}>
+        {/* Public routes */}
+        <Route path="/"                element={<LandingPage />} />
+        <Route path="/login"           element={<LoginRedirect />} />
+        <Route path="/signup"          element={<SignupRedirect />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/support"         element={<SupportPage />} />
+        <Route path="/privacy"         element={<PrivacyPage />} />
+        <Route path="/about"           element={<AboutPage />} />
+        <Route path="/terms"           element={<TermsPage />} />
+        <Route path="/pricing"         element={<PricingPage />} />
+        <Route path="/refund-policy"   element={<RefundPage />} />
+        <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard"       element={<DashboardPage />} />
-            <Route path="/expenses"        element={<ExpensesPage />} />
-            <Route path="/budgets"         element={<BudgetsPage />} />
-            <Route path="/pending"         element={<PendingPage />} />
-            <Route path="/insights"        element={<InsightsPage />} />
-            <Route path="/settings"        element={<SettingsPage />} />
-            <Route path="/profile"         element={<ProfilePage />} />
-            <Route path="/subscriptions"   element={<SubscriptionsPage />} />
-            <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminPage />} />
-            </Route>
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard"       element={<DashboardPage />} />
+          <Route path="/expenses"        element={<ExpensesPage />} />
+          <Route path="/budgets"         element={<BudgetsPage />} />
+          <Route path="/pending"         element={<PendingPage />} />
+          <Route path="/insights"        element={<InsightsPage />} />
+          <Route path="/settings"        element={<SettingsPage />} />
+          <Route path="/profile"         element={<ProfilePage />} />
+          <Route path="/subscriptions"   element={<SubscriptionsPage />} />
+          <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
+        </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </motion.div>
   )
 }
 

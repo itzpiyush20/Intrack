@@ -112,6 +112,14 @@ not cache the update poll. `vercel.json` serves
 `vendor-*` chunks so their hashes survive deploys. Background:
 `plans/mobile-link-reliability.md`.
 
+**Page transitions are a keyed `motion.div` and nothing else** — no
+`AnimatePresence` around the routes. Wrapping them in one kept the outgoing
+page mounted forever on the signed-in routes (every page renders `AppLayout`,
+whose nav highlight is a shared `layoutId`), so pages stacked under each other
+at `min-height: 100vh` and a click looked like a dead link. The reasoning, and
+why `mode="wait"` is not the way back, is in the comment above `AnimatedRoutes`
+in `App.tsx`.
+
 ---
 
 ## 4. Services (`src/services/`)

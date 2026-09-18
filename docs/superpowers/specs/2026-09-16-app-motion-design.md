@@ -45,8 +45,11 @@ time.
    by the existing `formatCurrency`.
 5. **Keep the route-wrapper fixes in `src/App.tsx`.** The page transition must
    not animate opacity (a stalled animation once left the app blank after the
-   Google OAuth redirect) and must not use `AnimatePresence mode="wait"` (blank
-   page on immediate redirects). Page changes move by transform only.
+   Google OAuth redirect), must not use `AnimatePresence mode="wait"` (blank
+   page on immediate redirects), and must not use `AnimatePresence` at all: it
+   held the outgoing page forever on the signed-in routes, because `AppLayout`
+   carries a shared `layoutId`, and pages stacked one below another. A keyed
+   `motion.div` alone. Page changes move by transform only.
 
 ## The motion kit (built first)
 
