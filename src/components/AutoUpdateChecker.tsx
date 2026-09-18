@@ -101,6 +101,9 @@ export default function AutoUpdateChecker() {
     const apply = () => {
       try {
         const nowTime = Date.now()
+        // This key guards THIS reload only. Route-chunk recovery has its own
+        // ('intrack_last_chunk_reload', chunkLoad.ts): sharing one key meant an
+        // update reload suppressed the chunk reload that had to follow it.
         const lastReload = sessionStorage.getItem('intrack_last_auto_reload')
         if (lastReload && nowTime - Number(lastReload) < 10000) {
           console.warn('webapp: auto-reload loop detected & suppressed.')

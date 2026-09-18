@@ -27,7 +27,16 @@ export function isChunkLoadError(err: unknown): boolean {
   return typeof e.message === 'string' && CHUNK_ERROR.test(e.message)
 }
 
-export const RELOAD_GUARD_KEY = 'intrack_last_auto_reload'
+// A key of its own, NOT the one AutoUpdateChecker writes when it applies a new
+// build. They were the same key, so the ordinary "a deploy happened, reload on
+// the next navigation" reload armed this guard as well: a chunk that 404'd in
+// the seconds after it — exactly when a stale chunk is most likely — found the
+// guard already set, skipped the reload that would have fetched fresh HTML, and
+// left the user on the error screen. The two reloads have different causes and
+// each only needs protecting from itself. The asset-error handler in index.html
+// deliberately shares THIS key: it and this function recover from the same
+// failure and must not both reload for it.
+export const RELOAD_GUARD_KEY = 'intrack_last_chunk_reload'
 const RELOAD_GUARD_MS = 15000
 
 /**

@@ -102,7 +102,10 @@ Anything unmatched redirects to `/`.
 **Loading and updates (the app shell).** Every page except the landing, support
 and forgot-password pages is a lazy chunk, declared once in `pageImports` in
 `App.tsx`. A failed chunk download is retried (`lazyWithRetry` in
-`src/utils/chunkLoad.ts`), and then `ErrorBoundary` reloads once. The download
+`src/utils/chunkLoad.ts`), and then `ErrorBoundary` reloads once — guarded by
+`intrack_last_chunk_reload`, which is deliberately NOT the key
+`AutoUpdateChecker` uses for its own reloads, so applying a new build cannot
+suppress the recovery a stale chunk needs seconds later. The download
 starts when a finger lands on a link (`prefetchOnIntent`). `AutoUpdateChecker`
 polls `index.html` for a new build and applies it only on the next route change,
 never on focus. `public/sw.js` is network-first for pages, cache-first for

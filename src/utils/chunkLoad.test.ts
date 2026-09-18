@@ -75,6 +75,23 @@ describe('reloadOnceForChunkError', () => {
     expect(reloadOnceForChunkError(120_000)).toBe(true)
     expect(reload).toHaveBeenCalledTimes(2)
   })
+
+  // Both reloads used to share one key. AutoUpdateChecker reloads the tab onto
+  // a new build at a route change, and a chunk from the old build 404s most
+  // often in exactly the seconds that follow — so the update reload armed this
+  // guard, the recovery reload was skipped, and the user was left on the error
+  // screen with a route that a reload would have fixed.
+  it('is not suppressed by an auto-update reload', () => {
+    sessionStorage.setItem('intrack_last_auto_reload', '99000')
+    expect(reloadOnceForChunkError(100_000)).toBe(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not disturb the auto-update guard', () => {
+    sessionStorage.setItem('intrack_last_auto_reload', '99000')
+    reloadOnceForChunkError(100_000)
+    expect(sessionStorage.getItem('intrack_last_auto_reload')).toBe('99000')
+  })
 })
 
 describe('prefetchOnIntent', () => {

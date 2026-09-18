@@ -130,12 +130,16 @@
             if (src && (src.indexOf('/assets/') !== -1 || src.indexOf('index-') !== -1)) {
               console.warn('HTML Head: Asset load failed. Checking for reload loop...', src);
               var now = Date.now();
-              var lastReload = sessionStorage.getItem('intrack_last_auto_reload');
+              // 'intrack_last_chunk_reload', not the auto-update key: an
+              // update reload must not suppress this recovery. Shared with
+              // reloadOnceForChunkError in src/utils/chunkLoad.ts, which
+              // recovers from the same failure.
+              var lastReload = sessionStorage.getItem('intrack_last_chunk_reload');
               if (lastReload && (now - Number(lastReload) < 15000)) {
                 console.error('HTML Head: Reload loop suppressed.');
                 return;
               }
-              sessionStorage.setItem('intrack_last_auto_reload', String(now));
+              sessionStorage.setItem('intrack_last_chunk_reload', String(now));
               window.location.reload();
             }
           }
